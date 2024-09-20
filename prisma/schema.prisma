@@ -1,0 +1,305 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "cockroachdb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum Module {
+  AUTH
+}
+
+enum Acc {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum Yn {
+  YES
+  NO
+}
+
+model User {
+  id            Int       @id @default(sequence())
+  firstname     String
+  lastname      String
+  othernames    String? 
+  image         String?
+  email         String    @unique
+  phone         String    @unique
+  country       String?
+  state         String?
+  emailverified DateTime?
+  address       String?
+  role          String    @default("USER")
+  permissions   String?
+  password      String
+  branch        Int       @default(1)
+  registrationpoint   Int    @default(0)
+  dateadded     DateTime  @default(now())
+  lastupdated   DateTime?
+  status        String    @default("ACTIVE")
+  createdby     Int       @default(0)
+  sessions      Session[]
+  activities    Activity[] 
+}
+
+model Roles {
+  role          String    @id @unique
+  permissions   String?   
+  description   String?
+  status        String    @default("ACTIVE")
+}
+
+model Department {
+  id            Int       @id @default(sequence())
+  department    String    
+  branch        Int
+  userid        Int?
+  dateadded     DateTime  @default(now())
+  status        String    @default("ACTIVE")
+  lastupdated   DateTime?
+  createdby     Int       @default(0)
+}
+
+model DefineMember {
+  id            Int       @id @default(sequence())
+  member        String    @unique
+  dateadded     DateTime  @default(now())
+  status        String    @default("ACTIVE")
+  lastupdated   DateTime?
+  createdby     Int       @default(0)
+}
+
+model Membership {
+  id            Int      @id @default(sequence())
+  member        Int      @default(1)
+  userid        Int
+  createdby     Int      @default(0)
+  dateadded     DateTime @default(now())
+  lastupdated   DateTime?
+}
+
+model Position {
+  id            Int       @id @default(sequence())
+  member        Int  
+  position      String    
+  createdby     Int       @default(0)
+  dateadded     DateTime  @default(now())
+  lastupdated   DateTime?
+}
+
+model Activity {
+  id        Int           @id @default(sequence())
+  userid    Int
+  activity  String
+  date      DateTime
+  module    String    @default("AUTH")
+
+  user      User          @relation(fields: [userid], references: [id])
+}
+
+model Session {
+  id           Int       @id @default(sequence()) 
+  sessiontoken String    @unique
+  userid       Int
+  expires      DateTime
+  device       String?
+  
+  user User @relation(fields: [userid], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String       @unique
+  expires    DateTime 
+
+  @@unique([identifier, token])
+}
+
+model Branch {
+  id          Int        @id @default(sequence()) 
+  branch      String
+  country     String?
+  state       String?
+  lga         String?
+  address     String?
+  status        String    @default("ACTIVE")
+  dateadded   DateTime   @default(now())
+  lastupdated DateTime?
+  userid      Int?
+  createdby   Int        @default(0)
+
+  @@unique([branch])
+}
+
+model Accounts {
+  id          Int        @id @default(sequence()) 
+}
+
+model Organisationsettings {
+  id                                         Int      @id @default(1) // Marked as primary key
+  company_name                               String
+  sms_sender_id                              String
+  phone                                      String @default("")
+  mobile                                     String @default("")
+  email                                      String
+  address                                    String
+  logo                                       String?
+
+  sms_charge                                 Int?
+  maintenace_charge                          Int?
+  vat_rate_percent                           Int      @default(0)
+  addition_savings_registration_charge       Int?
+
+  allow_back_dated_transaction               String    @default("NO")
+  allow_future_transaction                   String    @default("NO")
+  set_accounting_year_end                    DateTime?
+  schedule_maintenace_charge                 String    @default("NO")
+  sms_charge_members                         String    @default("YES")
+
+  initial_member_savings_prefix              Int?
+  personal_account_prefix                    String   @default("DHF")
+  loan_transaction_prefix                    String?
+  member_transaction_prefix                  String?
+
+  loan_account_prefix                        String?
+  asset_account_prefix                       String?
+  cash_account_prefix                        String?
+  current_assets_account_prefix               String?
+  expense_account_prefix                     String?
+  income_account_prefix                      String?
+  equity_retained_earnings_account_prefix    String?
+  equity_does_not_close_prefix               String?
+  inventory_account_prefix                   String?
+  other_asset_account_prefix                  String?
+  cost_of_sales_account_prefix                String?
+  fixed_asset_account_prefix                  String?
+  other_current_asset_account_prefix          String?
+  accounts_payable_account_prefix             String?
+  accounts_receivable_account_prefix           String?
+  accumulated_depreciation_account_prefix      String?
+  liabilities_account_prefix                  String?
+  other_current_liabilities_account_prefix     String?
+  long_term_liabilities_account_prefix         String?
+  equity_account_prefix                       String?
+  
+  default_sms_charge_account                  Int?
+  default_asset_account                       Int?
+  default_cash_account                        Int?
+  default_current_assets_account               Int?
+  default_expense_account                      Int?
+  default_income_account                       Int?
+  default_equity_retained_earnings_account    Int?
+  default_equity_does_not_close_account       Int?
+  default_inventory_account                   Int?
+  default_other_asset_account                 Int?
+  default_cost_of_sales_account               Int?
+  default_fixed_asset_account                  Int?
+  default_other_current_asset_account          Int?
+  default_accounts_payable_account            Int?
+  default_accounts_receivable_account          Int?
+  default_accumulated_depreciation_account     Int?
+  default_liabilities_account                  Int?
+  default_other_current_liabilities_account    Int?
+  default_long_term_liabilities_account        Int?
+  default_equity_account                       Int?
+}
+
+model Rejecttransactiondate {
+  id                 Int       @id @default(sequence())
+  rejectiondate      DateTime
+  branch             Int?
+  status             String    @default("ACTIVE")
+  reason             String?
+}
+
+model Registrationpoint {
+  id                 Int       @id @default(sequence())
+  registrationpoint  String
+  branch             Int
+  status             String    @default("ACTIVE")
+  datecreated        DateTime?
+  createdby          Int
+}
+
+model Task {
+  id                 Int       @id @default(sequence())
+  title              String
+  description        String?
+  priority           String
+  assignedto         String?
+  branch             String
+  startdate          DateTime
+  enddate            DateTime
+  taskstatus         String @default("NOT STARTED")
+  status             String @default("ACTIVE")
+  createdby          Int
+}
+
+model Subtask {
+  id                 Int       @id @default(sequence())
+  task               Int
+  title              String
+  startdate          DateTime
+  enddate            DateTime
+  description        String?
+  taskstatus         String @default("NOT STARTED")
+  createdby          String
+  assignedto         String
+}
+
+model Cashierlimit {
+  id                 Int       @id @default(sequence())
+  cashier            Int
+  depositlimit       Int
+  withdrawallimit    Int
+  status             String @default("ACTIVE")
+  dateadded          Int
+  createdby          Int
+}
+
+model Lastseen {
+  id                 Int       @id @default(sequence())
+  userid             Int
+  date               DateTime
+}
+
+model Inventory {
+  id                 Int       @id @default(sequence())
+  itemid             Int
+  itemname           String
+  department         String    
+  branch             Int
+  units              String
+  cost               Int
+  price              Int
+  pricetwo           Int
+  beginbalance       Int
+  qty                Int
+  minimumbalance     Int
+  group              String?
+  applyto            String
+  itemclass          String
+  composite          String
+  compositeid        Int
+  description        String?
+  imageone           String?
+  imagetwo           String? 
+  imagethree         String?
+  status             String @default("ACTIVE")
+  dateadded          DateTime
+  createdby          Int
+}
+
+

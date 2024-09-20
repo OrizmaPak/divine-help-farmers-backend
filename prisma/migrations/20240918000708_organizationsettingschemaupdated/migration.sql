@@ -1,0 +1,23 @@
+-- AlterTable
+ALTER TABLE "Organisationsettings" ALTER COLUMN "loan_transaction_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "member_transaction_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "loan_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "asset_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "cash_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "current_assets_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "expense_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "income_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "equity_retained_earnings_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "equity_does_not_close_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "inventory_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "other_asset_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "cost_of_sales_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "fixed_asset_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "other_current_asset_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "accounts_payable_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "accounts_receivable_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "accumulated_depreciation_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "liabilities_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "other_current_liabilities_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "long_term_liabilities_account_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "equity_account_prefix" SET DATA TYPE STRING;
