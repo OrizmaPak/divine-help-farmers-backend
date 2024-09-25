@@ -21,6 +21,7 @@ enum Module {
 enum Acc {
   ACTIVE
   SUSPENDED
+  PENDING
   DELETED
 }
 
@@ -282,24 +283,55 @@ model Inventory {
   department         String    
   branch             Int
   units              String
-  cost               Int
-  price              Int
-  pricetwo           Int
-  beginbalance       Int
-  qty                Int
-  minimumbalance     Int
+  cost               Int?
+  price              Int?
+  pricetwo           Int?
+  beginbalance       Int?
+  qty                Int?
+  minimumbalance     Int?
   group              String?
   applyto            String
   itemclass          String
   composite          String
-  compositeid        Int
+  compositeid        Int?
   description        String?
   imageone           String?
   imagetwo           String? 
   imagethree         String?
+  sellingprice       Int?
+  reference          String?
+  transactiondate    String?
+  transactiondesc    String?
+  issue              String?
+  issuetype          String?
+  supplier           String?
+  returned           Boolean @default(false)
   status             String @default("ACTIVE")
   dateadded          DateTime
   createdby          Int
 }
 
+model issue {
+  id                 Int       @id @default(sequence())
+  issuetype          String    @unique
+  status             String @default("ACTIVE")
+  dateadded          DateTime
+  createdby          Int
+}
 
+model Supplier {
+  id                 Int       @id @default(sequence())
+  supplier           String    @unique
+  contactperson      String
+  contactpersonphone String
+  officeaddress      String?
+  nationality        String
+  state              String
+  bank1              String?
+  accountnumber1     String?
+  bank2              String?
+  accountnumber2     String?
+  status             String @default("ACTIVE")
+  dateadded          DateTime
+  createdby          Int
+}

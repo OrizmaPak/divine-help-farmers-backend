@@ -16,3 +16,24 @@
 {"userid": "12", "message": "TASK FORCE Department created", "module": "DEPARTMENT", "date": "2024-09-20T10:49:11.463Z"}
 {"userid": "12", "message": "ACCOUNTING Department created", "module": "DEPARTMENT", "date": "2024-09-20T10:49:30.971Z"}
 {"userid": "12", "message": "COLLECTION Department created", "module": "DEPARTMENT", "date": "2024-09-20T10:49:37.804Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:30:24.899Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:30:59.668Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:43:23.809Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:44:02.942Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:45:40.804Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:49:09.818Z"}
+{"userid": "12", "message": "No Inventory found", "module": "INVENTORY", "date": "2024-09-20T22:49:26.839Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:49:40.886Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:49:57.876Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:50:30.004Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:52:53.378Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:53:58.533Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:56:11.950Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:56:36.634Z"}
+{"userid": "12", "message": "An unexpected error occurred fetching inventory", "module": "INVENTORY", "date": "2024-09-20T22:58:08.838Z"}
+{"userid": "12", "message": "An unexpected error occurred fetching inventory", "module": "INVENTORY", "date": "2024-09-20T22:58:20.152Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:58:48.515Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T22:59:52.886Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T23:01:49.866Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T23:02:38.515Z"}
+{"userid": "12", "message": "Inventory fetched successfully", "module": "INVENTORY", "date": "2024-09-20T23:02:57.354Z"}

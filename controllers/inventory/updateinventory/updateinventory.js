@@ -1,0 +1,97 @@
+// Import necessary modules
+const { StatusCodes } = require("http-status-codes");
+const pg = require("../../../db/pg");
+const { activityMiddleware } = require("../../../middleware/activity");
+
+// Define the updateinventory function
+const updateinventory = async (req, res) => {
+    // Destructure the request body
+    const { itemid, branch, department="", ...inventoryData } = req.body;
+
+    // Check if itemid and branch are provided
+    if (!itemid || !branch) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+            status: false,
+            message: "Itemid and branch are required",
+            statuscode: StatusCodes.BAD_REQUEST,
+            data: null,
+            errors: ["Itemid and branch are required"]
+        });
+    }
+
+    try {
+        // Initialize departments array
+        let departments = [department];
+        // If department is not provided, fetch all departments for the itemid
+        if (!department) {
+            const { rows: allDepartments } = await pg.query(`SELECT department FROM divine."Inventory" WHERE itemid = $1 GROUP BY department`, [itemid]);
+            departments = allDepartments.map(d => d.department);
+        }
+
+        // Fetch the department with the highest id for the itemid
+        let { rows: maxIdDepartment } = await pg.query(`SELECT * FROM divine."Inventory" WHERE itemid = $1 ORDER BY id DESC LIMIT 1`, [itemid]);
+
+        if(department){
+            maxIdDepartment = await pg.query(`SELECT * FROM divine."Inventory" WHERE itemid = $1 AND department = $2`, [itemid, department]);
+            maxIdDepartment = maxIdDepartment.rows;
+        }
+
+        // DECLARING THE ITEM NAME CAUSE SOME PEOPLE MIGHT DECIDE TO CHANGE IT ACROSS DEPARTMENTS
+        let itmn 
+
+        // Iterate over each department
+        for (let i = 0; i < departments.length; i++) {
+            // Construct the data object
+            const data = { ...inventoryData, itemid, branch, department: departments[i] };
+            // If it's not the first department, fill in missing data with the max id data
+            if (i > 0) {
+                for (let key in maxIdDepartment[0]) {
+                    if (!data[key]) {
+                        data[key] = maxIdDepartment[0][key];
+                    }
+                }
+            }
+            // Override maxIdDepartment data with body data if provided
+            for (let key in maxIdDepartment[0]) {
+                if (inventoryData[key] !== undefined) {
+                    data[key] = inventoryData[key];
+                } else {
+                    data[key] = maxIdDepartment[0][key];
+                }
+            }
+
+            itmn = data.itemname;
+
+            // Insert the data into the Inventory table
+            await pg.query(`INSERT INTO divine."Inventory" (itemid, branch, department, itemname, units, cost, price, pricetwo, beginbalance, qty, minimumbalance, "group", applyto, itemclass, composite, compositeid, description, imageone, imagetwo, imagethree, status, "reference", transactiondate, transactiondesc, dateadded, createdby) 
+                                                    VALUES ($1,     $2,     $3,         $4,       $5,    $6,   $7,    $8,       $9,           $10, $11,            $12,     $13,     $14,       $15,       $16,         $17,         $18,      $19,      $20,        $21,    $22,         $23,             $24,             $25,       $26)`, 
+                                                    [data.itemid, data.branch, data.department, data.itemname, data.units, data.cost, data.price, data.pricetwo, data.beginbalance, 0, data.minimumbalance, data.group, data.applyto, data.itemclass, data.composite, data.compositeid, data.description, data.imageone, data.imagetwo, data.imagethree, data.status, new Date().getTime().toString(), new Date, 'Update details of the item', new Date(), req.user.id]);
+        }
+
+        // Log activity
+        const { rows: branchName } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [branch]);
+        await activityMiddleware(res, req.user.id, `Inventory for item ${itmn} in branch ${branchName[0].branch} updated successfully`, 'UPDATE_INVENTORY');
+
+        // Return success response
+        return res.status(StatusCodes.OK).json({
+            status: true,
+            message: "Inventory saved successfully",
+            statuscode: StatusCodes.OK,
+            data: null,
+            errors: []
+        });
+    } catch (error) {
+        // Log and return error response
+        console.error(error);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            status: false,
+            message: "Internal Server Error",
+            statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+            data: null,
+            errors: []
+        });
+    }
+};
+
+// Export the updateinventory function
+module.exports = { updateinventory };

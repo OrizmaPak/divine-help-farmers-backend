@@ -1,0 +1,26 @@
+{"userid": "12", "message": "Logged in Successfully  on a  device", "module": "AUTH", "date": "2024-09-25T05:32:35.086Z"}
+{"userid": "12", "message": "Missing compulsory itemid, startdate, or enddate", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:33:10.311Z"}
+{"userid": "12", "message": "Missing compulsory itemid, startdate, or enddate", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:34:31.926Z"}
+{"userid": "12", "message": "Missing compulsory itemid, startdate, or enddate", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:35:02.541Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:36:38.246Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:37:29.969Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:42:05.475Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:42:12.582Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:42:49.990Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:43:51.204Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:44:59.802Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:46:48.446Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T05:49:45.296Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T06:05:00.634Z"}
+{"userid": "12", "message": "An unexpected error occurred while fetching stock ledger", "module": "GET STOCK LEDGER", "date": "2024-09-25T06:05:49.364Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T06:06:08.996Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T06:06:51.206Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T06:06:54.966Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T06:07:12.145Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T06:11:55.694Z"}
+{"userid": "12", "message": "Stock ledger fetched successfully for item 1000001", "module": "GET STOCK LEDGER", "date": "2024-09-25T06:15:25.350Z"}
+{"userid": "12", "message": "Stock valuation fetched successfully for date 2024-09-19", "module": "GET STOCK VALUATION", "date": "2024-09-25T06:46:53.257Z"}
+{"userid": "12", "message": "Stock valuation fetched successfully for date 2024-09-19", "module": "GET STOCK VALUATION", "date": "2024-09-25T06:47:26.269Z"}
+{"userid": "12", "message": "Stock valuation fetched successfully for date 2024-09-15", "module": "GET STOCK VALUATION", "date": "2024-09-25T06:47:37.028Z"}
+{"userid": "12", "message": "Stock valuation fetched successfully for date 2024-09-20", "module": "GET STOCK VALUATION", "date": "2024-09-25T06:47:43.073Z"}
+{"userid": "12", "message": "Stock valuation fetched successfully for date 2024-09-20", "module": "GET STOCK VALUATION", "date": "2024-09-25T06:50:10.898Z"}
