@@ -18,15 +18,15 @@ const getStockValuation = async (req, res) => {
         }
 
         // Validate the presence of branch if department is provided
-        if (department && !branch) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "Branch is required if department is provided",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: ["Branch is required if department is provided"]
-            });
-        }
+        // if (department && !branch) {
+        //     return res.status(StatusCodes.BAD_REQUEST).json({
+        //         status: false,
+        //         message: "Branch is required if department is provided",
+        //         statuscode: StatusCodes.BAD_REQUEST,
+        //         data: null,
+        //         errors: ["Branch is required if department is provided"]
+        //     });
+        // }
 
         // Fetch all inventories for the given date
         const query = `SELECT * FROM divine."Inventory" WHERE transactiondate = $1 AND status = 'ACTIVE'`;
@@ -64,12 +64,16 @@ const getStockValuation = async (req, res) => {
             balance
         }));
 
+        // Calculate total qty and total balance
+        const totalQty = result.reduce((acc, current) => acc + current.qty, 0);
+        const totalBalance = result.reduce((acc, current) => acc + current.balance, 0);
+
         // Return success response
         return res.status(StatusCodes.OK).json({
             status: true,
             message: "Stock valuation fetched successfully",
             statuscode: StatusCodes.OK,
-            data: result,
+            data: { items: result, totalQty, totalBalance },
             errors: []
         });
     } catch (error) {
@@ -83,7 +87,7 @@ const getStockValuation = async (req, res) => {
             errors: []
         });
     }
-};
+}; 
 
 // Export the getStockValuation function
 module.exports = { getStockValuation };
