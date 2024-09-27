@@ -1,7 +1,6 @@
 const { StatusCodes } = require("http-status-codes"); // Import StatusCodes for HTTP status codes
 const pg = require("../../../db/pg"); // Import PostgreSQL client
-const { addOneDay } = require("../../../utils/expiredate"); // Import utility for adding one day to a date
-const { divideAndRoundUp } = require("../../../utils/pageCalculator"); // Import utility for pagination calculations
+const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware for activity tracking
 
 // Function to handle POST request for creating inventory
 const createInventory = async (req, res) => {
@@ -153,6 +152,7 @@ const createInventory = async (req, res) => {
                 await pg.query(`INSERT INTO divine."Inventory" (itemid, itemname, department, branch, units, cost, applyto, itemclass, composite, price, pricetwo, beginbalance, qty, minimumbalance, "group", description, imageone, imagetwo, imagethree, status, "reference", transactiondate, transactiondesc, dateadded, createdby) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`, [itemid, itemname, dept, branch, units, cost, applyto, itemclass, composite, price, pricetwo, beginbalance, qty, minimumbalance, null, null, null, null, null, "ACTIVE", reference, transactionDate, "Creation with opening stock", new Date(), req.user.id]);
             }
         }
+        await activityMiddleware(req, req.user.id, 'Inventory created successfully', 'INVENTORY'); // Tracker middleware
         return res.status(StatusCodes.CREATED).json({
             status: true,
             message: "Inventory created successfully",
@@ -161,6 +161,7 @@ const createInventory = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
+        await activityMiddleware(req, req.user.id, 'An unexpected error occurred while creating inventory', 'INVENTORY'); // Tracker middleware
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
             message: "Internal Server Error",

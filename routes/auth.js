@@ -13,6 +13,7 @@ const { verifypasswordtoken } = require('../controllers/auth/verifypasswordtoken
 const { verifyuser } = require('../controllers/auth/verifyuser');
 const { testing } = require('../controllers/sample');
 const { updateuser } = require('../controllers/auth/updateprofile');
+const { checkUser } = require('../controllers/auth/checkuser');
 
 
 router.route('/signup').post(signup);
@@ -26,6 +27,10 @@ router.route('/signout').get(authMiddleware, signout);
 router.route('/verifypasswordtoken').get(verifypasswordtoken); 
 router.route('/verifyuser').post(verifyuser); 
 router.route('/testing').post(testing); 
+// CHECK IF USER EXIST
+router.route('/checkuser')
+    .get(checkUser)
+
  
 
 // router.post('/login', login);

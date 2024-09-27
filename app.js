@@ -13,6 +13,8 @@ app.set('trust proxy', 1);
 const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
 const inventoryRouter = require('./routes/inventory');
+const memberRouter = require('./routes/members');
+const savingsRouter = require('./routes/savings');
 
 
 // error handler
@@ -39,6 +41,8 @@ app.use(requestprocessor);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/admin', authMiddleware, adminRouter);
 app.use('/api/v1/inventory', authMiddleware, inventoryRouter);
+app.use('/api/v1/members', authMiddleware, memberRouter);
+app.use('/api/v1/savings', authMiddleware, savingsRouter);
 // app.use('/api/v1/jobs', authenticateUser, jobsRouter);
 
 // app.get('*', (req, res) => {

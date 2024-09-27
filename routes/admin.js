@@ -6,7 +6,6 @@ const { getbranch } = require('../controllers/admin/branch/get');
 const { updatebranch } = require('../controllers/admin/branch/update-not-used');
 const { definemembership } = require('../controllers/admin/membermanagement/definemembership');
 const { getdefinedmembership } = require('../controllers/admin/membermanagement/get');
-const { registeruser } = require('../controllers/admin/registeruser/create');
 const { getdefinedmembershipposition } = require('../controllers/admin/positionbymembership/get');
 const { definepositionbymembership } = require('../controllers/admin/positionbymembership/defineposition');
 const { organizationsettings } = require('../controllers/admin/organizationsettings/create');
@@ -27,6 +26,7 @@ const { getTask } = require('../controllers/admin/task/get');
 const { manageCashierLimit } = require('../controllers/admin/cashier limit/manage');
 const { getCashierLimit } = require('../controllers/admin/cashier limit/get');
 const { getOnlineUsers } = require('../controllers/admin/onlineusers/get');
+const { checkUser } = require('../controllers/auth/checkuser');
 
 // BRANCH MANAGEMENT
 router.route('/branch')
@@ -92,24 +92,6 @@ router.route('/cashierlimit')
 // GET ALL ONLINE USERS
 router.route('/onlineusers')
     .get(getOnlineUsers)
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-// USER REGISTRATION MANAGEMENT 
-router.route('/registeruser')
-    .post(registeruser)
-    // .get(registeruser)
 
 
 module.exports = router;

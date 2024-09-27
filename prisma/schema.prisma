@@ -45,6 +45,23 @@ model User {
   role          String    @default("USER")
   permissions   String?
   password      String
+  officeaddress String?
+  image2         String?
+  gender        String?
+  occupation    String?
+  lga           String?
+  town          String?
+  maritalstatus          String?
+  spousename          String?
+  stateofresidence      String?
+  lgaofresidence      String?
+  nextofkinfullname      String?
+  nextofkinphone      String?
+  nextofkinrelationship      String?
+  nextofkinaddress      String?
+  nextofkinofficeaddress      String?
+  nextofkinoccupation      String?
+  dateofbirth   DateTime?
   branch        Int       @default(1)
   registrationpoint   Int    @default(0)
   dateadded     DateTime  @default(now())
@@ -334,4 +351,80 @@ model Supplier {
   status             String @default("ACTIVE")
   dateadded          DateTime
   createdby          Int
+}
+
+model savingsproduct {
+  id                                Int      @id @default(sequence())
+  productname                       String
+  currency                          String   // "NGN" or "USD"
+  allowdeposit                      Boolean
+  allowwithdrawal                   Boolean
+  withdrawallimit                   Float
+  withdrawalcharges                 Float
+  withdrawalchargetype              String   // "PERCENTAGE" or "AMOUNT"
+  withdrawalchargeinterval          String   // "DAILY", "MONTHLY", "YEARLY"
+  depositcharge                     Float
+  withdrawallimittype               String   // "PERCENTAGE" or "AMOUNT"
+  activationfee                     Float
+  minimumaccountbalance             Float
+  allowoverdrawn                    Boolean
+  compulsorydeposit                 Boolean
+  compulsorydeposittype             String   // "FIXED" or "MINIMUM"
+  compulsorydepositspillover        Boolean
+  compulsorydepositfrequency        String   // "DAILY", "MONTHLY", "YEARLY"
+  compulsorydepositfrequencynumber  Int
+  compulsorydepositfrequencyskip    Int
+  compulsorydepositpenalty          Float
+  compulsorydepositpenaltytype      String   // "AMOUNT" or "PERCENTAGE"
+  compulsorydepositpenaltyfrom      String   // Reference to another product ID
+  compulsorydepositpenaltyfallbackfrom String  // Reference to fallback product ID
+  status                            String @default("ACTIVE")
+
+
+  // Interest
+  interests                         Interest[]
+
+  // Deductions
+  deductions                        Deduction[]
+
+  dateadded                         DateTime @default(now())
+  updatedat                         DateTime?
+}
+
+model Interest {
+  id                        Int      @id @default(sequence())
+  savingsproductid          Int
+  interestname              String
+  interestmethod            String   // "LAST BALANCE" or "PRO RATA BASIS"
+  eligibilityaccountage     Int      // in months
+  eligibilitybalance        Float
+  interestamount            Float
+  interesttype              String   // "PERCENTAGE" or "AMOUNT"
+  interestfrequency         String   // "DAILY", "MONTHLY", "YEARLY"
+  interestfrequencynumber   Int
+  interestfrequencyskip     Int
+  goforapproval             Boolean
+    status             String @default("ACTIVE")
+
+
+  savingsproduct            savingsproduct @relation(fields: [savingsproductid], references: [id])
+}
+
+model Deduction {
+  id                        Int      @id @default(sequence())
+  savingsproductid          Int
+  deductionname             String
+  eligibilityaccountage     Int      // in months
+  eligibilitybalance        Float
+  deductionamount           Float
+  deductiontype             String   // "PERCENTAGE" or "AMOUNT"
+  deductionmethod           String   // "LATEST BALANCE" or "PRO RATA BASIS"
+  deductionfrequency        String   // "DAILY", "MONTHLY", "YEARLY"
+  deductionfrequencynumber  Int
+  deductionfrequencyskip    Int
+  goforapproval             Boolean
+    status             String @default("ACTIVE")
+
+
+  savingsproduct            savingsproduct @relation(fields: [savingsproductid], references: [id])
 }
