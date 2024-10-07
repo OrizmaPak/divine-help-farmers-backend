@@ -67,7 +67,7 @@ const organizationsettings = async (req, res) => {
     const default_equity_account = req.body.default_equity_account || 0;
     
     const id = 1
-    // const user = req.user
+    const user = req.user
 
     // Basic validation
     if (!company_name || !sms_sender_id || !phone || !mobile || !email || !address) {

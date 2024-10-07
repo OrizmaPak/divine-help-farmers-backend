@@ -30,6 +30,28 @@ enum Yn {
   NO
 }
 
+enum accounttype {
+    ASSET
+    CASH
+    CURRENT_ASSETS
+    EXPENSE
+    INCOME
+    EQUITY_RETAINED_EARNINGS
+    EQUITY_DOES_NOT_CLOSE
+    INVENTORY
+    OTHER_ASSET
+    COST_OF_SALES
+    FIXED_ASSET
+    OTHER_CURRENT_ASSET
+    ACCOUNTS_PAYABLE
+    ACCOUNTS_RECEIVABLE
+    ACCUMULATED_DEPRECIATION
+    LIABILITIES
+    OTHER_CURRENT_LIABILITIES
+    LONG_TERM_LIABILITIES
+    EQUITY
+}
+
 model User {
   id            Int       @id @default(sequence())
   firstname     String
@@ -161,10 +183,6 @@ model Branch {
   @@unique([branch])
 }
 
-model Accounts {
-  id          Int        @id @default(sequence()) 
-}
-
 model Organisationsettings {
   id                                         Int      @id @default(1) // Marked as primary key
   company_name                               String
@@ -194,23 +212,23 @@ model Organisationsettings {
   loan_account_prefix                        String?
   asset_account_prefix                       String?
   cash_account_prefix                        String?
-  current_assets_account_prefix               String?
+  current_assets_account_prefix              String?
   expense_account_prefix                     String?
   income_account_prefix                      String?
   equity_retained_earnings_account_prefix    String?
   equity_does_not_close_prefix               String?
   inventory_account_prefix                   String?
-  other_asset_account_prefix                  String?
-  cost_of_sales_account_prefix                String?
-  fixed_asset_account_prefix                  String?
-  other_current_asset_account_prefix          String?
-  accounts_payable_account_prefix             String?
-  accounts_receivable_account_prefix           String?
-  accumulated_depreciation_account_prefix      String?
-  liabilities_account_prefix                  String?
-  other_current_liabilities_account_prefix     String?
-  long_term_liabilities_account_prefix         String?
-  equity_account_prefix                       String?
+  other_asset_account_prefix                 String?
+  cost_of_sales_account_prefix               String?
+  fixed_asset_account_prefix                 String?
+  other_current_asset_account_prefix         String?
+  accounts_payable_account_prefix            String?
+  accounts_receivable_account_prefix         String?
+  accumulated_depreciation_account_prefix    String?
+  liabilities_account_prefix                 String?
+  other_current_liabilities_account_prefix   String?
+  long_term_liabilities_account_prefix       String?
+  equity_account_prefix                      String?
   
   default_sms_charge_account                  Int?
   default_asset_account                       Int?
@@ -389,6 +407,7 @@ model savingsproduct {
 
   dateadded                         DateTime @default(now())
   updatedat                         DateTime?
+
 }
 
 model Interest {
@@ -427,4 +446,53 @@ model Deduction {
 
 
   savingsproduct            savingsproduct @relation(fields: [savingsproductid], references: [id])
+}
+
+model savings {
+  id                        Int      @id @default(sequence())
+  savingsproductid          Int
+  accountnumber             Int
+  personnel                 Int
+  amount                    Int
+  branch                    Int
+  registrationpoint         Int
+  registrationcharge        Int
+  registrationdate          DateTime
+  registrationdesc          String?
+  bankname1                 String?
+  accountname1              Int?
+  bankname2                 String?
+  accountname2              Int?
+  accountofficer            String?
+  status                    String @default("ACTIVE")
+  dateadded                 DateTime
+  createdby                 Int
+  
+}
+
+model transaction {
+  id                        Int       @id @default(sequence())
+  accountnumber             Int
+  personnel                 Int
+  amount                    Int
+  oldamount                 Int?
+  branch                    Int
+  registrationpoint         Int
+  registrationcharge        Int
+  status                    String @default("ACTIVE")
+  updateddated              DateTime?
+  updatedby                 Int?
+  dateadded                 DateTime
+  createdby                 Int
+}
+
+model Accounts {
+  id                       Int        @id @default(sequence()) 
+  accountnumber            String
+  groupname                String?
+  accounttype              String?
+  description              String?
+  status                   String @default("ACTIVE")
+  dateadded                DateTime
+  createdby                Int
 }

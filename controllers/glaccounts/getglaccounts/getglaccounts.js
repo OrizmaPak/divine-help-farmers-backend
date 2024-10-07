@@ -2,12 +2,12 @@ const { StatusCodes } = require("http-status-codes");
 const { activityMiddleware } = require("../../../middleware/activity");
 const pg = require("../../../db/pg");
 
-const getUsers = async (req, res) => {
+const getAccounts = async (req, res) => {
     const user = req.user;
 
     try {
         let query = {
-            text: `SELECT * FROM "User"`,
+            text: `SELECT * FROM divine."Accounts"`,
             values: []
         };
 
@@ -28,20 +28,20 @@ const getUsers = async (req, res) => {
         query.text += whereClause;
 
         const result = await pg.query(query);
-        const users = result.rows;
+        const accounts = result.rows;
 
-        await activityMiddleware(req, user.id, 'Users fetched successfully', 'USER');
+        await activityMiddleware(req, user.id, 'Accounts fetched successfully', 'ACCOUNT');
 
         return res.status(StatusCodes.OK).json({
             status: true,
-            message: "Users fetched successfully",
+            message: "Accounts fetched successfully",
             statuscode: StatusCodes.OK,
-            data: users,
+            data: accounts,
             errors: []
         });
     } catch (error) {
         console.error('Unexpected Error:', error);
-        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching users', 'USER');
+        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching accounts', 'ACCOUNT');
 
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
@@ -53,4 +53,4 @@ const getUsers = async (req, res) => {
     }
 };
 
-module.exports = { getUsers };
+module.exports = { getAccounts };

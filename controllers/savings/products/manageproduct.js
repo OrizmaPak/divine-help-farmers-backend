@@ -1,3 +1,4 @@
+
 const { StatusCodes } = require("http-status-codes"); // Import StatusCodes for HTTP status codes
 const pg = require("../../../db/pg"); // Import PostgreSQL pg
 const { addOneDay } = require("../../../utils/expiredate"); // Import utility for adding one day to a date
@@ -225,12 +226,12 @@ const manageSavingsProduct = async (req, res) => {
 
                 // Save new interests
                 for (const interest of interests) {
-                    await pg.query(`INSERT INTO divine."Interest" (savingsproductid, interestname, interestmethod, eligibilityaccountage, eligibilitybalance, interestamount, interesttype, interestfrequency, interestfrequencynumber, interestfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, [id, interest.interestname, interest.interestmethod, interest.eligibilityaccountage, interest.eligibilitybalance, interest.interestamount, interest.interesttype, interest.interestfrequency, interest.interestfrequencynumber, interest.interestfrequencyskip, interest.goforapproval]);
+                    await pg.query(`INSERT INTO divine."Interest" (savingsproductid, interestname, interestmethod, eligibilityaccountage, eligibilitybalance, interestamount, interesttype, interestfrequency, interestfrequencynumber, interestfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, [id, interest.interestname, interest.interestmethod, parseInt(interest.eligibilityaccountage), parseFloat(interest.eligibilitybalance), parseFloat(interest.interestamount), interest.interesttype, interest.interestfrequency, parseInt(interest.interestfrequencynumber), parseInt(interest.interestfrequencyskip), interest.goforapproval === 'true' ? true : false]);
                 }
 
                 // Save new deductions
                 for (const deduction of deductions) {
-                    await pg.query(`INSERT INTO divine."Deduction" (savingsproductid, deductionname, eligibilityaccountage, eligibilitybalance, deductionamount, deductiontype, deductionmethod, deductionfrequency, deductionfrequencynumber, deductionfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, [id, deduction.deductionname, deduction.eligibilityaccountage, deduction.eligibilitybalance, deduction.deductionamount, deduction.deductiontype, deduction.deductionmethod, deduction.deductionfrequency, deduction.deductionfrequencynumber, deduction.deductionfrequencyskip, deduction.goforapproval]);
+                    await pg.query(`INSERT INTO divine."Deduction" (savingsproductid, deductionname, eligibilityaccountage, eligibilitybalance, deductionamount, deductiontype, deductionmethod, deductionfrequency, deductionfrequencynumber, deductionfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, [id, deduction.deductionname, parseInt(deduction.eligibilityaccountage), parseFloat(deduction.eligibilitybalance), parseFloat(deduction.deductionamount), deduction.deductiontype, deduction.deductionmethod, deduction.deductionfrequency, parseInt(deduction.deductionfrequencynumber), parseInt(deduction.deductionfrequencyskip), deduction.goforapproval === 'true' ? true : false]);
                 }
 
                 await pg.query('COMMIT');
@@ -263,15 +264,14 @@ const manageSavingsProduct = async (req, res) => {
 
                 // Save interests  
                 for (const interest of interests) {
-                    console.log(typeof interest.eligibilityaccountage, interest.eligibilityaccountage)
                     const insertInterestQuery = `INSERT INTO divine."Interest" (savingsproductid, interestname, interestmethod, eligibilityaccountage, eligibilitybalance, interestamount, interesttype, interestfrequency, interestfrequencynumber, interestfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
-                    await pg.query(insertInterestQuery, [id, interest.interestname, interest.interestmethod, interest.eligibilityaccountage, interest.eligibilitybalance, interest.interestamount, interest.interesttype, interest.interestfrequency, interest.interestfrequencynumber, interest.interestfrequencyskip, interest.goforapproval]);
+                    await pg.query(insertInterestQuery, [id, interest.interestname, interest.interestmethod, parseInt(interest.eligibilityaccountage), parseFloat(interest.eligibilitybalance), parseFloat(interest.interestamount), interest.interesttype, interest.interestfrequency, parseInt(interest.interestfrequencynumber), parseInt(interest.interestfrequencyskip), interest.goforapproval == 'true' ? true : false]);
                 }
 
                 // Save deductions 
                 for (const deduction of deductions) {
                     const insertDeductionQuery = `INSERT INTO divine."Deduction" (savingsproductid, deductionname, eligibilityaccountage, eligibilitybalance, deductionamount, deductiontype, deductionmethod, deductionfrequency, deductionfrequencynumber, deductionfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
-                    await pg.query(insertDeductionQuery, [id, deduction.deductionname, deduction.eligibilityaccountage, deduction.eligibilitybalance, deduction.deductionamount, deduction.deductiontype, deduction.deductionmethod, deduction.deductionfrequency, deduction.deductionfrequencynumber, deduction.deductionfrequencyskip, deduction.goforapproval]);
+                    await pg.query(insertDeductionQuery, [id, deduction.deductionname, parseInt(deduction.eligibilityaccountage), parseFloat(deduction.eligibilitybalance), parseFloat(deduction.deductionamount), deduction.deductiontype, deduction.deductionmethod, deduction.deductionfrequency, parseInt(deduction.deductionfrequencynumber), parseInt(deduction.deductionfrequencyskip), deduction.goforapproval == 'true' ? true : false]);
                 }
 
                 await pg.query('COMMIT');
