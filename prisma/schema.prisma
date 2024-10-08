@@ -250,6 +250,8 @@ model Organisationsettings {
   default_other_current_liabilities_account    Int?
   default_long_term_liabilities_account        Int?
   default_equity_account                       Int?
+  default_tax_account                          Int?
+  default_excess_account                       Int?
 }
 
 model Rejecttransactiondate {
@@ -380,18 +382,21 @@ model savingsproduct {
   withdrawallimit                   Float
   withdrawalcharges                 Float
   withdrawalchargetype              String   // "PERCENTAGE" or "AMOUNT"
-  withdrawalchargeinterval          String   // "DAILY", "MONTHLY", "YEARLY"
+  withdrawalchargeinterval          String   // "D1", "W1", "M1"
   depositcharge                     Float
+  depositechargetype                String  @default("PERCENTAGE")  // "PERCENTAGE" or "AMOUNT"
   withdrawallimittype               String   // "PERCENTAGE" or "AMOUNT"
+  chargehere                        Boolean @default(false)
   activationfee                     Float
   minimumaccountbalance             Float
   allowoverdrawn                    Boolean
   compulsorydeposit                 Boolean
+  compulsorydepositfrequencyamount  Int?
   compulsorydeposittype             String   // "FIXED" or "MINIMUM"
   compulsorydepositspillover        Boolean
-  compulsorydepositfrequency        String   // "DAILY", "MONTHLY", "YEARLY"
-  compulsorydepositfrequencynumber  Int
-  compulsorydepositfrequencyskip    Int
+  compulsorydepositdeficit          Boolean  @default(false) // if this is true compulsorydepositpenalty will be ignored
+  compulsorydepositfrequency        String   // "D1", "W1", "M1"
+  compulsorydepositfrequencyskip    Int?
   compulsorydepositpenalty          Float
   compulsorydepositpenaltytype      String   // "AMOUNT" or "PERCENTAGE"
   compulsorydepositpenaltyfrom      String   // Reference to another product ID
@@ -407,7 +412,6 @@ model savingsproduct {
 
   dateadded                         DateTime @default(now())
   updatedat                         DateTime?
-
 }
 
 model Interest {
@@ -419,9 +423,9 @@ model Interest {
   eligibilitybalance        Float
   interestamount            Float
   interesttype              String   // "PERCENTAGE" or "AMOUNT"
-  interestfrequency         String   // "DAILY", "MONTHLY", "YEARLY"
-  interestfrequencynumber   Int
-  interestfrequencyskip     Int
+  interestfrequency         String   // "D1", "W1", "M1"
+  interestfrequencynumber   Int?
+  interestfrequencyskip     Int?
   goforapproval             Boolean
     status             String @default("ACTIVE")
 
@@ -438,9 +442,9 @@ model Deduction {
   deductionamount           Float
   deductiontype             String   // "PERCENTAGE" or "AMOUNT"
   deductionmethod           String   // "LATEST BALANCE" or "PRO RATA BASIS"
-  deductionfrequency        String   // "DAILY", "MONTHLY", "YEARLY"
-  deductionfrequencynumber  Int
-  deductionfrequencyskip    Int
+  deductionfrequency        String   // "D1", "W1", "M1"
+  deductionfrequencynumber  Int?
+  deductionfrequencyskip    Int?
   goforapproval             Boolean
     status             String @default("ACTIVE")
 
@@ -464,6 +468,9 @@ model savings {
   bankname2                 String?
   accountname2              Int?
   accountofficer            String?
+  sms                       Boolean?
+  whatsapp                  Boolean?
+  email                     Boolean?
   status                    String @default("ACTIVE")
   dateadded                 DateTime
   createdby                 Int
@@ -472,18 +479,27 @@ model savings {
 
 model transaction {
   id                        Int       @id @default(sequence())
-  accountnumber             Int
-  personnel                 Int
-  amount                    Int
-  oldamount                 Int?
+  accountnumber             String
+  currency                  String
+  credit                    Int @default(0) 
+  debit                     Int @default(0)
+  description               String?
+  image                     String?
   branch                    Int
   registrationpoint         Int
-  registrationcharge        Int
+  dateadded                 DateTime
+  approvedby                Int?
   status                    String @default("ACTIVE")
   updateddated              DateTime?
+  transactiondate           DateTime?
+  transactiondesc           String?
   updatedby                 Int?
-  dateadded                 DateTime
+  ttype                     String?
   createdby                 Int
+  valuedate                 DateTime?
+  reference                 String?
+  whichaccount              String
+  tax                       Boolean? @default(false)
 }
 
 model Accounts {

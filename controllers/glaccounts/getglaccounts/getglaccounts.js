@@ -14,16 +14,23 @@ const getAccounts = async (req, res) => {
         // Dynamically build the WHERE clause based on query parameters
         let whereClause = '';
         let valueIndex = 1;
-        Object.keys(req.query).forEach((key, index) => {
-            if (whereClause) {
-                whereClause += ` AND `;
-            } else {
-                whereClause += ` WHERE `;
-            }
-            whereClause += `"${key}" = $${valueIndex}`;
-            query.values.push(req.query[key]);
+        if (req.query.q) {
+            const searchValue = `%${req.query.q}%`;
+            whereClause += ` WHERE "accountnumber" ILIKE $${valueIndex} OR "groupname" ILIKE $${valueIndex} OR "accounttype" ILIKE $${valueIndex} OR "description" ILIKE $${valueIndex}`;
+            query.values.push(searchValue);
             valueIndex++;
-        });
+        } else {
+            Object.keys(req.query).forEach((key, index) => {
+                if (whereClause) {
+                    whereClause += ` AND `;
+                } else {
+                    whereClause += ` WHERE `;
+                }
+                whereClause += `"${key}" = $${valueIndex}`;
+                query.values.push(req.query[key]);
+                valueIndex++;
+            });
+        }
 
         query.text += whereClause;
 

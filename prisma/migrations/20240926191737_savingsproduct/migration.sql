@@ -18,7 +18,7 @@ CREATE TABLE "savingsproduct" (
     "compulsorydeposittype" STRING NOT NULL,
     "compulsorydepositspillover" BOOL NOT NULL,
     "compulsorydepositfrequency" STRING NOT NULL,
-    "compulsorydepositfrequencynumber" INT4 NOT NULL,
+    "compulsorydepositfrequencyamount" INT4 NOT NULL,
     "compulsorydepositfrequencyskip" INT4 NOT NULL,
     "compulsorydepositpenalty" FLOAT8 NOT NULL,
     "compulsorydepositpenaltytype" STRING NOT NULL,
