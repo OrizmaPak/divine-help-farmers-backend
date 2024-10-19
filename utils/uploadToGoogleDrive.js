@@ -134,7 +134,7 @@ async function uploadToGoogleDrive(req, res) {
             }
         } catch (error) { 
             console.error(`Error uploading file ${file.originalname}:`, error);
-            // return res.status(500).json({ message: `Failed to upload file: ${file.originalname}` });
+            return res.status(500).json({ message: `Failed to upload file: ${file.originalname}` });
         }
     }
 

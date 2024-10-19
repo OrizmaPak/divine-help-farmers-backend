@@ -141,7 +141,7 @@ const createOrUpdateAccount = async (req, res) => {
             
             // If no existing account numbers with the prefix, start with the first account number
             if (accountRows.length === 0) {
-                accountnumber = `${prefix}${'0'.repeat(10 - prefix.length - 1)}1`;
+                accountnumber = `${prefix}${'0'.repeat(10 - prefix.toString().length - 1)}1`;
             } else {
                 // Increment the highest account number by 1
                 const highestAccountNumber = accountRows[0].accountnumber;

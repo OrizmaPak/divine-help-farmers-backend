@@ -5,6 +5,8 @@ const { activityMiddleware } = require("../../../middleware/activity"); // Added
 const createbranch = async (req, res) => {
     const { id="", branch, country, state, lga,address='', status="" } = req.body;
     console.log({ branch, country, state, address });
+
+    const user = req.user;
     
 
     // Basic validation

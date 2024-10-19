@@ -11,7 +11,7 @@ const {
     generateNewReference, 
     sendNotification, 
     handleCreditRedirectToPersonnalAccount 
-} = require('./helper'); // Import all helper functions
+} = require('../../utils/transactionHelper'); // Import all helper functions
 
 // Middleware function to save a transaction
 const saveTransactionMiddleware = async (req, res, next) => {
@@ -52,13 +52,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await activityMiddleware(req, req.user.id, 'Organisation settings not found', 'TRANSACTION');
             await client.query('ROLLBACK'); // Rollback the transaction
             await activityMiddleware(req, req.user.id, 'Transaction rolled back due to missing organisation settings', 'TRANSACTION');
-            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-                status: false,
+            req.transactionError = {
+                status: StatusCodes.INTERNAL_SERVER_ERROR,
                 message: 'Organisation settings not found.',
-                statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
-                data: null,
-                errors: ['Internal server error.'],
-            });
+                errors: ['Internal server error.']
+            };
+            return next();
         }
         const orgSettings = orgSettingsResult.rows[0];
 
@@ -71,13 +70,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             if (!user.phone || accountnumber != `${orgSettings.personal_account_prefix}${user.phone}`) {
                 await client.query('ROLLBACK'); // Rollback the transaction
                 await activityMiddleware(req, req.user.id, 'Transaction rolled back due to invalid account number', 'TRANSACTION');
-                return res.status(StatusCodes.BAD_REQUEST).json({
-                    status: false,
-                    message: 'Invalid account number.',         
-                    statuscode: StatusCodes.BAD_REQUEST,
-                    data: null,
-                    errors: ['Account not found.'],
-                });
+                req.transactionError = {
+                    status: StatusCodes.EXPECTATION_FAILED,
+                    message: 'Invalid account number.',
+                    errors: ['Account not found.']
+                };
+                return next();
             }
             whichaccount = 'PERSONAL';
         }
@@ -89,13 +87,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await saveFailedTransaction(client, req, 'Invalid account number', transactionReference, whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after invalid personnal account number', 'TRANSACTION');
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
+            req.transactionError = {
+                status: StatusCodes.EXPECTATION_FAILED,
                 message: 'Invalid account number.',
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: ['Account not found.'],
-            });
+                errors: ['Account not found.']
+            };
+            return next();
         }
 
         // Get the user of the account number if it's a savings account
@@ -109,13 +106,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await saveFailedTransaction(client, req, 'Account is not active.', transactionReference, whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after inactive account', 'TRANSACTION');
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
+            req.transactionError = {
+                status: StatusCodes.EXPECTATION_FAILED,
                 message: 'Account is not active.',
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: ['Inactive account.'],
-            });
+                errors: ['Inactive account.']
+            };
+            return next();
         }
 
         // 2. Validate the savings product
@@ -125,26 +121,24 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await saveFailedTransaction(client, req, 'Invalid savings product', transactionReference, whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after invalid savings product', 'TRANSACTION');
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
+            req.transactionError = {
+                status: StatusCodes.EXPECTATION_FAILED,
                 message: 'Invalid savings product.',
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: ['Savings product not found.'],
-            });
+                errors: ['Savings product not found.']
+            };
+            return next();
         }
         const savingsProduct = savingsProductResult.rows[0];
         if (savingsProduct.status !== 'ACTIVE') {
             await saveFailedTransaction(client, req, 'Inactive savings product', transactionReference, whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after inactive savings product', 'TRANSACTION');
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
+            req.transactionError = {
+                status: StatusCodes.EXPECTATION_FAILED,
                 message: 'Savings product is not active.',
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: ['Inactive savings product.'],
-            });
+                errors: ['Inactive savings product.']
+            };
+            return next();
         }
 
         // 3. Check if both credit and debit are greater than zero
@@ -152,13 +146,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await saveFailedTransaction(client, req, 'Invalid transaction', transactionReference, whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after invalid credit and debit', 'TRANSACTION');
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
+            req.transactionError = {
+                status: StatusCodes.EXPECTATION_FAILED,
                 message: 'Both credit and debit cannot be greater than zero.',
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: ['Invalid transaction.'],
-            });
+                errors: ['Invalid transaction.']
+            };
+            return next();
         }
 
 
@@ -175,13 +168,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await saveFailedTransaction(client, req, reasonForRejection, transactionReference, whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after currency mismatch', 'TRANSACTION');
-            return res.status(StatusCodes.CREATED).json({
-                status: false,
+            req.transactionError = {
+                status: StatusCodes.EXPECTATION_FAILED,
                 message: 'Transaction failed due to currency mismatch.',
-                statuscode: StatusCodes.CREATED,
-                data: null,
-                errors: ['Currency mismatch or not provided.'],
-            });
+                errors: ['Currency mismatch or not provided.']
+            };
+            return next();
         }
 
         const currentDate = new Date();
@@ -192,13 +184,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await saveFailedTransaction(client, req, reasonForRejection, transactionReference, whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after back-dated transaction', 'TRANSACTION');
-            return res.status(StatusCodes.FAILED_DEPENDENCY).json({
-                status: false,
-                message: 'Transaction failed due to back-dated transaction.', 
-                statuscode: StatusCodes.FAILED_DEPENDENCY,
-                data: null,
-                errors: ['Back-dated transactions are not allowed.'],
-            });
+            req.transactionError = {
+                status: StatusCodes.FAILED_DEPENDENCY,
+                message: 'Transaction failed due to back-dated transaction.',
+                errors: ['Back-dated transactions are not allowed.']
+            };
+            return next();
         }
         if (!orgSettings.allow_future_transaction && new Date(transactiondate) > currentDate) {
             transactionStatus = 'FAILED';
@@ -207,13 +198,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await saveFailedTransaction(client, req, reasonForRejection, transactionReference, whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after future transaction', 'TRANSACTION');
-            return res.status(StatusCodes.FAILED_DEPENDENCY).json({
-                status: false,
+            req.transactionError = {
+                status: StatusCodes.FAILED_DEPENDENCY,
                 message: 'Transaction failed due to future transaction.',
-                statuscode: StatusCodes.FAILED_DEPENDENCY,
-                data: null,
-                errors: ['Future transactions are not allowed.'],
-            });
+                errors: ['Future transactions are not allowed.']
+            };
+            return next();
         }
         const rejectTransactionDateQuery = `SELECT * FROM divine."Rejecttransactiondate" WHERE rejectiondate = $1`;
         const rejectTransactionDateResult = await client.query(rejectTransactionDateQuery, [currentDate.toISOString().split('T')[0]]);
@@ -224,13 +214,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await saveFailedTransaction(client, req, reasonForRejection, transactionReference, whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after rejected date', 'TRANSACTION');
-            return res.status(StatusCodes.FAILED_DEPENDENCY).json({
-                status: false,
+            req.transactionError = {
+                status: StatusCodes.FAILED_DEPENDENCY,
                 message: 'Transaction failed due to rejected date.',
-                statuscode: StatusCodes.FAILED_DEPENDENCY,
-                data: null,
-                errors: ['Transaction date is a rejected date.'],
-            });
+                errors: ['Transaction date is a rejected date.']
+            };
+            return next();
         }
 
         if(whichaccount === 'SAVINGS'){
@@ -277,13 +266,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
                     await handleCreditRedirectToPersonnalAccount(client, req, accountuser, transactionReference, reasonForRejection, whichaccount);
                     await client.query('COMMIT'); // Commit the transaction
                     await activityMiddleware(req, req.user.id, 'Transaction committed after deposit not allowed', 'TRANSACTION');
-                    return res.status(StatusCodes.MISDIRECTED_REQUEST).json({
-                        status: false,
+                    req.transactionError = {
+                        status: StatusCodes.MISDIRECTED_REQUEST,
                         message: 'Transaction has been redirected to the personal account because the savings account is restricted from taking deposits.',
-                        statuscode: StatusCodes.MISDIRECTED_REQUEST,
-                        data: null,
-                        errors: ['Deposits not allowed on this product. Transaction redirected to personal account.'],
-                    });
+                        errors: ['Deposits not allowed on this product. Transaction redirected to personal account.']
+                    };
+                    return next();
                 }
 
                 // 10. Compulsory Deposit Logic
@@ -294,13 +282,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
                         await handleCreditRedirectToPersonnalAccount(client, req, accountuser, transactionReference, reasonForRejection, whichaccount);
                         await client.query('COMMIT'); // Commit the transaction
                         await activityMiddleware(req, req.user.id, 'Transaction committed after compulsory deposit amount not met', 'TRANSACTION');
-                        return res.status(StatusCodes.BAD_REQUEST).json({
-                            status: false,
+                        req.transactionError = {
+                            status: StatusCodes.EXPECTATION_FAILED,
                             message: 'Credit amount is less than compulsory deposit amount.',
-                            statuscode: StatusCodes.BAD_REQUEST,
-                            data: null,
-                            errors: ['Credit amount is less than compulsory deposit amount.'],
-                        });
+                            errors: ['Credit amount is less than compulsory deposit amount.']
+                        };
+                        return next();
                     }
                     // Calculate the remainder when the credit amount is divided by the compulsory deposit frequency amount
                     const remainder = credit % savingsProduct.compulsorydepositfrequencyamount;
@@ -311,13 +298,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
                                 await handleCreditRedirectToPersonnalAccount(client, req, accountuser, transactionReference, reasonForRejection, whichaccount);
                                 await client.query('COMMIT'); // Commit the transaction
                                 await activityMiddleware(req, req.user.id, 'Transaction committed after compulsory deposit frequency not met', 'TRANSACTION');
-                                return res.status(StatusCodes.MISDIRECTED_REQUEST).json({
-                                    status: false,
+                                req.transactionError = {
+                                    status: StatusCodes.MISDIRECTED_REQUEST,
                                     message: 'Credit amount does not align with compulsory deposit frequency. Personal Account credited instead',
-                                    statuscode: StatusCodes.MISDIRECTED_REQUEST,
-                                    data: null,
-                                    errors: ['Credit amount does not align with compulsory deposit frequency. Personal Account credited instead'],
-                                });
+                                    errors: ['Credit amount does not align with compulsory deposit frequency. Personal Account credited instead']
+                                };
+                                return next();
                             } else {
                                 // Get the last transaction on the account
                                 const lastTransactionQuery = `
@@ -352,13 +338,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
                                         await handleCreditRedirectToPersonnalAccount(client, req, accountuser, transactionReference, reasonForRejection, whichaccount, credit);
                                         await client.query('COMMIT'); // Commit the transaction
                                         await activityMiddleware(req, req.user.id, 'Transaction committed after future transactions not allowed', 'TRANSACTION');
-                                        return res.status(StatusCodes.MISDIRECTED_REQUEST).json({
-                                            status: false,
+                                        req.transactionError = {
+                                            status: StatusCodes.MISDIRECTED_REQUEST,
                                             message: 'Future transactions are not allowed and spillover is false. Personal Account credited instead',
-                                            statuscode: StatusCodes.MISDIRECTED_REQUEST,
-                                            data: null,
-                                            errors: ['Future transactions are not allowed and spillover is false. Personal Account credited instead'],
-                                        });
+                                            errors: ['Future transactions are not allowed and spillover is false. Personal Account credited instead']
+                                        };
+                                        return next();
                                     } else if (futureDates.length > 0 && savingsProduct.compulsorydepositspillover) {
                                         for (const date of dates) {
                                             const transactionData = {
@@ -403,13 +388,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
                                             await handleCreditRedirectToPersonnalAccount(client, req, accountuser, transactionReference, reasonForRejection, whichaccount, remainingBalance);
                                             await client.query('COMMIT'); // Commit the transaction
                                             await activityMiddleware(req, req.user.id, 'Transaction committed after redirecting remaining balance', 'TRANSACTION');
-                                            return res.status(StatusCodes.MISDIRECTED_REQUEST).json({
-                                                status: false,
+                                            req.transactionError = {
+                                                status: StatusCodes.MISDIRECTED_REQUEST,
                                                 message: 'Remaining balance redirected to personal account.',
-                                                statuscode: StatusCodes.MISDIRECTED_REQUEST,
-                                                data: null,
-                                                errors: ['Remaining balance redirected to personal account.'],
-                                            });
+                                                errors: ['Remaining balance redirected to personal account.']
+                                            };
+                                            return next();
                                         }
                                     } else if (savingsProduct.compulsorydepositdeficit && !savingsProduct.compulsorydepositspillover) {
                                         // Pay for only past and current period then calculate the remaining balance and pay to personal account
@@ -451,13 +435,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
                                             await handleCreditRedirectToPersonnalAccount(client, req, accountuser, transactionReference, reasonForRejection, whichaccount, remainingBalance);
                                             await client.query('COMMIT'); // Commit the transaction
                                             await activityMiddleware(req, req.user.id, 'Transaction committed after redirecting remaining balance', 'TRANSACTION');
-                                            return res.status(StatusCodes.MISDIRECTED_REQUEST).json({
-                                                status: false,
+                                            req.transactionError = {
+                                                status: StatusCodes.MISDIRECTED_REQUEST,
                                                 message: 'Remaining balance redirected to personal account.',
-                                                statuscode: StatusCodes.MISDIRECTED_REQUEST,
-                                                data: null,
-                                                errors: ['Remaining balance redirected to personal account.'],
-                                            });
+                                                errors: ['Remaining balance redirected to personal account.']
+                                            };
+                                            return next();
                                         }
                                     } else if (!savingsProduct.compulsorydepositdeficit && savingsProduct.compulsorydepositspillover) {
                                         // Recalculate new dates starting from the current period and then make the payments
@@ -501,13 +484,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
                                             await handleCreditRedirectToPersonnalAccount(client, req, accountuser, transactionReference, reasonForRejection, whichaccount, remainingBalance);
                                             await client.query('COMMIT'); // Commit the transaction
                                             await activityMiddleware(req, req.user.id, 'Transaction committed after redirecting remaining balance', 'TRANSACTION');
-                                            return res.status(StatusCodes.MISDIRECTED_REQUEST).json({
-                                                status: false,
+                                            req.transactionError = {
+                                                status: StatusCodes.MISDIRECTED_REQUEST,
                                                 message: 'Remaining balance redirected to personal account.',
-                                                statuscode: StatusCodes.MISDIRECTED_REQUEST,
-                                                data: null,
-                                                errors: ['Remaining balance redirected to personal account.'],
-                                            });
+                                                errors: ['Remaining balance redirected to personal account.']
+                                            };
+                                            return next();
                                         }
                                     }
                                 }
@@ -571,13 +553,14 @@ const saveTransactionMiddleware = async (req, res, next) => {
                         await saveFailedTransaction(client, req, reasonForRejection, transactionReference, whichaccount); // Save the failed transaction
                         await client.query('COMMIT'); // Commit the transaction
                         await activityMiddleware(req, req.user.id, 'Transaction failed due to withdrawal limit exceeded', 'TRANSACTION'); // Log activity
-                        return res.status(StatusCodes.BAD_REQUEST).json({
-                            status: false,
+                        req.transactionError = {
+                            status: StatusCodes.EXPECTATION_FAILED,
                             message: 'Transaction failed due to withdrawal limit exceeded.',
-                            statuscode: StatusCodes.BAD_REQUEST,
+                            statuscode: StatusCodes.EXPECTATION_FAILED,
                             data: null,
                             errors: ['Withdrawal limit exceeded.'],
-                        }); // Return a response
+                        };
+                        return next();
                     } 
                     // Check if there is a withdrawal charge applicable
                     if (savingsProduct.withdrawalcharge > 0) {
@@ -649,10 +632,10 @@ const saveTransactionMiddleware = async (req, res, next) => {
             await client.query('COMMIT'); // Commit the transaction
         }
 
-        res.status(StatusCodes.BAD_REQUEST).json({
+        res.status(StatusCodes.EXPECTATION_FAILED).json({
             status: false,
             message: 'Transaction processing failed.',
-            statuscode: StatusCodes.BAD_REQUEST,
+            statuscode: StatusCodes.EXPECTATION_FAILED,
             data: null,
             errors: [error.message],
         });

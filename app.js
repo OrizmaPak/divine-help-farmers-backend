@@ -27,7 +27,7 @@ const errorHandlerMiddleware = require('./middleware/error-handler');
 // const multer = require('multer');
 const { requestprocessor } = require('./middleware/requestprocessor');
 const authMiddleware = require('./middleware/authentication');
-const transactionMiddleware = require('./middleware/transaction/transaction');
+const transactionMiddleware = require('./middleware/transactions/transaction');
 const { decryptMiddleware, encryptResponseMiddleware } = require('./middleware/encrypt');
 app.use(express.json());
 app.use(helmet());

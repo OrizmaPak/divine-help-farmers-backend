@@ -3,9 +3,62 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
 const manageSavingsAccount = async (req, res) => {
-    const { savingsproductid, userid, amount, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, accountname1, bankname2, accountname2, accountofficer, sms, whatsapp, email, createdby, accountnumber } = req.body;
+    const { savingsproductid, userid, amount=0, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, accountname1, bankname2, accountname2, accountofficer, sms, whatsapp, email, createdby, accountnumber } = req.body;
 
     try {
+        const user = req.user;
+
+        // Check if all required fields are provided
+        let missingFields = [];
+        if (!savingsproductid) missingFields.push('savingsproductid');
+        if (!userid) missingFields.push('userid');
+        if (!amount) missingFields.push('amount');
+        if (!branch) missingFields.push('branch');
+        if (!registrationcharge) missingFields.push('registrationcharge');
+        if (!createdby) missingFields.push('createdby');
+
+        if (missingFields.length > 0) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Missing required fields.",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: [`Missing required fields: ${missingFields.join(', ')}.`]
+            });
+        }
+
+        // Check if the savings product exists
+        const productQuery = `SELECT * FROM divine."savingsproduct" WHERE id = $1`;
+        const productResult = await pg.query(productQuery, [savingsproductid]);
+
+        if (productResult.rowCount === 0) {
+            await activityMiddleware(req, createdby, 'Attempt to create a savings account with a non-existent product', 'ACCOUNT');
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Savings product does not exist.",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["Savings product does not exist."]
+            });
+        }
+
+        // Check if the account officer exists and is a user
+        if (accountofficer) {
+            const officerQuery = `SELECT * FROM divine."User" WHERE id = $1`;
+            const officerResult = await pg.query(officerQuery, [accountofficer]);
+
+            if (officerResult.rowCount === 0) {
+                await activityMiddleware(req, createdby, 'Attempt to assign a non-existent user as account officer', 'ACCOUNT');
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "Account officer does not exist.",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: ["Account officer does not exist."]
+                });
+            }
+        }
+
         // Check if the user already has the savings product
         const existingAccountQuery = `SELECT * FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2`;
         const existingAccountResult = await pg.query(existingAccountQuery, [userid, savingsproductid]);
@@ -55,13 +108,14 @@ const manageSavingsAccount = async (req, res) => {
         
         let generatedAccountNumber;
         if (accountRows.length === 0) {
-            generatedAccountNumber = `${accountNumberPrefix}${'0'.repeat(10 - accountNumberPrefix.length - 1)}1`;
+            generatedAccountNumber = `${accountNumberPrefix}${'0'.repeat(10 - accountNumberPrefix.toString().length - 1)}1`;
         } else {
             const highestAccountNumber = accountRows[0].accountnumber;
             const newAccountNumber = parseInt(highestAccountNumber) + 1;
+            const newAccountNumberStr = newAccountNumber.toString();
             
-            if (newAccountNumber.toString().startsWith(accountNumberPrefix)) {
-                generatedAccountNumber = newAccountNumber.toString();
+            if (newAccountNumberStr.startsWith(accountNumberPrefix)) {
+                generatedAccountNumber = newAccountNumberStr.padStart(10, '0');
             } else {
                 await activityMiddleware(req, createdby, `More accounts cannot be opened with the prefix ${accountNumberPrefix}. Please update the prefix to start a new account run.`, 'ACCOUNT');
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -123,9 +177,7 @@ const manageSavingsAccount = async (req, res) => {
                     sms = COALESCE($11, sms), 
                     whatsapp = COALESCE($12, whatsapp), 
                     email = COALESCE($13, email), 
-                    status = 'ACTIVE', 
-                    dateadded = NOW(), 
-                    createdby = COALESCE($14, createdby)
+                    status = COALESCE($14, 'ACTIVE'), 
                 WHERE accountnumber = $15
                 RETURNING id
             `;
@@ -145,7 +197,7 @@ const manageSavingsAccount = async (req, res) => {
             });
         } else {
             // Check if the userid exists in the user table
-            const userExistsQuery = `SELECT * FROM divine."user" WHERE id = $1`;
+            const userExistsQuery = `SELECT * FROM divine."User" WHERE id = $1`;
             const userExistsResult = await pg.query(userExistsQuery, [userid]);
 
             if (userExistsResult.rowCount === 0) {
@@ -177,11 +229,12 @@ const manageSavingsAccount = async (req, res) => {
             const insertAccountQuery = `
                 INSERT INTO divine."savings" (savingsproductid, accountnumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdate, registrationdesc, bankname1, accountname1, bankname2, accountname2, accountofficer, sms, whatsapp, email, status, dateadded, createdby)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9, $10, $11, $12, $13, $14, $15, $16, 'ACTIVE', NOW(), $17)
-                RETURNING id
+                RETURNING id, accountnumber
             `;
-            const insertAccountResult = await pg.query(insertAccountQuery, [savingsproductid, generatedAccountNumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, accountname1, bankname2, accountname2, accountofficer, sms, whatsapp, email, createdby]);
+            const insertAccountResult = await pg.query(insertAccountQuery, [savingsproductid, generatedAccountNumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, accountname1, bankname2, accountname2, accountofficer, sms, whatsapp, email, user.id]);
 
             const newAccountId = insertAccountResult.rows[0].id;
+            const newAccountNumber = insertAccountResult.rows[0].accountnumber;
 
             // Record the activity
             await activityMiddleware(req, createdby, `Savings account created with ID: ${newAccountId}`, 'ACCOUNT');
@@ -190,7 +243,7 @@ const manageSavingsAccount = async (req, res) => {
                 status: true,
                 message: "Savings account created successfully.",
                 statuscode: StatusCodes.CREATED,
-                data: { id: newAccountId },
+                data: { id: newAccountId, accountnumber: newAccountNumber },
                 errors: []
             });
         }

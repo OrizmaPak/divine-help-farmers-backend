@@ -462,14 +462,16 @@ model savings {
   userid                    Int
   amount                    Float
   branch                    Int
-  registrationpoint         Int
+  registrationpoint         Int?
   registrationcharge        Float
   registrationdate          DateTime
   registrationdesc          String?
   bankname1                 String?
-  accountname1              Int?
+  bankaccountname1              String?
+  bankaccountnumber1              Int?
   bankname2                 String?
-  accountname2              Int?
+  bankaccountname2              Int?
+  bankaccountnumber2              String?
   accountofficer            String?
   sms                       Boolean?
   whatsapp                  Boolean?
@@ -490,7 +492,7 @@ model transaction {
   description               String?
   image                     String?
   branch                    Int
-  registrationpoint         Int
+  registrationpoint         Int?
   dateadded                 DateTime
   approvedby                Int?
   status                    String @default("ACTIVE")
@@ -502,7 +504,7 @@ model transaction {
   createdby                 Int
   valuedate                 DateTime?
   reference                 String?
-  whichaccount              String // "SAVINGS" or "PERSONAL" or "LOAN" or "GLACCCOUNT"
+  whichaccount              String? // "SAVINGS" or "PERSONAL" or "LOAN" or "GLACCCOUNT"
   tax                       Boolean? @default(false)
 }
 
