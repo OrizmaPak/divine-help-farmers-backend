@@ -1,0 +1,12 @@
+{"userid": "admin", "message": "Organisation settings not found", "module": "ACCOUNT", "date": "2024-10-19T02:55:06.710Z"}
+{"userid": "1", "message": "DIVINE HELP FARMERS Organization Settings updated", "module": "ORGANIZATION_SETTINGS", "date": "2024-10-19T02:55:22.604Z"}
+{"userid": "1", "message": "DIVINE HELP FARMERS Organization Settings updated", "module": "ORGANIZATION_SETTINGS", "date": "2024-10-19T02:56:37.924Z"}
+{"userid": "1", "message": "DIVINE HELP FARMERS Organization Settings created", "module": "ORGANIZATION_SETTINGS", "date": "2024-10-19T03:52:13.064Z"}
+{"userid": "admin", "message": "An unexpected error occurred while creating or updating the savings account", "module": "ACCOUNT", "date": "2024-10-19T03:53:00.854Z"}
+{"userid": "admin", "message": "An unexpected error occurred while creating or updating the savings account", "module": "ACCOUNT", "date": "2024-10-19T03:54:59.622Z"}
+{"userid": "admin", "message": "An unexpected error occurred while creating or updating the savings account", "module": "ACCOUNT", "date": "2024-10-19T03:56:19.295Z"}
+{"userid": "admin", "message": "Account number prefix not found in organisation settings", "module": "ACCOUNT", "date": "2024-10-19T04:01:12.233Z"}
+{"userid": "admin", "message": "Account number prefix not found in organisation settings", "module": "ACCOUNT", "date": "2024-10-19T04:02:01.078Z"}
+{"userid": "1", "message": "DIVINE HELP FARMERS Organization Settings updated", "module": "ORGANIZATION_SETTINGS", "date": "2024-10-19T04:13:16.544Z"}
+{"userid": "1", "message": "DIVINE HELP FARMERS Organization Settings updated", "module": "ORGANIZATION_SETTINGS", "date": "2024-10-19T04:14:45.858Z"}
+{"userid": "1", "message": "DIVINE HELP FARMERS Organization Settings updated", "module": "ORGANIZATION_SETTINGS", "date": "2024-10-19T04:17:14.528Z"}

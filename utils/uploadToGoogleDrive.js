@@ -71,10 +71,13 @@ async function uploadToGoogleDrive(req, res) {
     const uploadedFiles = req.files; // Array of uploaded files
     if (!uploadedFiles || uploadedFiles.length === 0) {
         // No files were uploaded, return the request as is
+        console.log('No files were uploaded');
         return req;
-    }
+    } 
 
     const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+
+    console.log('OAuth2 client created', oauth2Client);
 
     // Set the credentials
     oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
@@ -100,7 +103,7 @@ async function uploadToGoogleDrive(req, res) {
                 }
             });
 
-            console.log('response', response)
+            console.log('File uploaded successfully:', response.data);
 
             if (response.data.id) {
                 // Set the file permission to be publicly accessible
@@ -111,6 +114,8 @@ async function uploadToGoogleDrive(req, res) {
                         type: 'anyone'
                     }
                 });
+
+                console.log('Permissions set successfully for file:', response.data.id);
 
                 // Construct the preview link in the desired format
                 const previewLink = `https://drive.google.com/thumbnail?id=${response.data.id}&sz=w2000`;
@@ -127,15 +132,15 @@ async function uploadToGoogleDrive(req, res) {
                     }
                 });
             }
-        } catch (error) {
+        } catch (error) { 
             console.error(`Error uploading file ${file.originalname}:`, error);
-            return res.status(500).json({ message: `Failed to upload file: ${file.originalname}` });
+            // return res.status(500).json({ message: `Failed to upload file: ${file.originalname}` });
         }
     }
 
     // Return the modified request body (with the webViewLinks added)
-    console.log(req.body)
-    return req
-}
+    console.log('Modified request body:', req.body);
+    return req;
+} 
 
 module.exports = { uploadToGoogleDrive };  

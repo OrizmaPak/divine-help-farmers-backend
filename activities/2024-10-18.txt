@@ -1,0 +1,6 @@
+{"userid": "1", "message": "Registered and Logged in Successfully  on a  device", "module": "AUTH", "date": "2024-10-18T20:35:39.444Z"}
+{"userid": "1", "message": "No savings products found", "module": "SAVINGSPRODUCT", "date": "2024-10-18T20:37:24.201Z"}
+{"userid": "1", "message": "Thrift Product created", "module": "PRODUCT", "date": "2024-10-18T22:07:54.394Z"}
+{"userid": "1", "message": "shares Product created", "module": "PRODUCT", "date": "2024-10-18T22:26:18.665Z"}
+{"userid": "1", "message": "thrift Product updated", "module": "PRODUCT", "date": "2024-10-18T22:41:51.479Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2024-10-18T22:45:43.543Z"}
