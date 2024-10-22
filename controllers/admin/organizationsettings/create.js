@@ -31,10 +31,12 @@ const organizationsettings = async (req, res) => {
       sms_charge_members = "YES",
       minimum_credit_amount = 2000,
       minimum_credit_amount_penalty = 200,
-      initial_member_savings_prefix = null,
-      personal_account_prefix = "DHF",
+      personal_transaction_prefix = null,
       loan_transaction_prefix = null,
-      member_transaction_prefix = null,
+      savings_transaction_prefix = null,
+      gl_transaction_prefix = null,
+      savings_account_prefix = null,
+      personal_account_prefix = "DHF",
       loan_account_prefix = null,
       asset_account_prefix = null,
       cash_account_prefix = null,
@@ -131,6 +133,50 @@ const organizationsettings = async (req, res) => {
       });
     }
 
+    // Check if default accounts exist in the Accounts table
+    const defaultAccounts = [
+      default_sms_charge_account,
+      default_asset_account,
+      default_cash_account,
+      default_current_assets_account,
+      default_expense_account,
+      default_income_account,
+      default_equity_retained_earnings_account,
+      default_equity_does_not_close_account,
+      default_inventory_account,
+      default_other_asset_account,
+      default_cost_of_sales_account,
+      default_fixed_asset_account,
+      default_other_current_asset_account,
+      default_accounts_payable_account,
+      default_accounts_receivable_account,
+      default_accumulated_depreciation_account,
+      default_liabilities_account,
+      default_other_current_liabilities_account,
+      default_long_term_liabilities_account,
+      default_equity_account,
+      default_tax_account,
+      default_excess_account,
+    ];
+
+    for (const account of defaultAccounts) {
+      if (account) {
+        const { rowCount } = await pg.query(
+          `SELECT 1 FROM divine."Accounts" WHERE accountnumber = $1`,
+          [account]
+        );
+        if (rowCount === 0) {
+          return res.status(StatusCodes.BAD_REQUEST).json({
+            status: false,
+            message: `Account with account number ${account} not found`,
+            statuscode: StatusCodes.BAD_REQUEST,
+            data: null,
+            errors: [{ field: "default_account", message: `Account with account number ${account} not found` }],
+          });
+        }
+      }
+    }
+
     // Fetch all organization settings
     const { rows: orgSettings } = await pg.query(`SELECT * FROM divine."Organisationsettings"`);
 
@@ -141,8 +187,8 @@ const organizationsettings = async (req, res) => {
           company_name, sms_sender_id, phone, mobile, email, address, logo, sms_charge, maintenace_charge,
           vat_rate_percent, addition_savings_registration_charge, allow_back_dated_transaction, allow_future_transaction,
           set_accounting_year_end, schedule_maintenace_charge, sms_charge_members, minimum_credit_amount, minimum_credit_amount_penalty,
-          initial_member_savings_prefix, personal_account_prefix, loan_transaction_prefix, member_transaction_prefix, loan_account_prefix,
-          asset_account_prefix, cash_account_prefix, current_assets_account_prefix, expense_account_prefix, income_account_prefix,
+          personal_transaction_prefix, loan_transaction_prefix, savings_transaction_prefix, gl_transaction_prefix, savings_account_prefix, personal_account_prefix, 
+          loan_account_prefix, asset_account_prefix, cash_account_prefix, current_assets_account_prefix, expense_account_prefix, income_account_prefix,
           equity_retained_earnings_account_prefix, equity_does_not_close_prefix, inventory_account_prefix, other_asset_account_prefix,
           cost_of_sales_account_prefix, fixed_asset_account_prefix, other_current_asset_account_prefix, accounts_payable_account_prefix,
           accounts_receivable_account_prefix, accumulated_depreciation_account_prefix, liabilities_account_prefix, other_current_liabilities_account_prefix,
@@ -159,7 +205,7 @@ const organizationsettings = async (req, res) => {
           $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
           $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
           $51, $52, $53, $54, $55, $56, $57, $58, $59, $60,
-          $61, $62
+          $61, $62, $63, $64, $65, $66
         ) RETURNING id
       `;
 
@@ -182,10 +228,12 @@ const organizationsettings = async (req, res) => {
         sms_charge_members || "YES",
         parseNumber(minimum_credit_amount, 2000),
         parseNumber(minimum_credit_amount_penalty, 200),
-        initial_member_savings_prefix || null,
-        personal_account_prefix || "DHF",
+        personal_transaction_prefix || null,
         loan_transaction_prefix || null,
-        member_transaction_prefix || null,
+        savings_transaction_prefix || null,
+        gl_transaction_prefix || null,
+        savings_account_prefix || null,
+        personal_account_prefix || "DHF",
         loan_account_prefix || null,
         asset_account_prefix || null,
         cash_account_prefix || null,
@@ -281,121 +329,125 @@ const organizationsettings = async (req, res) => {
           sms_charge_members = COALESCE($16, sms_charge_members),
           minimum_credit_amount = COALESCE($17, minimum_credit_amount),
           minimum_credit_amount_penalty = COALESCE($18, minimum_credit_amount_penalty),
-          initial_member_savings_prefix = COALESCE($19, initial_member_savings_prefix),
-          personal_account_prefix = COALESCE($20, personal_account_prefix),
-          loan_transaction_prefix = COALESCE($21, loan_transaction_prefix),
-          member_transaction_prefix = COALESCE($22, member_transaction_prefix),
-          loan_account_prefix = COALESCE($23, loan_account_prefix),
-          asset_account_prefix = COALESCE($24, asset_account_prefix),
-          cash_account_prefix = COALESCE($25, cash_account_prefix),
-          current_assets_account_prefix = COALESCE($26, current_assets_account_prefix),
-          expense_account_prefix = COALESCE($27, expense_account_prefix),
-          income_account_prefix = COALESCE($28, income_account_prefix),
-          equity_retained_earnings_account_prefix = COALESCE($29, equity_retained_earnings_account_prefix),
-          equity_does_not_close_prefix = COALESCE($30, equity_does_not_close_prefix),
-          inventory_account_prefix = COALESCE($31, inventory_account_prefix),
-          other_asset_account_prefix = COALESCE($32, other_asset_account_prefix),
-          cost_of_sales_account_prefix = COALESCE($33, cost_of_sales_account_prefix),
-          fixed_asset_account_prefix = COALESCE($34, fixed_asset_account_prefix),
-          other_current_asset_account_prefix = COALESCE($35, other_current_asset_account_prefix),
-          accounts_payable_account_prefix = COALESCE($36, accounts_payable_account_prefix),
-          accounts_receivable_account_prefix = COALESCE($37, accounts_receivable_account_prefix),
-          accumulated_depreciation_account_prefix = COALESCE($38, accumulated_depreciation_account_prefix),
-          liabilities_account_prefix = COALESCE($39, liabilities_account_prefix),
-          other_current_liabilities_account_prefix = COALESCE($40, other_current_liabilities_account_prefix),
-          long_term_liabilities_account_prefix = COALESCE($41, long_term_liabilities_account_prefix),
-          equity_account_prefix = COALESCE($42, equity_account_prefix),
-          default_sms_charge_account = COALESCE($43, default_sms_charge_account),
-          default_asset_account = COALESCE($44, default_asset_account),
-          default_cash_account = COALESCE($45, default_cash_account),
-          default_current_assets_account = COALESCE($46, default_current_assets_account),
-          default_expense_account = COALESCE($47, default_expense_account),
-          default_income_account = COALESCE($48, default_income_account),
-          default_equity_retained_earnings_account = COALESCE($49, default_equity_retained_earnings_account),
-          default_equity_does_not_close_account = COALESCE($50, default_equity_does_not_close_account),
-          default_inventory_account = COALESCE($51, default_inventory_account),
-          default_other_asset_account = COALESCE($52, default_other_asset_account),
-          default_cost_of_sales_account = COALESCE($53, default_cost_of_sales_account),
-          default_fixed_asset_account = COALESCE($54, default_fixed_asset_account),
-          default_other_current_asset_account = COALESCE($55, default_other_current_asset_account),
-          default_accounts_payable_account = COALESCE($56, default_accounts_payable_account),
-          default_accounts_receivable_account = COALESCE($57, default_accounts_receivable_account),
-          default_accumulated_depreciation_account = COALESCE($58, default_accumulated_depreciation_account),
-          default_liabilities_account = COALESCE($59, default_liabilities_account),
-          default_other_current_liabilities_account = COALESCE($60, default_other_current_liabilities_account),
-          default_long_term_liabilities_account = COALESCE($61, default_long_term_liabilities_account),
-          default_equity_account = COALESCE($62, default_equity_account),
-          default_tax_account = COALESCE($63, default_tax_account),
-          default_excess_account = COALESCE($64, default_excess_account)
-        WHERE id = $65
+          personal_transaction_prefix = COALESCE($19, personal_transaction_prefix),
+          loan_transaction_prefix = COALESCE($20, loan_transaction_prefix),
+          savings_transaction_prefix = COALESCE($21, savings_transaction_prefix),
+          gl_transaction_prefix = COALESCE($22, gl_transaction_prefix),
+          savings_account_prefix = COALESCE($23, savings_account_prefix),
+          personal_account_prefix = COALESCE($24, personal_account_prefix),
+          loan_account_prefix = COALESCE($25, loan_account_prefix),
+          asset_account_prefix = COALESCE($26, asset_account_prefix),
+          cash_account_prefix = COALESCE($27, cash_account_prefix),
+          current_assets_account_prefix = COALESCE($28, current_assets_account_prefix),
+          expense_account_prefix = COALESCE($29, expense_account_prefix),
+          income_account_prefix = COALESCE($30, income_account_prefix),
+          equity_retained_earnings_account_prefix = COALESCE($31, equity_retained_earnings_account_prefix),
+          equity_does_not_close_prefix = COALESCE($32, equity_does_not_close_prefix),
+          inventory_account_prefix = COALESCE($33, inventory_account_prefix),
+          other_asset_account_prefix = COALESCE($34, other_asset_account_prefix),
+          cost_of_sales_account_prefix = COALESCE($35, cost_of_sales_account_prefix),
+          fixed_asset_account_prefix = COALESCE($36, fixed_asset_account_prefix),
+          other_current_asset_account_prefix = COALESCE($37, other_current_asset_account_prefix),
+          accounts_payable_account_prefix = COALESCE($38, accounts_payable_account_prefix),
+          accounts_receivable_account_prefix = COALESCE($39, accounts_receivable_account_prefix),
+          accumulated_depreciation_account_prefix = COALESCE($40, accumulated_depreciation_account_prefix),
+          liabilities_account_prefix = COALESCE($41, liabilities_account_prefix),
+          other_current_liabilities_account_prefix = COALESCE($42, other_current_liabilities_account_prefix),
+          long_term_liabilities_account_prefix = COALESCE($43, long_term_liabilities_account_prefix),
+          equity_account_prefix = COALESCE($44, equity_account_prefix),
+          default_sms_charge_account = COALESCE($45, default_sms_charge_account),
+          default_asset_account = COALESCE($46, default_asset_account),
+          default_cash_account = COALESCE($47, default_cash_account),
+          default_current_assets_account = COALESCE($48, default_current_assets_account),
+          default_expense_account = COALESCE($49, default_expense_account),
+          default_income_account = COALESCE($50, default_income_account),
+          default_equity_retained_earnings_account = COALESCE($51, default_equity_retained_earnings_account),
+          default_equity_does_not_close_account = COALESCE($52, default_equity_does_not_close_account),
+          default_inventory_account = COALESCE($53, default_inventory_account),
+          default_other_asset_account = COALESCE($54, default_other_asset_account),
+          default_cost_of_sales_account = COALESCE($55, default_cost_of_sales_account),
+          default_fixed_asset_account = COALESCE($56, default_fixed_asset_account),
+          default_other_current_asset_account = COALESCE($57, default_other_current_asset_account),
+          default_accounts_payable_account = COALESCE($58, default_accounts_payable_account),
+          default_accounts_receivable_account = COALESCE($59, default_accounts_receivable_account),
+          default_accumulated_depreciation_account = COALESCE($60, default_accumulated_depreciation_account),
+          default_liabilities_account = COALESCE($61, default_liabilities_account),
+          default_other_current_liabilities_account = COALESCE($62, default_other_current_liabilities_account),
+          default_long_term_liabilities_account = COALESCE($63, default_long_term_liabilities_account),
+          default_equity_account = COALESCE($64, default_equity_account),
+          default_tax_account = COALESCE($65, default_tax_account),
+          default_excess_account = COALESCE($66, default_excess_account)
+        WHERE id = $67
       `;
 
       const updateValues = [
-        company_name,
-        sms_sender_id,
-        phone,
-        mobile,
-        email,
-        address,
-        logo,
-        sms_charge,
-        maintenace_charge,
-        vat_rate_percent,
-        addition_savings_registration_charge,
-        allow_back_dated_transaction,
-        allow_future_transaction,
-        set_accounting_year_end,
-        schedule_maintenace_charge,
-        sms_charge_members,
-        minimum_credit_amount,
-        minimum_credit_amount_penalty,
-        initial_member_savings_prefix,
-        personal_account_prefix,
-        loan_transaction_prefix,
-        member_transaction_prefix,
-        loan_account_prefix,
-        asset_account_prefix,
-        cash_account_prefix,
-        current_assets_account_prefix,
-        expense_account_prefix,
-        income_account_prefix,
-        equity_retained_earnings_account_prefix,
-        equity_does_not_close_prefix,
-        inventory_account_prefix,
-        other_asset_account_prefix,
-        cost_of_sales_account_prefix,
-        fixed_asset_account_prefix,
-        other_current_asset_account_prefix,
-        accounts_payable_account_prefix,
-        accounts_receivable_account_prefix,
-        accumulated_depreciation_account_prefix,
-        liabilities_account_prefix,
-        other_current_liabilities_account_prefix,
-        long_term_liabilities_account_prefix,
-        equity_account_prefix,
-        default_sms_charge_account,
-        default_asset_account,
-        default_cash_account,
-        default_current_assets_account,
-        default_expense_account,
-        default_income_account,
-        default_equity_retained_earnings_account,
-        default_equity_does_not_close_account,
-        default_inventory_account,
-        default_other_asset_account,
-        default_cost_of_sales_account,
-        default_fixed_asset_account,
-        default_other_current_asset_account,
-        default_accounts_payable_account,
-        default_accounts_receivable_account,
-        default_accumulated_depreciation_account,
-        default_liabilities_account,
-        default_other_current_liabilities_account,
-        default_long_term_liabilities_account,
-        default_equity_account,
-        default_tax_account,
-        default_excess_account,
-        idToUpdate,
+        company_name, // $1
+        sms_sender_id, // $2
+        phone, // $3
+        mobile, // $4
+        email, // $5
+        address, // $6
+        logo, // $7
+        sms_charge, // $8
+        maintenace_charge, // $9
+        vat_rate_percent, // $10
+        addition_savings_registration_charge, // $11
+        allow_back_dated_transaction, // $12
+        allow_future_transaction, // $13
+        set_accounting_year_end, // $14
+        schedule_maintenace_charge, // $15
+        sms_charge_members, // $16
+        minimum_credit_amount, // $17
+        minimum_credit_amount_penalty, // $18
+        personal_transaction_prefix, // $19
+        loan_transaction_prefix, // $20
+        savings_transaction_prefix, // $21
+        gl_transaction_prefix, // $22
+        savings_account_prefix, // $23
+        personal_account_prefix, // $24
+        loan_account_prefix, // $25
+        asset_account_prefix, // $26
+        cash_account_prefix, // $27
+        current_assets_account_prefix, // $28
+        expense_account_prefix, // $29
+        income_account_prefix, // $30
+        equity_retained_earnings_account_prefix, // $31
+        equity_does_not_close_prefix, // $32
+        inventory_account_prefix, // $33
+        other_asset_account_prefix, // $34
+        cost_of_sales_account_prefix, // $35
+        fixed_asset_account_prefix, // $36
+        other_current_asset_account_prefix, // $37
+        accounts_payable_account_prefix, // $38
+        accounts_receivable_account_prefix, // $39
+        accumulated_depreciation_account_prefix, // $40
+        liabilities_account_prefix, // $41
+        other_current_liabilities_account_prefix, // $42
+        long_term_liabilities_account_prefix, // $43
+        equity_account_prefix, // $44
+        default_sms_charge_account, // $45
+        default_asset_account, // $46
+        default_cash_account, // $47
+        default_current_assets_account, // $48
+        default_expense_account, // $49
+        default_income_account, // $50
+        default_equity_retained_earnings_account, // $51
+        default_equity_does_not_close_account, // $52
+        default_inventory_account, // $53
+        default_other_asset_account, // $54
+        default_cost_of_sales_account, // $55
+        default_fixed_asset_account, // $56
+        default_other_current_asset_account, // $57
+        default_accounts_payable_account, // $58
+        default_accounts_receivable_account, // $59
+        default_accumulated_depreciation_account, // $60
+        default_liabilities_account, // $61
+        default_other_current_liabilities_account, // $62
+        default_long_term_liabilities_account, // $63
+        default_equity_account, // $64
+        default_tax_account, // $65
+        default_excess_account, // $66
+        idToUpdate, // $67
       ];
 
       await pg.query(updateQuery, updateValues);
@@ -418,7 +470,6 @@ const organizationsettings = async (req, res) => {
     }
   } catch (err) {
     console.error("Unexpected Error:", err);
-
     // Provide detailed error message in development mode
     const errorMessage =
       process.env.NODE_ENV === "development"
@@ -442,9 +493,9 @@ const organizationsettings = async (req, res) => {
 };
 
 function parseNumber(value, defaultValue = 0) {
-    const number = parseFloat(value);
-    return isNaN(number) ? defaultValue : number;
-  }
+  const number = parseFloat(value);
+  return isNaN(number) ? defaultValue : number;
+}
 
 module.exports = {
   organizationsettings,

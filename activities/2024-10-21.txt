@@ -1,0 +1,248 @@
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:09:50.234Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:09:50.244Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:11:35.504Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:11:35.509Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:12:13.110Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:12:13.127Z"}
+{"userid": "1", "message": "Transaction committed after currency mismatch", "module": "TRANSACTION", "date": "2024-10-21T00:12:15.843Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:21:22.115Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:21:22.119Z"}
+{"userid": "1", "message": "Transaction committed after currency mismatch", "module": "TRANSACTION", "date": "2024-10-21T00:21:24.516Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:22:38.726Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:22:38.732Z"}
+{"userid": "1", "message": "Transaction committed after currency mismatch", "module": "TRANSACTION", "date": "2024-10-21T00:22:42.321Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:23:04.084Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:23:04.086Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:25:52.225Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:25:52.230Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:29:43.065Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:29:43.069Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:33:47.656Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:33:47.702Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T00:36:30.569Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T00:36:30.595Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T06:43:00.018Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T06:43:00.026Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T06:53:33.929Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T06:53:33.935Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T07:04:00.353Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T07:04:00.402Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T07:06:05.355Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T07:06:05.362Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T07:07:20.407Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T07:07:20.422Z"}
+{"userid": "1", "message": "Logged in Successfully  on a  device", "module": "AUTH", "date": "2024-10-21T11:28:52.222Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:29:15.848Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:29:15.856Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:29:51.657Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:29:51.661Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:31:23.148Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:31:23.268Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:33:38.718Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:33:38.721Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:35:36.285Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:35:36.288Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:40:13.669Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:40:13.672Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:43:14.696Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:43:14.702Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:44:03.236Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:44:03.244Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:50:17.032Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:50:17.042Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T11:59:28.810Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T11:59:28.821Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T12:16:49.080Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T12:16:49.084Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T12:17:31.129Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T12:17:31.132Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2024-10-21T12:37:36.631Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:23:12.129Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:23:35.320Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:23:54.927Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:24:11.761Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:24:22.535Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:24:36.453Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:24:50.257Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:25:00.692Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:25:09.805Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:25:22.314Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:25:35.449Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:25:47.016Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:25:57.543Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:26:06.639Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:26:17.620Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:26:25.286Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:26:36.172Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:27:07.886Z"}
+{"userid": "1", "message": "Account created successfully", "module": "ACCOUNT", "date": "2024-10-21T13:27:16.083Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2024-10-21T13:27:59.326Z"}
+{"userid": "1", "message": "DIVINE HELP FARMERS Organization Settings updated", "module": "ORGANIZATION_SETTINGS", "date": "2024-10-21T13:41:11.030Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T13:41:37.264Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T13:41:37.267Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T13:43:31.428Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T13:43:31.488Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T13:46:16.480Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T13:46:16.488Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T13:46:47.956Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T13:46:47.963Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T13:50:15.062Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T13:50:15.068Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T13:52:28.530Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T13:52:28.535Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T13:57:34.036Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T13:57:34.057Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T14:02:29.346Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T14:02:29.393Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T14:03:03.092Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T14:03:03.151Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T14:03:30.056Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T14:03:30.058Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T14:03:55.900Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T14:03:55.917Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T14:04:41.453Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T14:04:41.517Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T14:07:23.746Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T14:07:23.785Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T14:08:10.849Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T14:08:10.881Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T14:08:54.168Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T14:08:54.180Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T14:09:52.415Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T14:09:52.462Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T15:03:23.024Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T15:03:23.037Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T15:04:26.826Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T15:04:26.839Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T15:06:11.527Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T15:06:11.577Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T15:06:17.080Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T15:06:17.961Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T15:10:14.294Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T15:10:14.297Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T15:10:17.692Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T15:10:18.607Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T15:11:38.249Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T15:11:38.253Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T15:12:15.193Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T15:12:15.202Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T15:12:18.904Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T15:12:19.829Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T15:15:28.441Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T15:15:28.447Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T15:15:33.125Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T15:15:34.022Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T18:48:34.138Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T18:48:34.142Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T18:48:36.814Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T18:48:37.930Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T18:49:21.305Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T18:49:21.309Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T18:49:23.902Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T18:49:24.693Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T18:56:46.015Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T18:56:46.021Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T18:56:48.765Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T18:56:49.552Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T18:57:41.862Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T18:57:41.867Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T18:57:44.413Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T18:57:45.161Z"}
+{"userid": "1", "message": "Transaction committed after compulsory deposit amount not met", "module": "TRANSACTION", "date": "2024-10-21T18:57:46.735Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:23:20.820Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:23:20.827Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:23:23.519Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:23:24.351Z"}
+{"userid": "1", "message": "Transaction committed after compulsory deposit amount not met", "module": "TRANSACTION", "date": "2024-10-21T19:23:25.922Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:29:47.040Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:29:47.052Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:29:49.651Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:29:50.395Z"}
+{"userid": "1", "message": "Transaction committed after compulsory deposit amount not met", "module": "TRANSACTION", "date": "2024-10-21T19:29:51.983Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:40:10.860Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:40:10.867Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:40:13.472Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:40:14.240Z"}
+{"userid": "1", "message": "Transaction committed after compulsory deposit amount not met", "module": "TRANSACTION", "date": "2024-10-21T19:40:15.804Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:41:59.387Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:41:59.392Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:42:01.909Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:42:02.686Z"}
+{"userid": "1", "message": "Transaction committed after compulsory deposit amount not met", "module": "TRANSACTION", "date": "2024-10-21T19:42:04.237Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:43:20.931Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:43:20.940Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:43:23.508Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:43:24.303Z"}
+{"userid": "1", "message": "Transaction committed after compulsory deposit amount not met", "module": "TRANSACTION", "date": "2024-10-21T19:43:25.871Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:45:05.226Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:45:05.235Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:45:07.872Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:45:08.653Z"}
+{"userid": "1", "message": "Transaction committed after compulsory deposit amount not met", "module": "TRANSACTION", "date": "2024-10-21T19:45:10.193Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:45:42.935Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:45:42.940Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:45:45.471Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:45:46.233Z"}
+{"userid": "1", "message": "Transaction committed after compulsory deposit amount not met", "module": "TRANSACTION", "date": "2024-10-21T19:45:47.776Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:46:06.540Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:46:06.545Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:46:09.196Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:46:09.990Z"}
+{"userid": "1", "message": "Transaction committed after compulsory deposit amount not met", "module": "TRANSACTION", "date": "2024-10-21T19:46:11.556Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:46:36.733Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:46:36.735Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:46:38.580Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:47:25.822Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:47:25.832Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:47:27.623Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:47:51.080Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:47:51.088Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:47:53.073Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:48:45.955Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:48:45.960Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:48:47.718Z"}
+{"userid": "1", "message": "Transaction saved for current period", "module": "TRANSACTION", "date": "2024-10-21T19:48:48.992Z"}
+{"userid": "1", "message": "Transaction committed after redirecting remaining balance", "module": "TRANSACTION", "date": "2024-10-21T19:48:50.622Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T19:53:27.195Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T19:53:27.197Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T19:53:28.948Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T19:53:30.200Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T19:53:31.248Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T19:53:32.264Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T19:53:33.259Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T19:53:34.288Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2024-10-21T19:53:34.291Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T21:49:57.141Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T21:49:57.146Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T22:01:17.089Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T22:01:17.093Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T22:03:29.967Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T22:03:29.978Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T22:04:40.874Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T22:04:40.892Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T22:05:02.760Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T22:05:02.769Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T22:05:33.478Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T22:05:33.495Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T22:06:47.913Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T22:06:47.916Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T22:06:49.698Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T22:07:33.358Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T22:07:33.362Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T22:07:35.188Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T22:07:54.354Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T22:07:54.368Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T22:07:56.166Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T22:08:18.798Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T22:08:18.807Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T22:08:20.598Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T22:08:21.954Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T22:08:23.067Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T22:08:24.076Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T22:08:25.099Z"}
+{"userid": "1", "message": "Transaction saved for all dates", "module": "TRANSACTION", "date": "2024-10-21T22:08:26.193Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2024-10-21T22:08:26.205Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-21T23:45:41.363Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-21T23:45:41.366Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-21T23:45:43.148Z"}
+{"userid": "1", "message": "Transaction committed after redirecting remaining balance", "module": "TRANSACTION", "date": "2024-10-21T23:45:44.957Z"}

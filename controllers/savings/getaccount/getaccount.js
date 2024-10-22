@@ -1,15 +1,14 @@
 const { StatusCodes } = require("http-status-codes");
-const { activityMiddleware } = require("../../../middleware/activity");
 const pg = require("../../../db/pg");
-const { addOneDay } = require("../../../utils/expiredate");
+const { activityMiddleware } = require("../../../middleware/activity");
 const { divideAndRoundUp } = require("../../../utils/pageCalculator");
 
-const getUsehurs = async (req, res) => {
+const getAccounts = async (req, res) => {
     const user = req.user;
 
     try {
         let query = {
-            text: `SELECT * FROM divine."User"`,
+            text: `SELECT * FROM divine."savings"`,
             values: []
         };
 
@@ -31,11 +30,11 @@ const getUsehurs = async (req, res) => {
 
         // Add search query if provided
         if (req.query.q) {
-            // Fetch column names from the 'User' table
+            // Fetch column names from the 'savings' table
             const { rows: columns } = await pg.query(`
                 SELECT column_name
                 FROM information_schema.columns
-                WHERE table_name = 'User'
+                WHERE table_name = 'savings'
             `);
 
             const cols = columns.map(row => row.column_name);
@@ -51,39 +50,6 @@ const getUsehurs = async (req, res) => {
             valueIndex++;
         }
 
-        // Add startdate and enddate (commented out)
-        // const startdate = req.query.startdate || '';
-        // const enddate = req.query.enddate || '';
-        // if (startdate && enddate) {
-        //     const adjustedStartdate = addOneDay(startdate);
-        //     const adjustedEnddate = addOneDay(enddate);
-        //     if (whereClause) {
-        //         whereClause += ` AND date BETWEEN $${valueIndex} AND $${valueIndex + 1}`;
-        //     } else {
-        //         whereClause += ` WHERE date BETWEEN $${valueIndex} AND $${valueIndex + 1}`;
-        //     }
-        //     query.values.push(adjustedStartdate, adjustedEnddate);
-        //     valueIndex += 2;
-        // } else if (startdate) {
-        //     const adjustedStartdate = addOneDay(startdate);
-        //     if (whereClause) {
-        //         whereClause += ` AND date >= $${valueIndex}`;
-        //     } else {
-        //         whereClause += ` WHERE date >= $${valueIndex}`;
-        //     }
-        //     query.values.push(adjustedStartdate);
-        //     valueIndex++;
-        // } else if (enddate) {
-        //     const adjustedEnddate = addOneDay(enddate);
-        //     if (whereClause) {
-        //         whereClause += ` AND date <= $${valueIndex}`;
-        //     } else {
-        //         whereClause += ` WHERE date <= $${valueIndex}`;
-        //     }
-        //     query.values.push(adjustedEnddate);
-        //     valueIndex++;
-        // }
-
         query.text += whereClause;
 
         // Add pagination
@@ -96,26 +62,23 @@ const getUsehurs = async (req, res) => {
         query.values.push(limit, offset);
 
         const result = await pg.query(query);
-        const users = result.rows.map(user => {
-            const { password, ...userWithoutPassword } = user;
-            return userWithoutPassword;
-        });
+        const accounts = result.rows;
 
         // Get total count for pagination
         const countQuery = {
-            text: `SELECT COUNT(*) FROM divine."User" ${whereClause}`,
+            text: `SELECT COUNT(*) FROM divine."savings" ${whereClause}`,
             values: query.values.slice(0, -2) // Exclude limit and offset
         };
         const { rows: [{ count: total }] } = await pg.query(countQuery);
         const pages = divideAndRoundUp(total, limit);
 
-        await activityMiddleware(req, user.id, 'Users fetched successfully', 'USER');
+        await activityMiddleware(req, user.id, 'Accounts fetched successfully', 'ACCOUNT');
 
         return res.status(StatusCodes.OK).json({
             status: true,
-            message: "Users fetched successfully",
+            message: "Accounts fetched successfully",
             statuscode: StatusCodes.OK,
-            data: users,
+            data: accounts,
             pagination: {
                 total: Number(total),
                 pages,
@@ -126,7 +89,7 @@ const getUsehurs = async (req, res) => {
         });
     } catch (error) {
         console.error('Unexpected Error:', error);
-        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching users', 'USER');
+        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching accounts', 'ACCOUNT');
 
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
@@ -138,4 +101,5 @@ const getUsehurs = async (req, res) => {
     }
 };
 
-module.exports = { getUsers };
+module.exports = { getAccounts };
+

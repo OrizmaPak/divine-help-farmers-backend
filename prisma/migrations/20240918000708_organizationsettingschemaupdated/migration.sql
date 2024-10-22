@@ -1,6 +1,6 @@
 -- AlterTable
 ALTER TABLE "Organisationsettings" ALTER COLUMN "loan_transaction_prefix" SET DATA TYPE STRING;
-ALTER TABLE "Organisationsettings" ALTER COLUMN "member_transaction_prefix" SET DATA TYPE STRING;
+ALTER TABLE "Organisationsettings" ALTER COLUMN "savings_transaction_prefix" SET DATA TYPE STRING;
 ALTER TABLE "Organisationsettings" ALTER COLUMN "loan_account_prefix" SET DATA TYPE STRING;
 ALTER TABLE "Organisationsettings" ALTER COLUMN "asset_account_prefix" SET DATA TYPE STRING;
 ALTER TABLE "Organisationsettings" ALTER COLUMN "cash_account_prefix" SET DATA TYPE STRING;

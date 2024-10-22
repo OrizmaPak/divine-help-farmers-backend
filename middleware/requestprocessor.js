@@ -41,6 +41,11 @@ const requestprocessor = (req, res, next) => {
     
             // Handle form fields
             req.body = req.body || {}; 
+            for (let key in req.body) {
+                if (Object.prototype.hasOwnProperty.call(req.body, key) && typeof req.body[key] === 'string') {
+                    req.body[key] = req.body[key].trim();
+                }
+            }
             // console.log(`Form fields: ${JSON.stringify(req.body)}`);
     
             // Proceed to the next middleware or route handler

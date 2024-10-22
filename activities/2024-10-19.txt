@@ -49,3 +49,9 @@
 {"userid": "1", "message": "Savings account created with ID: 14", "module": "ACCOUNT", "date": "2024-10-19T19:10:59.459Z"}
 {"userid": "1", "message": "Savings account created with ID: 15", "module": "ACCOUNT", "date": "2024-10-19T19:25:26.115Z"}
 {"userid": "1", "message": "Attempt to create a savings account that already exists", "module": "ACCOUNT", "date": "2024-10-19T19:27:06.050Z"}
+{"userid": "1", "message": "Inputted wrong password", "module": "AUTH", "date": "2024-10-19T20:40:42.276Z"}
+{"userid": "1", "message": "Inputted wrong password", "module": "AUTH", "date": "2024-10-19T20:40:51.668Z"}
+{"userid": "1", "message": "Inputted wrong password", "module": "AUTH", "date": "2024-10-19T20:40:54.830Z"}
+{"userid": "1", "message": "Inputted wrong password", "module": "AUTH", "date": "2024-10-19T20:48:56.189Z"}
+{"userid": "1", "message": "Password Reset Request", "module": "AUTH", "date": "2024-10-19T20:49:28.667Z"}
+{"userid": "undefined", "message": "Token Verified for password change", "module": "AUTH", "date": "2024-10-19T20:52:52.084Z"}

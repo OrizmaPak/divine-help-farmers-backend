@@ -61,7 +61,7 @@ const createOrUpdateAccount = async (req, res) => {
                     break;
                 case "ASSET":
                     prefix = orgSettings.asset_account_prefix;
-                    break;
+                    break; 
                 case "CURRENT ASSETS":
                     prefix = orgSettings.current_assets_account_prefix;
                     break;

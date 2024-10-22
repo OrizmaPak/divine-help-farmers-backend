@@ -3,324 +3,378 @@ const pg = require("../../../db/pg"); // Import PostgreSQL pg
 const { addOneDay } = require("../../../utils/expiredate"); // Import utility for adding one day to a date
 const { divideAndRoundUp } = require("../../../utils/pageCalculator"); // Import utility for pagination calculations
 const { activityMiddleware } = require("../../../middleware/activity"); // Import activity middleware
-const {validateCode} = require("../../../utils/datecode");
+const { validateCode } = require("../../../utils/datecode");
 
 // Function to handle POST request for creating or updating a savings product
 const manageSavingsProduct = async (req, res) => {
-    // Extract required fields from the request body
-    const { id, productname, currency, allowdeposit, allowwithdrawal, withdrawallimit, withdrawalcharges, withdrawalchargetype, withdrawalchargeinterval, depositcharge, depositechargetype, withdrawallimittype, activationfee, minimumaccountbalance, allowoverdrawn, compulsorydeposit, compulsorydeposittype, compulsorydepositspillover, compulsorydepositfrequency, compulsorydepositfrequencyamount, compulsorydepositfrequencyskip, compulsorydepositpenalty, compulsorydepositpenaltytype, compulsorydepositpenaltyfrom, compulsorydepositpenaltyfallbackfrom, compulsorydepositdeficit, status, interestrowsize, deductionrowsize, ...body } = req.body;
+    const {
+        id,
+        productname,
+        currency,
+        maxbalance,
+        allowdeposit,
+        allowwithdrawal,
+        withdrawallimit,
+        withdrawalcharges,
+        withdrawalchargetype,
+        withdrawalchargeinterval,
+        depositcharge,
+        depositechargetype = "PERCENTAGE",
+        withdrawallimittype,
+        chargehere = false,
+        activationfee,
+        minimumaccountbalance,
+        allowoverdrawn,
+        compulsorydeposit,
+        compulsorydeposittype,
+        compulsorydepositspillover,
+        compulsorydepositfrequency,
+        compulsorydepositfrequencyamount,
+        compulsorydepositfrequencyskip,
+        compulsorydepositpenalty,
+        compulsorydepositpenaltytype,
+        compulsorydepositpenaltyfrom,
+        compulsorydepositpenaltyfallbackfrom,
+        compulsorydepositdeficit = false,
+        status = "ACTIVE",
+        interestrowsize = 0,
+        deductionrowsize = 0,
+        ...body
+    } = req.body;
 
     const user = req.user;
 
-    // Validate currency
+    // Currency validation
     const validCurrencies = ["NGN", "USD"];
     if (!validCurrencies.includes(currency)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: `The currency provided (${currency}) is not valid. Please use one of the following valid currencies: ${validCurrencies.join(", ")}.`,
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            message: `Invalid currency: ${currency}. Allowed values: ${validCurrencies.join(", ")}.`,
             errors: ["Invalid currency"]
         });
     }
 
-    // Validate withdrawalchargetype
-    const validWithdrawalChargeTypes = ["PERCENTAGE", "AMOUNT"];
-    if (withdrawalchargetype && !validWithdrawalChargeTypes.includes(withdrawalchargetype)) {
+    // Withdrawal charge type validation
+    const validChargeTypes = ["PERCENTAGE", "AMOUNT"];
+    if (withdrawalchargetype && !validChargeTypes.includes(withdrawalchargetype)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: `The 'withdrawalchargetype' value provided (${withdrawalchargetype}) is not valid. Please use one of the following valid options: ${validWithdrawalChargeTypes.join(", ")}.`,
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            message: `Invalid 'withdrawalchargetype': ${withdrawalchargetype}. Allowed values: ${validChargeTypes.join(", ")}.`,
             errors: ["Invalid withdrawalchargetype"]
         });
     }
 
-    // Validate withdrawalchargeinterval
-    if(withdrawalchargeinterval && !validateCode(withdrawalchargeinterval)){
+    // Withdrawal charge interval validation
+    if (withdrawalchargeinterval && !validateCode(withdrawalchargeinterval)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: `The 'withdrawalchargeinterval' value Invalid`,
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            message: "Invalid 'withdrawalchargeinterval' value.",
             errors: ["Invalid withdrawalchargeinterval"]
-        }); 
+        });
     }
 
-    // Validate withdrawallimittype
-    const validWithdrawalLimitTypes = ["PERCENTAGE", "AMOUNT"];
-    if (withdrawallimittype && !validWithdrawalLimitTypes.includes(withdrawallimittype)) {
+    // Withdrawal limit type validation
+    if (withdrawallimittype && !validChargeTypes.includes(withdrawallimittype)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: `The 'withdrawallimittype' value provided (${withdrawallimittype}) is not valid. Please use one of the following valid options: ${validWithdrawalLimitTypes.join(", ")}.`,
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            message: `Invalid 'withdrawallimittype': ${withdrawallimittype}. Allowed values: ${validChargeTypes.join(", ")}.`,
             errors: ["Invalid withdrawallimittype"]
         });
     }
 
-    // Validate depositechargetype
-    const validDepositChargeTypes = ["PERCENTAGE", "AMOUNT"];
-    if (depositechargetype && !validDepositChargeTypes.includes(depositechargetype)) {
+    // Deposit charge type validation
+    if (!validChargeTypes.includes(depositechargetype)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: `The 'depositechargetype' value provided (${depositechargetype}) is not valid. Please use one of the following valid options: ${validDepositChargeTypes.join(", ")}.`,
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            message: `Invalid 'depositechargetype': ${depositechargetype}. Allowed values: ${validChargeTypes.join(", ")}.`,
             errors: ["Invalid depositechargetype"]
         });
     }
 
-    // Validate compulsorydeposittype
+    // Compulsory deposit type validation
     const validCompulsoryDepositTypes = ["FIXED", "MINIMUM"];
     if (compulsorydeposittype && !validCompulsoryDepositTypes.includes(compulsorydeposittype)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: `The 'compulsorydeposittype' value provided (${compulsorydeposittype}) is not valid. Please use one of the following valid options: ${validCompulsoryDepositTypes.join(", ")}.`,
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            message: `Invalid 'compulsorydeposittype': ${compulsorydeposittype}. Allowed values: ${validCompulsoryDepositTypes.join(", ")}.`,
             errors: ["Invalid compulsorydeposittype"]
         });
     }
 
-    // Validate compulsorydepositfrequency
-    if(compulsorydepositfrequency && !validateCode(compulsorydepositfrequency)){
+    // Compulsory deposit frequency validation
+    if (compulsorydepositfrequency && !validateCode(compulsorydepositfrequency)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: `The 'compulsorydepositfrequency' value Invalid`,
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            message: "Invalid 'compulsorydepositfrequency' value.",
             errors: ["Invalid compulsorydepositfrequency"]
-        }); 
+        });
     }
 
-    // Validate compulsorydepositpenaltytype
-    const validCompulsoryDepositPenaltyTypes = ["AMOUNT", "PERCENTAGE"];
-    if (compulsorydepositpenaltytype && !validCompulsoryDepositPenaltyTypes.includes(compulsorydepositpenaltytype)) {
+    // Compulsory deposit penalty type validation
+    if (compulsorydepositpenaltytype && !validChargeTypes.includes(compulsorydepositpenaltytype)) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: `The 'compulsorydepositpenaltytype' value provided (${compulsorydepositpenaltytype}) is not valid. Please use one of the following valid options: ${validCompulsoryDepositPenaltyTypes.join(", ")}.`,
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            message: `Invalid 'compulsorydepositpenaltytype': ${compulsorydepositpenaltytype}. Allowed values: ${validChargeTypes.join(", ")}.`,
             errors: ["Invalid compulsorydepositpenaltytype"]
         });
     }
 
-    // Validate compulsorydepositdeficit and compulsorydepositpenalty
-    const isCompulsoryDepositDeficit = compulsorydepositdeficit === true || compulsorydepositdeficit === "true";
-    if (isCompulsoryDepositDeficit && compulsorydepositpenalty !== 0) {
+    // Check penalty and deficit consistency
+    if ((compulsorydepositdeficit === true || compulsorydepositdeficit === "true") && compulsorydepositpenalty !== 0) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: `The 'compulsorydepositpenalty' must be zero when 'compulsorydepositdeficit' is true.`,
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            message: "The 'compulsorydepositpenalty' must be zero when 'compulsorydepositdeficit' is true.",
             errors: ["Invalid compulsorydepositpenalty"]
         });
     }
 
-    // Process interests
+    // Ensure compulsory deposit frequency amount is provided if compulsorydeposit is true
+    if ((compulsorydeposit === true || compulsorydeposit === "true") && !compulsorydepositfrequencyamount) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+            status: false,
+            message: "The 'compulsorydepositfrequencyamount' is required when 'compulsorydeposit' is true.",
+            errors: ["Missing compulsorydepositfrequencyamount"]
+        });
+    }
+
+    // Process interests and deductions arrays
     const interests = [];
+    const deductions = [];
+
+    // Process interests
     for (let i = 1; i <= interestrowsize; i++) {
-        const interestname = body[`interestname${i}`];
-        const interestmethod = body[`interestmethod${i}`];
-        const eligibilityaccountage = body[`eligibilityaccountage${i}`];
-        const eligibilitybalance = body[`eligibilitybalance${i}`];
-        const interestamount = body[`interestamount${i}`];
-        const interesttype = body[`interesttype${i}`];
-        const interestfrequency = body[`interestfrequency${i}`];
-        const interestfrequencynumber = body[`interestfrequencynumber${i}`] || 0;
-        const interestfrequencyskip = body[`interestfrequencyskip${i}`] || 0;
-        const goforapproval = body[`goforapproval${i}`];
+        const interest = {
+            interestname: body[`interestname${i}`],
+            interestmethod: body[`interestmethod${i}`],
+            eligibilityaccountage: parseInt(body[`eligibilityaccountage${i}`], 10),
+            eligibilitybalance: parseFloat(body[`eligibilitybalance${i}`]),
+            interestamount: parseFloat(body[`interestamount${i}`]),
+            interesttype: body[`interesttype${i}`],
+            interestfrequency: body[`interestfrequency${i}`],
+            interestfrequencynumber: parseInt(body[`interestfrequencynumber${i}`] || 0, 10),
+            interestfrequencyskip: parseInt(body[`interestfrequencyskip${i}`] || 0, 10),
+            goforapproval: body[`goforapproval${i}`] === "true"
+        };
 
         // Validate interesttype
         const validInterestTypes = ["PERCENTAGE", "AMOUNT"];
-        if (!validInterestTypes.includes(interesttype)) {
+        if (!validInterestTypes.includes(interest.interesttype)) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: `The 'interesttype' value provided (${interesttype}) is not valid. Please use one of the following valid options: ${validInterestTypes.join(", ")}.`,
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
+                message: `Invalid 'interesttype': ${interest.interesttype}. Allowed values: ${validInterestTypes.join(", ")}.`,
                 errors: ["Invalid interesttype"]
             });
         }
 
         // Validate interestfrequency
-        if(!validateCode(interestfrequency)){
+        if (!validateCode(interest.interestfrequency)) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: `The 'interestfrequency' value Invalid`,
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
+                message: "Invalid 'interestfrequency' value.",
                 errors: ["Invalid interestfrequency"]
             });
         }
 
-        interests.push({
-            interestname,
-            interestmethod,
-            eligibilityaccountage,
-            eligibilitybalance,
-            interestamount,
-            interesttype,
-            interestfrequency,
-            interestfrequencynumber,
-            interestfrequencyskip,
-            goforapproval
-        });
+        interests.push(interest);
     }
 
     // Process deductions
-    const deductions = [];
     for (let i = 1; i <= deductionrowsize; i++) {
-        const deductionname = body[`deductionname${i}`];
-        const eligibilityaccountage = body[`eligibilityaccountage${i}`];
-        const eligibilitybalance = body[`eligibilitybalance${i}`];
-        const deductionamount = body[`deductionamount${i}`];
-        const deductiontype = body[`deductiontype${i}`];
-        const deductionmethod = body[`deductionmethod${i}`];
-        const deductionfrequency = body[`deductionfrequency${i}`];
-        const deductionfrequencynumber = body[`deductionfrequencynumber${i}`] || 0;
-        const deductionfrequencyskip = body[`deductionfrequencyskip${i}`] || 0;
-        const goforapproval = body[`goforapproval${i}`];
+        const deduction = {
+            deductionname: body[`deductionname${i}`],
+            eligibilityaccountage: parseInt(body[`eligibilityaccountage${i}`], 10),
+            eligibilitybalance: parseFloat(body[`eligibilitybalance${i}`]),
+            deductionamount: parseFloat(body[`deductionamount${i}`]),
+            deductiontype: body[`deductiontype${i}`],
+            deductionmethod: body[`deductionmethod${i}`],
+            deductionfrequency: body[`deductionfrequency${i}`],
+            deductionfrequencynumber: parseInt(body[`deductionfrequencynumber${i}`] || 0, 10),
+            deductionfrequencyskip: parseInt(body[`deductionfrequencyskip${i}`] || 0, 10),
+            goforapproval: body[`goforapproval${i}`] === "true"
+        };
 
         // Validate deductiontype
         const validDeductionTypes = ["PERCENTAGE", "AMOUNT"];
-        if (!validDeductionTypes.includes(deductiontype)) {
+        if (!validDeductionTypes.includes(deduction.deductiontype)) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: `The 'deductiontype' value provided (${deductiontype}) is not valid. Please use one of the following valid options: ${validDeductionTypes.join(", ")}.`,
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: [`Invalid deductiontype: ${deductiontype}`]
+                message: `Invalid 'deductiontype': ${deduction.deductiontype}. Allowed values: ${validDeductionTypes.join(", ")}.`,
+                errors: ["Invalid deductiontype"]
             });
         }
 
         // Validate deductionmethod
         const validDeductionMethods = ["LATEST BALANCE", "PRO RATA BASIS"];
-        if (!validDeductionMethods.includes(deductionmethod)) {
+        if (!validDeductionMethods.includes(deduction.deductionmethod)) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: `The 'deductionmethod' value provided (${deductionmethod}) is not valid. Please use one of the following valid options: ${validDeductionMethods.join(", ")}.`,
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: [`Invalid deductionmethod: ${deductionmethod}`]
+                message: `Invalid 'deductionmethod': ${deduction.deductionmethod}. Allowed values: ${validDeductionMethods.join(", ")}.`,
+                errors: ["Invalid deductionmethod"]
             });
         }
 
         // Validate deductionfrequency
-        if(!validateCode(deductionfrequency)){
+        if (!validateCode(deduction.deductionfrequency)) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: `The 'deductionfrequency' value provided (${deductionfrequency}) is not valid.`,
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: [`Invalid deductionfrequency: ${deductionfrequency}`]
+                message: "Invalid 'deductionfrequency' value.",
+                errors: ["Invalid deductionfrequency"]
             });
         }
 
-        deductions.push({
-            deductionname,
-            eligibilityaccountage,
-            eligibilitybalance,
-            deductionamount,
-            deductiontype,
-            deductionmethod,
-            deductionfrequency,
-            deductionfrequencynumber,
-            deductionfrequencyskip,
-            goforapproval
-        });
+        deductions.push(deduction);
     }
 
     try {
-        await pg.query('BEGIN'); // Start transaction
+        await pg.query("BEGIN"); // Start transaction
 
         if (id) {
-            // Check if the ID exists
+            // Update existing product
             const { rows: existingProductById } = await pg.query(`SELECT * FROM divine."savingsproduct" WHERE id = $1`, [id]);
             if (existingProductById.length === 0) {
+                await pg.query("ROLLBACK");
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: "Product with the provided ID does not exist",
-                    statuscode: StatusCodes.BAD_REQUEST,
-                    data: null,
-                    errors: ["Product with the provided ID does not exist"]
+                    message: "Product with the provided ID does not exist.",
+                    errors: ["Nonexistent product"]
                 });
             }
-            // Update existing product
+
             const adjustedCompulsoryDepositPenalty = compulsorydepositdeficit ? 0 : compulsorydepositpenalty;
-            await pg.query(`UPDATE divine."savingsproduct" SET
-  productname = $1,
-  currency = $2,
-  allowdeposit = $3,
-  allowwithdrawal = $4,
-  withdrawallimit = $5,
-  withdrawalcharges = $6,
-  withdrawalchargetype = $7,
-  withdrawalchargeinterval = $8,
-  depositcharge = $9,
-  depositechargetype = $10,
-  withdrawallimittype = $11,
-  activationfee = $12,
-  minimumaccountbalance = $13,
-  allowoverdrawn = $14,
-  compulsorydeposit = $15,
-  compulsorydeposittype = $16,
-  compulsorydepositspillover = $17,
-  compulsorydepositfrequency = $18,
-  compulsorydepositfrequencyamount = $19,
-  compulsorydepositfrequencyskip = $20,
-  compulsorydepositpenalty = $21,
-  compulsorydepositpenaltytype = $22,
-  compulsorydepositpenaltyfrom = $23,
-  compulsorydepositpenaltyfallbackfrom = $24,
-  compulsorydepositdeficit = $25,
-  status = $26,
-  updatedat = NOW()
-WHERE id = $27
-`, [
-    productname,                      // $1
-    currency,                         // $2
-    allowdeposit,                     // $3
-    allowwithdrawal,                  // $4
-    withdrawallimit,                  // $5
-    withdrawalcharges,                // $6
-    withdrawalchargetype,             // $7
-    withdrawalchargeinterval,         // $8
-    depositcharge,                    // $9
-    depositechargetype,               // $10
-    withdrawallimittype,              // $11
-    activationfee,                    // $12
-    minimumaccountbalance,            // $13
-    allowoverdrawn,                   // $14
-    compulsorydeposit,                // $15
-    compulsorydeposittype,            // $16
-    compulsorydepositspillover,       // $17
-    compulsorydepositfrequency,       // $18
-    compulsorydepositfrequencyamount, // $19
-    compulsorydepositfrequencyskip,   // $20
-    adjustedCompulsoryDepositPenalty, // $21
-    compulsorydepositpenaltytype,     // $22
-    compulsorydepositpenaltyfrom,     // $23
-    compulsorydepositpenaltyfallbackfrom, // $24
-    compulsorydepositdeficit,         // $25
-    status,                           // $26
-    id                                // $27
-  ]
-  );
+
+            await pg.query(
+                `UPDATE divine."savingsproduct" SET
+                    productname = $1,
+                    currency = $2,
+                    maxbalance = $3,
+                    allowdeposit = $4,
+                    allowwithdrawal = $5,
+                    withdrawallimit = $6,
+                    withdrawalcharges = $7,
+                    withdrawalchargetype = $8,
+                    withdrawalchargeinterval = $9,
+                    depositcharge = $10,
+                    depositechargetype = $11,
+                    withdrawallimittype = $12,
+                    chargehere = $13,
+                    activationfee = $14,
+                    minimumaccountbalance = $15,
+                    allowoverdrawn = $16,
+                    compulsorydeposit = $17,
+                    compulsorydeposittype = $18,
+                    compulsorydepositspillover = $19,
+                    compulsorydepositfrequency = $20,
+                    compulsorydepositfrequencyamount = $21,
+                    compulsorydepositfrequencyskip = $22,
+                    compulsorydepositpenalty = $23,
+                    compulsorydepositpenaltytype = $24,
+                    compulsorydepositpenaltyfrom = $25,
+                    compulsorydepositpenaltyfallbackfrom = $26,
+                    compulsorydepositdeficit = $27,
+                    status = $28,
+                    updatedat = NOW()
+                WHERE id = $29`,
+                [
+                    productname,
+                    currency,
+                    maxbalance,
+                    allowdeposit,
+                    allowwithdrawal,
+                    withdrawallimit,
+                    withdrawalcharges,
+                    withdrawalchargetype,
+                    withdrawalchargeinterval,
+                    depositcharge,
+                    depositechargetype,
+                    withdrawallimittype,
+                    chargehere,
+                    activationfee,
+                    minimumaccountbalance,
+                    allowoverdrawn,
+                    compulsorydeposit,
+                    compulsorydeposittype,
+                    compulsorydepositspillover,
+                    compulsorydepositfrequency,
+                    compulsorydepositfrequencyamount,
+                    compulsorydepositfrequencyskip,
+                    adjustedCompulsoryDepositPenalty,
+                    compulsorydepositpenaltytype,
+                    compulsorydepositpenaltyfrom,
+                    compulsorydepositpenaltyfallbackfrom,
+                    compulsorydepositdeficit,
+                    status,
+                    id
+                ]
+            );
 
             // Delete existing interests and deductions
             await pg.query(`DELETE FROM divine."Interest" WHERE savingsproductid = $1`, [id]);
             await pg.query(`DELETE FROM divine."Deduction" WHERE savingsproductid = $1`, [id]);
 
-            // Save new interests
+            // Insert new interests
             for (const interest of interests) {
-                await pg.query(`INSERT INTO divine."Interest" (savingsproductid, interestname, interestmethod, eligibilityaccountage, eligibilitybalance, interestamount, interesttype, interestfrequency, interestfrequencynumber, interestfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, [id, interest.interestname, interest.interestmethod, parseInt(interest.eligibilityaccountage), parseFloat(interest.eligibilitybalance), parseFloat(interest.interestamount), interest.interesttype, interest.interestfrequency, parseInt(interest.interestfrequencynumber), parseInt(interest.interestfrequencyskip), interest.goforapproval === 'true' ? true : false]);
+                await pg.query(
+                    `INSERT INTO divine."Interest" (
+                        savingsproductid,
+                        interestname,
+                        interestmethod,
+                        eligibilityaccountage,
+                        eligibilitybalance,
+                        interestamount,
+                        interesttype,
+                        interestfrequency,
+                        interestfrequencynumber,
+                        interestfrequencyskip,
+                        goforapproval,
+                        status
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'ACTIVE')`,
+                    [
+                        id,
+                        interest.interestname,
+                        interest.interestmethod,
+                        interest.eligibilityaccountage,
+                        interest.eligibilitybalance,
+                        interest.interestamount,
+                        interest.interesttype,
+                        interest.interestfrequency,
+                        interest.interestfrequencynumber,
+                        interest.interestfrequencyskip,
+                        interest.goforapproval
+                    ]
+                );
             }
 
-            // Save new deductions
+            // Insert new deductions
             for (const deduction of deductions) {
-                await pg.query(`INSERT INTO divine."Deduction" (savingsproductid, deductionname, eligibilityaccountage, eligibilitybalance, deductionamount, deductiontype, deductionmethod, deductionfrequency, deductionfrequencynumber, deductionfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, [id, deduction.deductionname, parseInt(deduction.eligibilityaccountage), parseFloat(deduction.eligibilitybalance), parseFloat(deduction.deductionamount), deduction.deductiontype, deduction.deductionmethod, deduction.deductionfrequency, parseInt(deduction.deductionfrequencynumber), parseInt(deduction.deductionfrequencyskip), deduction.goforapproval === 'true' ? true : false]);
+                await pg.query(
+                    `INSERT INTO divine."Deduction" (
+                        savingsproductid,
+                        deductionname,
+                        eligibilityaccountage,
+                        eligibilitybalance,
+                        deductionamount,
+                        deductiontype,
+                        deductionmethod,
+                        deductionfrequency,
+                        deductionfrequencynumber,
+                        deductionfrequencyskip,
+                        goforapproval,
+                        status
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'ACTIVE')`,
+                    [
+                        id,
+                        deduction.deductionname,
+                        deduction.eligibilityaccountage,
+                        deduction.eligibilitybalance,
+                        deduction.deductionamount,
+                        deduction.deductiontype,
+                        deduction.deductionmethod,
+                        deduction.deductionfrequency,
+                        deduction.deductionfrequencynumber,
+                        deduction.deductionfrequencyskip,
+                        deduction.goforapproval
+                    ]
+                );
             }
 
             await pg.query('COMMIT'); // Commit transaction
@@ -338,63 +392,154 @@ WHERE id = $27
             // Create new product
             const { rows: existingProduct } = await pg.query(`SELECT * FROM divine."savingsproduct" WHERE productname = $1`, [productname]);
             if (existingProduct.length > 0) {
+                await pg.query("ROLLBACK");
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
                     message: "Product already exists",
-                    statuscode: StatusCodes.BAD_REQUEST,
-                    data: null,
                     errors: ["Product already exists"]
                 });
-            } 
-
-            // Evaluate the conditional expression before the query
-const adjustedCompulsoryDepositPenalty = compulsorydepositdeficit ? 0 : compulsorydepositpenalty;
-const adjustedCompulsoryDepositDeficit = compulsorydepositdeficit ? compulsorydepositdeficit : false;
-
-// Prepare the SQL query with the correct number of placeholders
-const insertProductQuery = `
-  INSERT INTO divine."savingsproduct" (
-    productname, currency, allowdeposit, allowwithdrawal, withdrawallimit,
-    withdrawalcharges, withdrawalchargetype, withdrawalchargeinterval, depositcharge,
-    depositechargetype, withdrawallimittype, activationfee, minimumaccountbalance,
-    allowoverdrawn, compulsorydeposit, compulsorydeposittype, compulsorydepositspillover,
-    compulsorydepositfrequency, compulsorydepositfrequencyamount, compulsorydepositfrequencyskip,
-    compulsorydepositpenalty, compulsorydepositpenaltytype, compulsorydepositpenaltyfrom,
-    compulsorydepositpenaltyfallbackfrom, compulsorydepositdeficit, status, dateadded
-  ) VALUES (
-    $1, $2, $3, $4, $5,
-    $6, $7, $8, $9, $10,
-    $11, $12, $13, $14, $15,
-    $16, $17, $18, $19, $20,
-    $21, $22, $23, $24, $25,
-    $26, NOW()
-  ) RETURNING id`;
-
-// Construct the array of values
-const values = [
-  productname, currency, allowdeposit, allowwithdrawal, withdrawallimit,
-  withdrawalcharges, withdrawalchargetype, withdrawalchargeinterval, depositcharge,
-  depositechargetype, withdrawallimittype, activationfee, minimumaccountbalance,
-  allowoverdrawn, compulsorydeposit, compulsorydeposittype, compulsorydepositspillover,
-  compulsorydepositfrequency, compulsorydepositfrequencyamount, compulsorydepositfrequencyskip,
-  adjustedCompulsoryDepositPenalty, compulsorydepositpenaltytype, compulsorydepositpenaltyfrom,
-  compulsorydepositpenaltyfallbackfrom, adjustedCompulsoryDepositDeficit, status
-];
-
-// Execute the query
-const { rows } = await pg.query(insertProductQuery, values);
-const id = rows[0].id;
-
-            // Save interests  
-            for (const interest of interests) {
-                const insertInterestQuery = `INSERT INTO divine."Interest" (savingsproductid, interestname, interestmethod, eligibilityaccountage, eligibilitybalance, interestamount, interesttype, interestfrequency, interestfrequencynumber, interestfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
-                await pg.query(insertInterestQuery, [id, interest.interestname, interest.interestmethod, parseInt(interest.eligibilityaccountage), parseFloat(interest.eligibilitybalance), parseFloat(interest.interestamount), interest.interesttype, interest.interestfrequency, parseInt(interest.interestfrequencynumber), parseInt(interest.interestfrequencyskip), interest.goforapproval == 'true' ? true : false]);
             }
 
-            // Save deductions 
+            const adjustedCompulsoryDepositPenalty = compulsorydepositdeficit ? 0 : compulsorydepositpenalty;
+
+            const insertProductQuery = `
+                INSERT INTO divine."savingsproduct" (
+                    productname,
+                    currency,
+                    maxbalance,
+                    allowdeposit,
+                    allowwithdrawal,
+                    withdrawallimit,
+                    withdrawalcharges,
+                    withdrawalchargetype,
+                    withdrawalchargeinterval,
+                    depositcharge,
+                    depositechargetype,
+                    withdrawallimittype,
+                    chargehere,
+                    activationfee,
+                    minimumaccountbalance,
+                    allowoverdrawn,
+                    compulsorydeposit,
+                    compulsorydeposittype,
+                    compulsorydepositspillover,
+                    compulsorydepositfrequency,
+                    compulsorydepositfrequencyamount,
+                    compulsorydepositfrequencyskip,
+                    compulsorydepositpenalty,
+                    compulsorydepositpenaltytype,
+                    compulsorydepositpenaltyfrom,
+                    compulsorydepositpenaltyfallbackfrom,
+                    compulsorydepositdeficit,
+                    status,
+                    dateadded
+                ) VALUES (
+                    $1, $2, $3, $4, $5,
+                    $6, $7, $8, $9, $10,
+                    $11, $12, $13, $14, $15,
+                    $16, $17, $18, $19, $20,
+                    $21, $22, $23, $24, $25,
+                    $26, $27, $28, NOW()
+                ) RETURNING id`;
+
+            const values = [
+                productname,
+                currency,
+                maxbalance,
+                allowdeposit,
+                allowwithdrawal,
+                withdrawallimit,
+                withdrawalcharges,
+                withdrawalchargetype,
+                withdrawalchargeinterval,
+                depositcharge,
+                depositechargetype,
+                withdrawallimittype,
+                chargehere,
+                activationfee,
+                minimumaccountbalance,
+                allowoverdrawn,
+                compulsorydeposit,
+                compulsorydeposittype,
+                compulsorydepositspillover,
+                compulsorydepositfrequency,
+                compulsorydepositfrequencyamount,
+                compulsorydepositfrequencyskip,
+                adjustedCompulsoryDepositPenalty,
+                compulsorydepositpenaltytype,
+                compulsorydepositpenaltyfrom,
+                compulsorydepositpenaltyfallbackfrom,
+                compulsorydepositdeficit,
+                status
+            ];
+
+            const { rows } = await pg.query(insertProductQuery, values);
+            const newId = rows[0].id;
+
+            // Insert interests
+            for (const interest of interests) {
+                await pg.query(
+                    `INSERT INTO divine."Interest" (
+                        savingsproductid,
+                        interestname,
+                        interestmethod,
+                        eligibilityaccountage,
+                        eligibilitybalance,
+                        interestamount,
+                        interesttype,
+                        interestfrequency,
+                        interestfrequencynumber,
+                        interestfrequencyskip,
+                        goforapproval,
+                        status
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'ACTIVE')`,
+                    [
+                        newId,
+                        interest.interestname,
+                        interest.interestmethod,
+                        interest.eligibilityaccountage,
+                        interest.eligibilitybalance,
+                        interest.interestamount,
+                        interest.interesttype,
+                        interest.interestfrequency,
+                        interest.interestfrequencynumber,
+                        interest.interestfrequencyskip,
+                        interest.goforapproval
+                    ]
+                );
+            }
+
+            // Insert deductions
             for (const deduction of deductions) {
-                const insertDeductionQuery = `INSERT INTO divine."Deduction" (savingsproductid, deductionname, eligibilityaccountage, eligibilitybalance, deductionamount, deductiontype, deductionmethod, deductionfrequency, deductionfrequencynumber, deductionfrequencyskip, goforapproval) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
-                await pg.query(insertDeductionQuery, [id, deduction.deductionname, parseInt(deduction.eligibilityaccountage), parseFloat(deduction.eligibilitybalance), parseFloat(deduction.deductionamount), deduction.deductiontype, deduction.deductionmethod, deduction.deductionfrequency, parseInt(deduction.deductionfrequencynumber), parseInt(deduction.deductionfrequencyskip), deduction.goforapproval == 'true' ? true : false]);
+                await pg.query(
+                    `INSERT INTO divine."Deduction" (
+                        savingsproductid,
+                        deductionname,
+                        eligibilityaccountage,
+                        eligibilitybalance,
+                        deductionamount,
+                        deductiontype,
+                        deductionmethod,
+                        deductionfrequency,
+                        deductionfrequencynumber,
+                        deductionfrequencyskip,
+                        goforapproval,
+                        status
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'ACTIVE')`,
+                    [
+                        newId,
+                        deduction.deductionname,
+                        deduction.eligibilityaccountage,
+                        deduction.eligibilitybalance,
+                        deduction.deductionamount,
+                        deduction.deductiontype,
+                        deduction.deductionmethod,
+                        deduction.deductionfrequency,
+                        deduction.deductionfrequencynumber,
+                        deduction.deductionfrequencyskip,
+                        deduction.goforapproval
+                    ]
+                );
             }
 
             await pg.query('COMMIT'); // Commit transaction
@@ -416,12 +561,11 @@ const id = rows[0].id;
             status: false,
             message: "Internal Server Error",
             statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
-            data: null,
             errors: ["An unexpected error occurred while managing the savings product"]
         });
     }
-}
+};
 
-module.exports = { 
+module.exports = {
     manageSavingsProduct
 };

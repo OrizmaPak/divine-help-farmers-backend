@@ -9,6 +9,7 @@ const changePassword = async (req, res) => {
   try {
     const { oldpassword, newpassword, token = '' } = req.body;
     const bearertoken = req.headers.authorization?.split(' ')[1];
+    const changeType = req.headers['change-type'];
 
     // Ensure the frontend guy is not sending the same password
     if (oldpassword === newpassword) {
@@ -73,7 +74,7 @@ const changePassword = async (req, res) => {
     }
 
     // Basic validation
-    if (!oldpassword || !newpassword) {
+    if (changeType === 'change password' && (!oldpassword || !newpassword)) {
       let errors = [];
       if (!oldpassword) {
         errors.push({ field: 'Old password', message: 'Old password not found' });
@@ -89,6 +90,14 @@ const changePassword = async (req, res) => {
         data: null,
         errors: errors
       });
+    } else if (changeType === 'forgot password' && !newpassword) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: false,
+        message: "New password not found",
+        statuscode: StatusCodes.BAD_REQUEST,
+        data: null,
+        errors: [{ field: 'New password', message: 'New password not found' }]
+      });
     }
 
     // Check if email exists
@@ -103,16 +112,18 @@ const changePassword = async (req, res) => {
       });
     }
 
-    // Check if the provided old password is correct
-    const isPasswordValid = await bcrypt.compare(oldpassword, existingUser.password);
-    if (!isPasswordValid) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        status: false,
-        message: "Current Password is incorrect",
-        statuscode: StatusCodes.BAD_REQUEST,
-        data: null,
-        errors: []
-      });
+    // Check if the provided old password is correct for change password
+    if (changeType === 'change password') {
+      const isPasswordValid = await bcrypt.compare(oldpassword, existingUser.password);
+      if (!isPasswordValid) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          status: false,
+          message: "Current Password is incorrect",
+          statuscode: StatusCodes.BAD_REQUEST,
+          data: null,
+          errors: []
+        });
+      }
     }
 
     // Hash the new password and update
@@ -177,4 +188,4 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { changePassword }
+module.exports = { changePassword } 

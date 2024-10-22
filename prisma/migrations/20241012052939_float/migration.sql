@@ -12,7 +12,7 @@
   - The `maintenace_charge` column on the `Organisationsettings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
   - The `vat_rate_percent` column on the `Organisationsettings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
   - The `addition_savings_registration_charge` column on the `Organisationsettings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
-  - The `initial_member_savings_prefix` column on the `Organisationsettings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
+  - The `savings_account_prefix` column on the `Organisationsettings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
   - The `default_sms_charge_account` column on the `Organisationsettings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
   - The `default_asset_account` column on the `Organisationsettings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
   - The `default_cash_account` column on the `Organisationsettings` table would be dropped and recreated. This will lead to data loss if there is data in the column.
@@ -84,8 +84,8 @@ ALTER TABLE "Organisationsettings" DROP COLUMN "vat_rate_percent";
 ALTER TABLE "Organisationsettings" ADD COLUMN     "vat_rate_percent" FLOAT8 NOT NULL DEFAULT 0;
 ALTER TABLE "Organisationsettings" DROP COLUMN "addition_savings_registration_charge";
 ALTER TABLE "Organisationsettings" ADD COLUMN     "addition_savings_registration_charge" FLOAT8;
-ALTER TABLE "Organisationsettings" DROP COLUMN "initial_member_savings_prefix";
-ALTER TABLE "Organisationsettings" ADD COLUMN     "initial_member_savings_prefix" FLOAT8;
+ALTER TABLE "Organisationsettings" DROP COLUMN "savings_account_prefix";
+ALTER TABLE "Organisationsettings" ADD COLUMN     "savings_account_prefix" FLOAT8;
 ALTER TABLE "Organisationsettings" DROP COLUMN "default_sms_charge_account";
 ALTER TABLE "Organisationsettings" ADD COLUMN     "default_sms_charge_account" FLOAT8;
 ALTER TABLE "Organisationsettings" DROP COLUMN "default_asset_account";

@@ -16,6 +16,7 @@ const inventoryRouter = require('./routes/inventory');
 const glaccountsRouter = require('./routes/glaccounts');
 const memberRouter = require('./routes/members');
 const savingsRouter = require('./routes/savings');
+const paymentRouter = require('./routes/payment');
 
 
 // error handler
@@ -46,6 +47,7 @@ app.use('/api/v1/inventory', authMiddleware, inventoryRouter);
 app.use('/api/v1/glaccounts', authMiddleware, glaccountsRouter);
 app.use('/api/v1/members', authMiddleware, memberRouter);
 app.use('/api/v1/savings', authMiddleware, savingsRouter);
+app.use('/api/v1/payment', authMiddleware, transactionMiddleware, paymentRouter);
 // app.use('/api/v1/jobs', authenticateUser, jobsRouter);
 
 // app.get('*', (req, res) => {
