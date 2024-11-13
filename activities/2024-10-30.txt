@@ -1,0 +1,83 @@
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T03:06:21.644Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T03:06:21.647Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2024-10-30T03:06:22.719Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:23.585Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:24.194Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:24.688Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:25.159Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:25.626Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:26.700Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:27.169Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:27.637Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:28.118Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:28.581Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:29.062Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:29.522Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:29.987Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:30.466Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:30.983Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:31.467Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:31.929Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:32.385Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:32.850Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:33.299Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:33.769Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:34.244Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:34.761Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:35.229Z"}
+{"userid": "Transaction saved for FIXED type", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:35.723Z"}
+{"userid": "All compulsory deposits handled successfully", "message": "TRANSACTION", "module": "undefined", "date": "2024-10-30T03:06:35.879Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2024-10-30T03:06:35.881Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T03:07:59.612Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T03:07:59.614Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T03:08:43.021Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T03:08:43.022Z"}
+{"userid": "1", "message": "Transaction rolled back due to invalid account number", "module": "TRANSACTION", "date": "2024-10-30T03:08:43.632Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T03:08:51.569Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T03:08:51.575Z"}
+{"userid": "1", "message": "Transaction rolled back due to invalid account number", "module": "TRANSACTION", "date": "2024-10-30T03:08:52.187Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T03:12:17.266Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T03:12:17.272Z"}
+{"userid": "1", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2024-10-30T03:12:18.495Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T03:14:42.234Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T03:14:42.237Z"}
+{"userid": "1", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2024-10-30T03:14:43.530Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T03:42:34.058Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T03:42:34.065Z"}
+{"userid": "1", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2024-10-30T03:42:35.354Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T03:57:57.215Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T03:57:57.220Z"}
+{"userid": "1", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2024-10-30T03:57:58.516Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T03:59:02.509Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T03:59:02.520Z"}
+{"userid": "1", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2024-10-30T03:59:03.833Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T04:01:30.690Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T04:01:30.694Z"}
+{"userid": "1", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2024-10-30T04:01:31.987Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T04:03:18.092Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T04:03:18.097Z"}
+{"userid": "1", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2024-10-30T04:03:19.352Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T04:04:10.754Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T04:04:10.756Z"}
+{"userid": "1", "message": "Transaction rolled back due to invalid account number", "module": "TRANSACTION", "date": "2024-10-30T04:04:11.539Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T04:05:18.544Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T04:05:18.548Z"}
+{"userid": "1", "message": "Transaction rolled back due to invalid account number", "module": "TRANSACTION", "date": "2024-10-30T04:05:19.341Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T04:05:23.200Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T04:05:23.206Z"}
+{"userid": "1", "message": "Transaction rolled back due to invalid account number", "module": "TRANSACTION", "date": "2024-10-30T04:05:23.979Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T04:09:52.787Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T04:09:52.793Z"}
+{"userid": "1", "message": "Transaction failed due to invalid personal account number", "module": "TRANSACTION", "date": "2024-10-30T04:09:53.578Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T04:11:11.249Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T04:11:11.257Z"}
+{"userid": "1", "message": "Transaction failed due to invalid personal account number", "module": "TRANSACTION", "date": "2024-10-30T04:11:12.066Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T04:12:57.373Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T04:12:57.392Z"}
+{"userid": "1", "message": "Transaction failed due to invalid personal account number", "module": "TRANSACTION", "date": "2024-10-30T04:12:58.177Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T04:13:28.863Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T04:13:28.865Z"}
+{"userid": "1", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2024-10-30T04:13:30.146Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2024-10-30T08:27:41.764Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2024-10-30T08:27:41.768Z"}
+{"userid": "1", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2024-10-30T08:27:44.346Z"}

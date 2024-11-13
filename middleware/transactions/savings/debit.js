@@ -17,7 +17,7 @@ async function applyWithdrawalCharge(client, req, res, accountnumber, debit, whi
     await activityMiddleware(req, req.user.id, 'Pending withdrawal charge transaction saved', 'TRANSACTION'); // Log activity
 }
 
-async function savingsDebit(client, req, res, next, accountnumber, debit, description, ttype, transactionStatus, savingsProduct, whichaccount){
+async function savingsDebit(client, req, res, next, accountnumber, debit, description, ttype, transactionStatus, savingsProduct, whichaccount, accountuser){
     if (debit > 0) {
     
         // 9. Debit and Balance Check
@@ -26,31 +26,32 @@ async function savingsDebit(client, req, res, next, accountnumber, debit, descri
         const balanceResult = await client.query(balanceQuery, [accountnumber]);
         const currentBalance = balanceResult.rows[0]?.balance || 0; // Get the current balance or default to 0 if no result
 
-        // if its to personal account just post it to the transaction table
-        if(whichaccount == "PERSONAL")
-        {
-            await saveTransaction(client, res, req.body, req);
-            req.body.transactiondesc += 'Transaction saved successfully.|';
-            return next();
-        }
-
         // Check if the transaction description is not 'CHARGE'
-        if (ttype != 'CHARGE' || ttype != 'PENALTY') {
+        if (ttype !== 'CHARGE' && ttype !== 'PENALTY') {
             // Check if the debit amount exceeds the withdrawal limit
             const withdrawalLimit = calculateWithdrawalLimit(savingsProduct, currentBalance);
 
-            if(tfrom == "CASH")
-
-            if (!savingsProduct.allowwithdrawal) {
+            if (!savingsProduct.allowwithdrawal) { 
                 const reasonForRejection = 'Withdrawals are not allowed for this savings product';
-                await handleDebitRedirectToPersonnalAccount(client, req, res, accountuser, await generateNewReference(client, accountnumber, req, res), reasonForRejection, whichaccount, debit);
-                await client.query('COMMIT');
-                await activityMiddleware(req, req.user.id, 'Transaction redirected due to withdrawals not being allowed for this savings product', 'TRANSACTION');
-                req.transactionError = {
-                    status: StatusCodes.EXPECTATION_FAILED,
-                    message: 'Transaction redirected due to withdrawals not being allowed for this savings product.',
-                    errors: ['Withdrawals are not allowed for this savings product.'],
-                };
+                if (req.body.tfrom === 'BANK') {
+                    await handleDebitRedirectToPersonnalAccount(client, req, res, accountuser, await generateNewReference(client, accountnumber, req, res), reasonForRejection, whichaccount, debit);
+                    await client.query('COMMIT');
+                    await activityMiddleware(req, req.user.id, 'Transaction redirected due to withdrawals not being allowed for this savings product', 'TRANSACTION');
+                    req.transactionError = {
+                        status: StatusCodes.EXPECTATION_FAILED,
+                        message: 'Transaction redirected due to withdrawals not being allowed for this savings product.',
+                        errors: ['Withdrawals are not allowed for this savings product.'],
+                    };
+                } else if (req.body.tfrom === 'CASH') {
+                    await saveFailedTransaction(client, req, res, reasonForRejection, await generateNewReference(client, accountnumber, req, res), whichaccount);
+                    await client.query('COMMIT');
+                    await activityMiddleware(req, req.user.id, 'Transaction failed due to withdrawals not being allowed for this savings product', 'TRANSACTION');
+                    req.transactionError = {
+                        status: StatusCodes.EXPECTATION_FAILED,
+                        message: 'Transaction failed due to withdrawals not being allowed for this savings product.',
+                        errors: ['Withdrawals are not allowed for this savings product.'],
+                    };
+                }
                 return next();
             }
 

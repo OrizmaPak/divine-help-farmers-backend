@@ -528,3 +528,48 @@ model Accounts {
   dateadded                DateTime
   createdby                Int
 }
+
+model loanfee {
+  id                       Int        @id @default(sequence()) 
+  feename                  String    @unique
+  feemethod                String    // "FORM FEE" or "PROCESSING FEE" or "INSURANCE FEE"
+  chargesbasedon           String    // "PRINCIPAL AMOUNT ONLY" or "PRINCIPAL AND INTEREST"
+  glaccount                String
+  status                   String @default("ACTIVE")
+  dateadded                DateTime
+  createdby                Int
+}
+
+model defaultloanpenalty {
+  id                       Int        @id @default(sequence()) 
+  feename                  String    @unique
+  feemethod                String    // "FORM FEE" or "PROCESSING FEE" or "INSURANCE FEE"
+  chargesbasedon           String    // "PRINCIPAL AMOUNT ONLY" or "PRINCIPAL AND INTEREST"
+  glaccount                String
+  status                   String @default("ACTIVE")
+  dateadded                DateTime
+  createdby                Int
+}
+
+model loanproduct {
+      id                       Int        @id @default(sequence()) 
+      productname              String    @unique
+      description              String?
+      interestmethod           String  // "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS"
+      interestrate             Float
+      defaultpenaltyid         Int?
+
+      repaymentsettings        String // "ACCOUNT" or "PRODUCT"
+      repaymentfrequency       String? // "D1", "W1", "M1"
+      numberofrepayments       Int?
+      duration                 Int?
+      durationcategory         String? // "DAY" or "WEEK" or "MONTH" or "YEAR"
+
+      currency                 String? // "NGN" or "USD"
+      excludebranch            String? // "1,2,3"
+      productofficer           String?
+      status                   String @default("ACTIVE")
+      dateadded                DateTime
+      createdby                Int
+}
+

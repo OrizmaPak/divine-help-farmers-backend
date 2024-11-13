@@ -7,58 +7,52 @@ const saveFailedTransaction = async (client, req, res, reasonForRejection, trans
     transactionReference = await generateNewReference(client, req.body.accountnumber, req, res);
     const createdBy = req.user.id || req.body.createdby || 0;
     let userid = 0;
-    
-    if (whichaccount !== 'GLACCOUNT') {
-        const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
-        const accountResult = await client.query(accountQuery, [req.body.accountnumber]);
-        if (accountResult.rowCount !== 0) {
-            userid = accountResult.rows[0].userid;
-        }
-    }
 
     req.body.transactiondesc += `Transaction failed due to: ${reasonForRejection}.|`;
-    
+
     if (req.body.tfrom === 'CASH') {
-        await client.query(
-            `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate) VALUES ($1, $2, $3, $4, $5, $6, 'FAILED', $7, $8, now(), $9, $10, $11, now())`,
-            [req.body.accountnumber, req.body.credit, req.body.debit, transactionReference, req.body.description, req.body.ttype, reasonForRejection, whichaccount, createdBy, req.body.currency, userid]
-        );
-        // req.body.transactiondesc += `Transaction failed due to: ${reasonForRejection}.|`;
-        console.log('transactionReference', transactionReference, typeof transactionReference ) 
-        // Extract the link part from the reference
-        const referenceParts = await transactionReference.toString().split('|');
-        console.log('referenceParts', referenceParts)
-        const link = referenceParts.find(part => part.startsWith('L'));
-        
-        if (!link) {
-            // Handle the case where the link is not found in the reference 
+        // if (req.body.credit > 0) {
+        //     // Redirect to default excess account
+        //     const defaultExcessAccount = req.orgSettings.default_excess_account || '999999999';
+        //     await  handleRedirection(client, req, res, userid, transactionReference, reasonForRejection, whichaccount);
+        //     await client.query('COMMIT'); // Commit the transaction
+        //     await activityMiddleware(req, req.user.id, 'Transaction committed after redirecting to default excess account', 'TRANSACTION');
+        //     req.transactionError = {
+        //         status: StatusCodes.MISDIRECTED_REQUEST,
+        //         message: `Transaction has been redirected to the default excess account because ${reasonForRejection}`,
+        //         errors: [`${reasonForRejection}. Transaction redirected to default excess account.`]
+        //     };
+        //     req.body.transactiondesc += 'This Deposit not allowed on this product.|';
+        //     return;
+        // } else if (req.body.debit > 0) {
+            // Fail the transaction
+            const status = 'FAILED';
+            await client.query(
+                `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13)`,
+                [req.body.accountnumber, req.body.credit, req.body.debit, transactionReference, req.body.description, req.body.ttype, status, reasonForRejection, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
+            );
             req.transactionError = {
                 status: StatusCodes.BAD_REQUEST,
-                message: 'Invalid reference format: link not found to update status to failed.',
-                errors: ['Invalid reference format: link not found to update status to failed.']
+                message: req.body.credit > 0 ? `Credit transaction failed because ${reasonForRejection}.` : `Debit transaction failed because ${reasonForRejection}.`,
+                errors: [req.body.credit > 0 ? `Credit transaction failed because ${reasonForRejection}.` : `Debit transaction failed because ${reasonForRejection}.`]
             };
-            req.body.transactiondesc += 'Invalid reference format: link not found to update status to failed.|';
+            req.body.transactiondesc += req.body.credit > 0 ? `Credit transaction failed because ${reasonForRejection}.|` : `Debit transaction failed because ${reasonForRejection}.|`;
             return;
-        }
-        
-        // Check if tfrom is CASH, then update all transactions where the reference contains the link to 'FAILED'
-        await client.query(
-            `UPDATE divine."transaction" SET status = 'FAILED' WHERE reference LIKE '%' || $1 || '%'`,
-            [link]
-        );
+        // }
     }
-    
-    // Check if tfrom is BANK, then redirect to personal account
+
     if (req.body.tfrom === 'BANK') {
-        await handleCreditRedirectToPersonnalAccount(client, req, res, userid, transactionReference, reasonForRejection, whichaccount, req.body.credit);
+        // Redirect to default excess account
+        const defaultExcessAccount = req.orgSettings.default_excess_account || '999999999';
+        await handleRedirection(client, req, res, userid, transactionReference, reasonForRejection, req.body.whichaccount, req.body.credit);
         await client.query('COMMIT'); // Commit the transaction
-        await activityMiddleware(req, req.user.id, 'Transaction committed after redirecting to personal account', 'TRANSACTION');
+        await activityMiddleware(req, req.user.id, 'Transaction committed after redirecting to default excess account', 'TRANSACTION');
         req.transactionError = {
             status: StatusCodes.MISDIRECTED_REQUEST,
-            message: 'Transaction has been redirected to the personal account because the savings account is restricted from taking this deposits.',
-            errors: ['Deposits not allowed on this product. Transaction redirected to personal account.']
+            message: `Transaction has been redirected to the default excess account because ${reasonForRejection}`,
+            errors: [`${reasonForRejection}. Transaction redirected to default excess account.`]
         };
-        req.body.transactiondesc += 'This Deposit not allowed on this product.|';
+        req.body.transactiondesc += `${reasonForRejection}. Transaction redirected to default excess account. |`;
         return;
     }
 };
@@ -68,18 +62,19 @@ const savePendingTransaction = async (client, accountnumber, credit, debit, tran
     const createdBy = req.user.id || req.body.createdby || 0;
     let userid = 0;
 
-    if (whichaccount !== 'GLACCOUNT') {
-        const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
-        const accountResult = await client.query(accountQuery, [accountnumber]);
-        if (accountResult.rowCount !== 0) {
-            userid = accountResult.rows[0].userid;
-        }
-    }
+    // if (whichaccount !== 'GLACCOUNT') {
+    //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
+    //     const accountResult = await client.query(accountQuery, [accountnumber]);
+    //     if (accountResult.rowCount !== 0) {
+    //         userid = accountResult.rows[0].userid;
+    //     }
+    // }
 
     const valuedate = status === 'ACTIVE' ? new Date() : null;
+    const newReference = await generateNewReference(client, accountnumber, req, res);
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13)`,
-        [accountnumber, credit, debit, transactionReference, description, ttype, status, reasonForRejection, whichaccount, createdBy, req.body.currency, userid, valuedate]
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14)`,
+        [accountnumber, credit, debit, newReference, description, ttype, status, reasonForRejection, req.body.whichaccount, createdBy, req.body.currency, userid, valuedate, req.body.tfrom]
     );
     req.body.transactiondesc += `Transaction pending due to: ${reasonForRejection}.|`;
     if (req && req.reference && ttype !== 'CHARGE') {
@@ -93,38 +88,39 @@ const savePendingTransaction = async (client, accountnumber, credit, debit, tran
 // Function to save a transaction
 const saveTransaction = async (client, res, transactionData, req) => {
     try {
-        // console.log('description',  credit)
+        console.log('description',   transactionData.description, req.body)
         const {
             accountnumber,
-            credit=0,
-            debit=0,
+            credit = 0,
+            debit = 0,
             reference,
-            description = req.body.description,
-            ttype = req.body.ttype,
+            description = req.body ? req.body.description : '',
+            ttype = req.body ? req.body.ttype : '',
             status = 'ACTIVE',
-            transactiondate = req.body.transactiondate || new Date(),
-            whichaccount,
-            valuedate = req.body.valuedate || new Date(),
-            transactiondesc = req.body.transactiondesc || '',
-            currency = req.body.currency
+            transactiondate = req.body ? req.body.transactiondate || new Date() : new Date(),
+            whichaccount = req.body.whichaccount,
+            valuedate = req.body ? req.body.valuedate || new Date() : new Date(),
+            transactiondesc = req.body ? req.body.transactiondesc || '' : '',
+            currency = req.body ? req.body.currency : '',
+            tfrom = req.body ? req.body.tfrom : ''
         } = transactionData;
 
         const createdBy = req.user.id || req.body.createdby || 0;
         let userid = 0;
 
-        if (whichaccount !== 'GLACCOUNT') {
-            const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
-            const accountResult = await client.query(accountQuery, [accountnumber]);
-            if (accountResult.rowCount !== 0) {
-                userid = accountResult.rows[0].userid;
-            }
-        }
+        // if (whichaccount !== 'GLACCOUNT') {
+        //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
+        //     const accountResult = await client.query(accountQuery, [accountnumber]);
+        //     if (accountResult.rowCount !== 0) {
+        //         userid = accountResult.rows[0].userid;
+        //     }
+        // }
 
         const finalValuedate = status === 'ACTIVE' ? new Date() : null;
-
+        const newReference = await generateNewReference(client, accountnumber, req, res);
         await client.query(
-            `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14)`,
-            [accountnumber, credit, debit, await generateNewReference(client, accountnumber, req, res), description, ttype, status, transactiondate, whichaccount, finalValuedate, transactiondesc, createdBy, currency, userid]
+            `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14, $15)`,
+            [accountnumber, credit, debit, newReference, description, ttype, status, transactiondate, req.body.whichaccount, finalValuedate, transactiondesc, createdBy, currency, userid, tfrom]
         );
         req.body.transactiondesc += 'Transaction saved successfully.|';
     } catch (error) {
@@ -166,7 +162,8 @@ const applyMinimumCreditAmountPenalty = async (client, req, res, orgSettings) =>
                 status: 'ACTIVE',
                 transactiondesc: 'Minimum Credit Amount Penalty',
                 whichaccount: 'GLACCOUNT',
-                currency: req.body.currency
+                currency: req.body.currency,
+                tfrom: req.body.tfrom
             }, req);
             req.body.transactiondesc += `Penalty of ${penaltyAmount} has been deducted.|`;
             req.body.credit = req.body.credit - penaltyAmount;
@@ -206,6 +203,7 @@ const generateNewReference = async (client, accountnumber, req, res) => {
         console.log('orgSettings personal_transaction_prefix', req.orgSettings.personal_transaction_prefix) 
         prefix = req.orgSettings.personal_transaction_prefix;
         identifier = '7P8L9';
+        req.body.whichaccount = 'PERSONAL';
     } 
     // Check if the account number is in the savings table
     if(!prefix && !identifier){
@@ -215,6 +213,7 @@ const generateNewReference = async (client, accountnumber, req, res) => {
             console.log('orgSettings savings_transaction_prefix', req.orgSettings.savings_transaction_prefix) 
             prefix = req.orgSettings.savings_transaction_prefix;
             identifier = '1S2V3';
+            req.body.whichaccount = 'SAVINGS';
         } else {
             // Check if the account number is in the Accounts table
             const accountsQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
@@ -223,13 +222,15 @@ const generateNewReference = async (client, accountnumber, req, res) => {
                 console.log('orgSettings gl_transaction_prefix', req.orgSettings.gl_transaction_prefix) 
                 prefix = req.orgSettings.gl_transaction_prefix;
                 identifier = '9G8L7';
+                req.body.whichaccount = 'GLACCOUNT';
             } else {
                 // Check if the account number is in the loan table
-                const loanQuery = `SELECT * FROM divine."loan" WHERE accountnumber = $1`;
+                const loanQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
                 const loanResult = await client.query(loanQuery, [accountnumber]);
                 if (loanResult.rowCount !== 0) {
                     prefix = req.orgSettings.loan_transaction_prefix;
                     identifier = '4L5N6';
+                    req.body.whichaccount = 'LOAN';
                 } else {
                     // If the account number can't be matched to anything, throw a response
                     req.transactionError = {
@@ -243,6 +244,13 @@ const generateNewReference = async (client, accountnumber, req, res) => {
             }
         }
     }
+
+    // if(!prefix && !identifier){
+    //     prefix = '000';
+    //     identifier = '9U4K3N';
+    // }
+
+    console.log('whichaccount', req.body.whichaccount)
 
     // Check if the needed prefix is set, if not return response
     if (!prefix) {
@@ -281,25 +289,102 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
     const createdBy = req.user.id || req.body.createdby || 0;
     let userid = 0;
 
-    if (whichaccount !== 'GLACCOUNT') {
-        const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
-        const accountResult = await client.query(accountQuery, [req.body.accountnumber]);
-        if (accountResult.rowCount !== 0) {
-            userid = accountResult.rows[0].userid;
-        } 
-    } 
+    // if (whichaccount !== 'GLACCOUNT') {
+    //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
+    //     const accountResult = await client.query(accountQuery, [req.body.accountnumber]);
+    //     if (accountResult.rowCount !== 0) {
+    //         userid = accountResult.rows[0].userid;
+    //     } 
+    // } 
 
     // save the transaction as redirect 
     console.log('credit', credit, req.body.credit)
+    let status = req.body.status === 'REJECTED' ? 'REJECTED' : 'REDIRECTED';
+    const newReference = await generateNewReference(client, req.body.accountnumber, req, res);
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now())`,
-        [req.body.accountnumber, credit ? credit : req.body.credit, 0, await generateNewReference(client, req.body.accountnumber, req, res), req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid]
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13)`,
+        [req.body.accountnumber, credit ? credit : req.body.credit, 0, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
     );
     req.body.transactiondesc += `Credit redirected from ${req.body.accountnumber} to personal account.|`;
- 
+    
+    // Check if phone number is provided in the request body
+    if (req.body.phone) {
+        // Query the user table to find the user with the provided phone number
+        const userQuery = `SELECT id, phone FROM divine."User" WHERE phone = $1`;
+        const userResult = await client.query(userQuery, [req.body.phone]);
+
+        if (userResult.rowCount > 0) {
+            // If user is found, set the personal account number
+        } else {
+            // If user is not found, set the personal account number to the default excess account
+            req.body.personalaccountnumber = req.orgSettings.default_excess_account || '999999999';
+            req.body.transactiondesc += `User with phone number ${req.body.phone} not found. Personal account could not be found, redirected again to company's excess account.|`;
+        }
+    } else {
+        // If phone number is not provided, set the personal account number to the default excess account
+        req.body.personalaccountnumber = req.orgSettings.default_excess_account;
+        req.body.transactiondesc += `Phone number not provided. Personal account could not be found, redirected again to company's excess account.|`;
+    }
+    status = req.body.status === 'REJECTED' ? 'REJECTED' : 'ACTIVE';
+    const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req, res);
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now())`,
-        [req.body.personalaccountnumber, credit ? credit : req.body.credit, 0, await generateNewReference(client, req.body.personalaccountnumber, req, res), req.body.description, req.body.ttype, 'ACTIVE', `Credit was to ${req.body.accountnumber}`, 'PERSONAL', createdBy, req.body.currency, userid]
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13)`,
+        [req.body.personalaccountnumber, credit ? credit : req.body.credit, 0, newPersonalReference, req.body.description, req.body.ttype, status, `Credit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
+    );
+    
+};
+
+// Example function to handle excess account logic for credit
+const handleRedirection = async (client, req, res, accountuser, reference, transactiondesc, whichaccount, credit, debit) => {
+    // Implement logic for handling excess accounts
+    const createdBy = req.user.id || req.body.createdby || 0;
+    let userid = 0;
+
+    // if (whichaccount !== 'GLACCOUNT') { 
+    //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
+    //     const accountResult = await client.query(accountQuery, [req.body.accountnumber]);
+    //     if (accountResult.rowCount !== 0) {
+    //         userid = accountResult.rows[0].userid;
+    //     } 
+    // } 
+
+    // save the transaction as redirect 
+    console.log('credit', credit, req.body.credit)
+    let status = req.body.status === 'REJECTED' ? 'REJECTED' : 'REDIRECTED';
+    const newReference = await generateNewReference(client, req.body.accountnumber, req, res);
+    await client.query(
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13)`,
+        [req.body.accountnumber, credit ? credit : req.body.credit, debit ? debit : req.body.debit, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
+    );
+    if ((credit ? credit : req.body.credit) > 0) {
+        req.body.transactiondesc += `Credit redirected from ${req.body.accountnumber} to personal account.|`;
+    } else if ((debit ? debit : req.body.debit) > 0) {
+        req.body.transactiondesc += `Debit redirected from ${req.body.accountnumber} to personal account.|`;
+    }
+    
+    // Check if phone number is provided in the request body
+    if (req.body.phone) {
+        // Query the user table to find the user with the provided phone number
+        const userQuery = `SELECT id, phone FROM divine."User" WHERE phone = $1`;
+        const userResult = await client.query(userQuery, [req.body.phone]);
+
+        if (userResult.rowCount > 0) {
+            // If user is found, set the personal account number
+        } else {
+            // If user is not found, set the personal account number to the default excess account
+            req.body.personalaccountnumber = req.orgSettings.default_excess_account || '999999999';
+            req.body.transactiondesc += `User with phone number ${req.body.phone} not found. Personal account could not be found, redirected again to company's excess account.|`;
+        }
+    } else {
+        // If phone number is not provided, set the personal account number to the default excess account
+        req.body.personalaccountnumber = req.orgSettings.default_excess_account;
+        req.body.transactiondesc += `Phone number not provided. Personal account could not be found, redirected again to company's excess account.|`;
+    }
+    status = req.body.status === 'REJECTED' ? 'REJECTED' : 'ACTIVE';
+    const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req, res);
+    await client.query(
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13)`,
+        [req.body.personalaccountnumber, credit ? credit : req.body.credit,  debit ? debit : req.body.debit, newPersonalReference, req.body.description, req.body.ttype, status, `Credit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
     );
     
 };
@@ -310,36 +395,64 @@ const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountus
     const createdBy = req.user.id || req.body.createdby || 0;
     let userid = 0;
 
-    if (whichaccount !== 'GLACCOUNT') {
-        const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
-        const accountResult = await client.query(accountQuery, [req.body.accountnumber]);
-        if (accountResult.rowCount !== 0) {
-            userid = accountResult.rows[0].userid;
-        } 
-    } 
+    // if (whichaccount !== 'GLACCOUNT') {
+    //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
+    //     const accountResult = await client.query(accountQuery, [req.body.accountnumber]);
+    //     if (accountResult.rowCount !== 0) {
+    //         userid = accountResult.rows[0].userid;
+    //     } 
+    // } 
 
     // save the transaction as redirect 
     console.log('debit', debit, req.body.debit)
+    let status = req.body.status === 'REJECTED' ? 'REJECTED' : 'REDIRECTED';
+    const newReference = await generateNewReference(client, req.body.accountnumber, req, res);
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now())`,
-        [req.body.accountnumber, 0, debit ? debit : req.body.debit, await generateNewReference(client, req.body.accountnumber, req, res), req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid]
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13)`,
+        [req.body.accountnumber, 0, debit ? debit : req.body.debit, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
     );
     req.body.transactiondesc += `Debit redirected from ${req.body.accountnumber} to personal account.|`;
- 
-    let status = 'ACTIVE';
-    if (!req.orgSettings.personal_account_overdrawn) {
-        const personalAccountQuery = `SELECT SUM(credit) - SUM(debit) as balance FROM divine."transaction" WHERE accountnumber = $1`;
-        const personalAccountResult = await client.query(personalAccountQuery, [req.body.personalaccountnumber]);
-        const personalAccountBalance = personalAccountResult.rows[0].balance;
 
-        if (personalAccountBalance <= 0) {
-            status = 'PENDING';
+    // Check if phone number is provided in the request body
+    if (!req.body.phone) {
+        // Query the user table to find the user with the provided phone number
+        const userQuery = `SELECT id, phone FROM divine."User" WHERE phone = $1`;
+        const userResult = await client.query(userQuery, [req.body.phone]);
+
+        if (userResult.rowCount > 0) {
+            // If user is found, set the personal account number
+            if (req.orgSettings.personal_account_overdrawn) {
+                const personalAccountQuery = `SELECT SUM(credit) - SUM(debit) as balance FROM divine."transaction" WHERE accountnumber = $1`;
+                const personalAccountResult = await client.query(personalAccountQuery, [req.body.personalaccountnumber]);
+                const personalAccountBalance = personalAccountResult.rows[0].balance;
+        
+                if (personalAccountBalance <= 0) {
+                    status = 'PENDING';
+                }
+            }
+        } else {
+            // If user is not found, set the personal account number to the default excess account
+            req.body.personalaccountnumber = req.orgSettings.default_excess_account || '999999999';
+            req.body.transactiondesc += `User with phone number ${req.body.phone} not found. Personal account could not be found, redirected again to company's excess account.|`;
         }
+    } else {
+        // If phone number is not provided, set the personal account number to the default excess account
+        req.body.personalaccountnumber = req.orgSettings.default_excess_account;
+        req.body.transactiondesc += `Phone number not provided. Personal account could not be found, redirected again to company's excess account.|`;
     }
 
+    if (req.body.status === 'REJECTED') {
+        status = 'REJECTED';
+    } else if (status === 'PENDING') {
+        status = 'PENDING';
+    } else {
+        status = 'ACTIVE';
+    }
+    
+    const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req, res);
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now())`,
-        [req.body.personalaccountnumber, 0, debit ? debit : req.body.debit, await generateNewReference(client, req.body.personalaccountnumber, req, res), req.body.description, req.body.ttype, status, `Debit was to ${req.body.accountnumber}`, 'PERSONAL', createdBy, req.body.currency, userid]
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13)`,
+        [req.body.personalaccountnumber, 0, debit ? debit : req.body.debit, newPersonalReference, req.body.description, req.body.ttype, status, `Debit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
     );
     
 };
@@ -372,6 +485,7 @@ module.exports = {
     sendNotification,
     calculateWithdrawalLimit,
     handleCreditRedirectToPersonnalAccount,
+    handleRedirection,
     applyMinimumCreditAmountPenalty
     // generateDates, // Uncomment if needed
 };

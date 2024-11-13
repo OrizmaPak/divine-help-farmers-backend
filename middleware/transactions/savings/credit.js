@@ -1,5 +1,5 @@
 const { StatusCodes } = require('http-status-codes');
-const { saveFailedTransaction, savePendingTransaction, handleCreditRedirectToPersonalAccount, calculateCharge, generateNewReference, handleCreditRedirectToPersonnalAccount, saveTransaction } = require('../../../utils/transactionHelper');
+const { saveFailedTransaction, savePendingTransaction, handleCreditRedirectToPersonalAccount, calculateCharge, generateNewReference, handleCreditRedirectToPersonnalAccount, saveTransaction, applyMinimumCreditAmountPenalty } = require('../../../utils/transactionHelper');
 const { activityMiddleware } = require('../../activity');
 const { getTransactionPeriod, generateNextDates } = require('../../../utils/datecode');
 
@@ -9,6 +9,9 @@ const { getTransactionPeriod, generateNextDates } = require('../../../utils/date
 async function savingsCredit(client, req, res, next, accountnumber, credit, description, ttype, transactionStatus, savingsProduct, whichaccount, accountuser){
     console.log("Entered savingsCredit function with credit:", credit);
     if (credit > 0) { 
+
+        // apply check for minimum credit and penalty
+        await applyMinimumCreditAmountPenalty(client, req, res, req.orgSettings);
 
         // 8. Handle Deposit Charge
         if (credit > 0 && savingsProduct.depositcharge) {
@@ -35,6 +38,68 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
             };
             req.body.transactiondesc += 'Deposits not allowed on this product.|';
             return next();
+        }
+
+         // 7. Savings Product Rules - Allow Deposit
+         if (credit > 0 && !savingsProduct.allowdeposit) {
+            console.log("Deposits not allowed on this product, redirecting transaction.");
+            transactionStatus = 'REDIRECTED';
+            reasonForRejection = 'Deposits not allowed on this product';
+            // Handle redirection to excess account logic
+            await handleCreditRedirectToPersonnalAccount(client, req, res, accountuser, await generateNewReference(client, accountnumber, req, res), reasonForRejection, whichaccount);
+            await client.query('COMMIT'); // Commit the transaction
+            await activityMiddleware(req, req.user.id, 'Transaction committed after deposit not allowed', 'TRANSACTION');
+            req.transactionError = {
+                status: StatusCodes.MISDIRECTED_REQUEST,
+                message: 'Transaction has been redirected to the personal account because the savings account is restricted from taking deposits.',
+                errors: ['Deposits not allowed on this product. Transaction redirected to personal account.']
+            };
+            req.body.transactiondesc += 'Deposits not allowed on this product.|';
+            return next();
+        }
+
+        // **9. Check Max Balance Limit (Added this block)**
+        if (credit > 0 && savingsProduct.maxbalance) {
+            console.log("Checking max balance limit.");
+            // Get the current balance
+            const balanceQuery = `
+                SELECT COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) AS balance
+                FROM divine."transaction"
+                WHERE accountnumber = $1 AND status = 'ACTIVE'
+            `;
+            const balanceResult = await client.query(balanceQuery, [accountnumber]);
+            const currentBalance = parseFloat(balanceResult.rows[0].balance);
+            console.log("Current balance:", currentBalance);
+            // Check if adding the credit would reach or exceed maxbalance
+            if (currentBalance + credit >= savingsProduct.maxbalance) {
+                console.log("Max balance reached or exceeded. Redirecting to personal account.");
+                transactionStatus = 'REDIRECTED';
+                const reasonForRejection = 'Max balance reached or exceeded';
+                await handleCreditRedirectToPersonnalAccount(
+                    client,
+                    req,
+                    res,
+                    accountuser,
+                    await generateNewReference(client, accountnumber, req, res),
+                    reasonForRejection,
+                    whichaccount,
+                    credit // Amount to redirect
+                );
+                await client.query('COMMIT'); // Commit the transaction
+                await activityMiddleware(
+                    req,
+                    req.user.id,
+                    'Transaction committed after max balance reached or exceeded',
+                    'TRANSACTION'
+                );
+                req.transactionError = {
+                    status: StatusCodes.MISDIRECTED_REQUEST,
+                    message: 'Transaction has been redirected to the personal account because the savings account has reached its maximum balance limit.',
+                    errors: ['Max balance reached or exceeded. Transaction redirected to personal account.']
+                };
+                req.body.transactiondesc += 'Max balance reached or exceeded.|';
+                return next();
+            }
         }
 
         // 10. Compulsory Deposit Logic
