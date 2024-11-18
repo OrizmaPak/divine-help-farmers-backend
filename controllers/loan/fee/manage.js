@@ -3,7 +3,6 @@ const pg = require("../../../db/pg");
 
 const manageLoanFee = async (req, res) => {
     const { id, feename, feemethod, chargesbasedon, glaccount, status = 'ACTIVE', dateadded = new Date() } = req.body;
-
     const user = req.user;
 
     // Basic validation
@@ -20,16 +19,16 @@ const manageLoanFee = async (req, res) => {
             message: 'Fee name must be a non-empty string'
         });
     }
-
+ 
     if (!feemethod) {
         errors.push({
-            field: 'feemethod',
+            field: 'feemethod',  
             message: 'Fee method not found'
         });
-    } else if (typeof feemethod !== 'string' || !['FORM FEE', 'PROCESSING FEE', 'INSURANCE FEE'].includes(feemethod)) {
+    } else if (typeof feemethod !== 'string' || !['FORM FEE', 'PROCESSING FEE', 'INSURANCE FEE', 'DEDUCTION FEE', 'PENALTY'].includes(feemethod)) {
         errors.push({
             field: 'feemethod',
-            message: 'Fee method must be one of "FORM FEE", "PROCESSING FEE", or "INSURANCE FEE"'
+            message: 'Fee method must be one of "FORM FEE", "PROCESSING FEE", or "INSURANCE FEE" or "DEDUCTION FEE" or "PENALTY"'
         });
     }
 
@@ -101,6 +100,22 @@ const manageLoanFee = async (req, res) => {
             const { rows: updatedLoanFeeRows } = await pg.query(updateLoanFeeQuery);
             loanFee = updatedLoanFeeRows[0];
         } else {
+            // Check if the provided feename already exists in the loanfee table
+            const feenameExistsQuery = {
+                text: 'SELECT * FROM divine."loanfee" WHERE feename = $1',
+                values: [feename]
+            };
+            const { rows: feenameExistsRows } = await pg.query(feenameExistsQuery);
+
+            if (feenameExistsRows.length > 0) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: 'Feename already exists',
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
             // Create new loan fee
             const createLoanFeeQuery = {
                 text: `INSERT INTO divine."loanfee" (feename, feemethod, chargesbasedon, glaccount, status, dateadded, createdby) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
@@ -123,11 +138,11 @@ const manageLoanFee = async (req, res) => {
             status: false,
             message: "An unexpected error occurred",
             statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
-            data: null,
+            data: error.detail,
             errors: []
         });
     }
 };
-
+ 
 module.exports = { manageLoanFee };
 

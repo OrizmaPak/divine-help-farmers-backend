@@ -7,6 +7,7 @@ const ngrok = require('@ngrok/ngrok');
 const helmet = require('helmet');
 const xss = require('xss-clean');
 const express = require('express');
+const cors = require('cors');
 const app = express();
 app.set('trust proxy', 1);
 
@@ -36,6 +37,17 @@ const { decryptMiddleware, encryptResponseMiddleware } = require('./middleware/e
 app.use(express.json());
 app.use(helmet());
 app.use(xss());
+app.use(cors()); // Add CORS middleware to fix cross-origin errors
+
+const corsOptions = {
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.urlencoded({ extended: true }));
 app.use(decryptMiddleware);
 app.use(encryptResponseMiddleware);

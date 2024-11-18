@@ -532,18 +532,7 @@ model Accounts {
 model loanfee {
   id                       Int        @id @default(sequence()) 
   feename                  String    @unique
-  feemethod                String    // "FORM FEE" or "PROCESSING FEE" or "INSURANCE FEE"
-  chargesbasedon           String    // "PRINCIPAL AMOUNT ONLY" or "PRINCIPAL AND INTEREST"
-  glaccount                String
-  status                   String @default("ACTIVE")
-  dateadded                DateTime
-  createdby                Int
-}
-
-model defaultloanpenalty {
-  id                       Int        @id @default(sequence()) 
-  feename                  String    @unique
-  feemethod                String    // "FORM FEE" or "PROCESSING FEE" or "INSURANCE FEE"
+  feemethod                String    // "FORM FEE" or "PROCESSING FEE" or "INSURANCE FEE" or "DEDUCTION FEE" or
   chargesbasedon           String    // "PRINCIPAL AMOUNT ONLY" or "PRINCIPAL AND INTEREST"
   glaccount                String
   status                   String @default("ACTIVE")
@@ -555,15 +544,32 @@ model loanproduct {
       id                       Int        @id @default(sequence()) 
       productname              String    @unique
       description              String?
+      registrationcharge       Float?
+
+      repaymentsettings        String // "ACCOUNT" or "PRODUCT"
+      
+      repaymentfrequency       String? // "D1", "W1", "M1"
+      numberofrepayments       Int?
+      duration                 Int? // refers to the cycle
+      durationcategory         String? // "DAY" or "WEEK" or "MONTH" or "YEAR"
       interestmethod           String  // "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS"
       interestrate             Float
       defaultpenaltyid         Int?
+      seperateinterest         Boolean? @default(false)
 
-      repaymentsettings        String // "ACCOUNT" or "PRODUCT"
-      repaymentfrequency       String? // "D1", "W1", "M1"
-      numberofrepayments       Int?
-      duration                 Int?
-      durationcategory         String? // "DAY" or "WEEK" or "MONTH" or "YEAR"
+      useraccount              Int? @default(1) // number of maximum account a user can open for this product
+      eligibilityproductcategory       String? // "LOAN" or "SAVINGS" 
+      eligibilityproduct       Int? @default(0)  // the product that the user must have account in
+
+      eligibilityaccountage    Int?    // in months for SAVINGS
+      eligibilityminbalance    Float?
+      
+      eligibilityminimumloan   Float? // for LOAN
+      eligibilityminimumclosedaccounts Int?
+
+      eligibilitytype          String? // "PERCENTAGE" or "AMOUNT"
+      maximumloan              Float?
+      minimumloan              Float?
 
       currency                 String? // "NGN" or "USD"
       excludebranch            String? // "1,2,3"
@@ -573,3 +579,38 @@ model loanproduct {
       createdby                Int
 }
 
+model loanaccounts {
+      id                        Int       @id @default(sequence()) 
+      loanproduct               Int? @default(0)
+      accountnumber             String?
+      userid                    Int 
+      branch                    Int
+      registrationpoint         Int?
+      registrationcharge        Float?
+      registrationdate          DateTime
+      registrationdesc          String?
+      loanamount                Float
+      bankname1                 String?
+      bankaccountname1          String?
+      bankaccountnumber1        String?
+      bankname2                 String?
+      bankaccountname2          String?
+      bankaccountnumber2        String?
+      accountofficer            String?
+
+
+      repaymentfrequency        String? // "D1", "W1", "M1"
+      numberofrepayments        Int?
+      duration                  Int? // refers to the cycle
+      durationcategory          String? // "DAY" or "WEEK" or "MONTH" or "YEAR"
+      interestmethod            String  // "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS"
+      interestrate              Float
+      defaultpenaltyid          Int?
+      seperateinterest         Boolean? @default(false)
+
+      status                    String     @default("ACTIVE") // "ACTIVE", "PAID_OFF", "CLOSED", etc.
+      dateadded                 DateTime
+      dateclosed                DateTime?
+      closeamount               Float?
+      createdby                 Int
+}
