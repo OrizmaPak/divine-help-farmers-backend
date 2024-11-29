@@ -4,7 +4,7 @@ const { activityMiddleware } = require("../../../middleware/activity"); // Added
 
 // Function to define a department
 const defineDepartment = async (req, res) => {
-    const { id="", department, branch, status="" } = req.body;
+    const { id="", department, branch, userid, status="" } = req.body;
     
     const user = req.user
 
@@ -43,7 +43,7 @@ const defineDepartment = async (req, res) => {
         );
 
         // WHEN THE DEPARTMENT ALREADY EXISTS OR ANOTHER DEPARTMENT IN THE BRANCH HAS THE NAME
-        if (thedepartment.length > 0) {
+        if (thedepartment.length > 0 && !id) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "Department already exists for this branch or another department in the branch has the name",
@@ -62,21 +62,23 @@ const defineDepartment = async (req, res) => {
                 // Update the department status
                 query = await pg.query(`UPDATE divine."Department" SET 
                     status = $1,
-                    lastupdated = $2
-                    WHERE id = $3`, [status, new Date(), id]);
+                    lastupdated = $2,
+                    userid = $3
+                    WHERE id = $4`, [status, new Date(), userid, id]);
             }else{
                 // Update the department details
                 query = await pg.query(`UPDATE divine."Department" SET 
                     department = $1, 
                     branch = $2, 
                     lastupdated = $3,
-                    WHERE id = $4`, [department, branch, new Date(), id]);
+                    userid = $4
+                    WHERE id = $5`, [department, branch, new Date(), userid, id]);
             }
         } else {
             // Insert a new department
             query = await pg.query(`INSERT INTO divine."Department" 
-                (department, branch, createdby) 
-                VALUES ($1, $2, $3)`, [department, branch, user.id]);
+                (department, branch, createdby, userid) 
+                VALUES ($1, $2, $3, $4)`, [department, branch, user.id, userid]);
         }
 
         // NOW SAVE THE DEPARTMENT

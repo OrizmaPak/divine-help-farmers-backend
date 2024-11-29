@@ -9,22 +9,7 @@ const getTask = async (req, res) => {
         let queryString = `
             SELECT t.*,
             (
-                SELECT json_agg(
-                    json_build_object(
-                        'id', s.id,
-                        'title', s.title,
-                        'startdate', s.startdate,
-                        'enddate', s.enddate,
-                        'description', s.description,
-                        'taskstatus', s.taskstatus,
-                        'assignedto', s.assignedto,
-                        'assignedtonames', (
-                            SELECT string_agg(CONCAT(u.firstname, ' ', u.lastname), ', ')
-                            FROM divine."User" u
-                            WHERE u.id = ANY(string_to_array(s.assignedto, '||')::int[])
-                        )
-                    )
-                )
+                SELECT json_agg(s)
                 FROM divine."Subtask" s
                 WHERE s.task = t.id
             ) as subtasks,

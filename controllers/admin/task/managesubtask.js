@@ -1,58 +1,74 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
-const { sendMail } = require("../../../utils/sendEmail");
+const { sendEmail } = require("../../../utils/sendEmail");
 
-const manageSubtask = async (req, res) => {
+const manageSubtask = async (req, res) => { 
     try {
-        const { id, task, title, startdate, enddate, description, createdby, assignedto="", taskstatus } = req.body;
+        const { id, task, title, startdate, enddate, description, createdby, assignedto="", taskstatus="NOT STARTED" } = req.body;
 
         // Validate required fields
-        if (!task || !title || !startdate || !enddate || !taskstatus) {
+        const missingFields = [];
+        if (!id) {
+            if (!task) missingFields.push('Task');
+            if (!title) missingFields.push('Title');
+            if (!startdate) missingFields.push('Start Date');
+            if (!enddate) missingFields.push('End Date');
+        }
+        // if (!taskstatus) missingFields.push('Task Status');
+
+        if (missingFields.length > 0) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: "Task, title, start date, end date, and task status are required fields",
+                message: `The following fields are required: ${missingFields.join(', ')}`,
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
-                errors: []
+                errors: missingFields.map(field => ({
+                    field,
+                    message: `${field} is required`
+                }))
             });
         }
 
-        // Validate start date and end date
-        if (new Date(enddate) <= new Date(startdate)) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "End date must be greater than start date",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });
+        if (!id) {
+            // Validate start date and end date
+            if (new Date(enddate) <= new Date(startdate)) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "End date must be greater than start date",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+
+            // Validate task status
+            const validTaskStatuses = ['NOT STARTED', 'WORKING ON IT', 'STUCK', 'PENDING', 'DONE'];
+            if (!validTaskStatuses.includes(taskstatus.toUpperCase())) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "Task status must be either NOT STARTED, WORKING ON IT, STUCK, PENDING, or DONE",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
         }
 
-        // Validate task status
-        const validTaskStatuses = ['NOT STARTED', 'WORKING ON IT', 'STUCK', 'PENDING', 'DONE'];
-        if (!validTaskStatuses.includes(taskstatus.toUpperCase())) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "Task status must be either NOT STARTED, WORKING ON IT, STUCK, PENDING, or DONE",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });
+        if (id) {
+            // Check if subtask exists
+            const { rows: [subtaskExists] } = await pg.query(`SELECT * FROM divine."Subtask" WHERE id = $1`, [id]);
+            if (!subtaskExists) {
+                return res.status(StatusCodes.NOT_FOUND).json({
+                    status: false,
+                    message: "Subtask not found",
+                    statuscode: StatusCodes.NOT_FOUND,
+                    data: null,
+                    errors: []
+                });
+            }
         }
 
-        // Check if task exists
-        const { rows: [taskExists] } = await pg.query(`SELECT * FROM divine."Task" WHERE id = $1`, [task]);
-        if (!taskExists) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                status: false,
-                message: "Task not found",
-                statuscode: StatusCodes.NOT_FOUND,
-                data: null,
-                errors: []
-            });
-        }
-
-        // Check if start date and end date are within task's start and end date
+       if(!id){ // Check if start date and end date are within task's start and end date
         if (new Date(startdate) < new Date(taskExists.startdate) || new Date(enddate) > new Date(taskExists.enddate)) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -65,17 +81,32 @@ const manageSubtask = async (req, res) => {
 
         // Check if assigned to is valid
         const assignedToIds = assignedto ? assignedto.split("||").map(id => id.trim()) : [];
-        const { rows: [taskAssignedTo] } = await pg.query(`SELECT assignedto FROM divine."Task" WHERE id = $1`, [task]);
-        const taskAssignedToIds = taskAssignedTo.assignedto.split("||");
-        if (!assignedToIds.every(id => taskAssignedToIds.includes(id))) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "Assigned to is not valid",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });
-        }
+        for (let id of assignedToIds) {
+            const { rows: [user] } = await pg.query(`SELECT id FROM divine."User" WHERE id = $1`, [id]);
+            if (!user) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: `Assigned to user with ID ${id} does not exist`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+        }}
+        // const assignedToIds = assignedto ? assignedto.split("||").map(id => id.trim()) : [];
+        // const { rows: [taskAssignedTo] } = await pg.query(`SELECT assignedto FROM divine."Task" WHERE id = $1`, [task]);
+        // const taskAssignedToIds = taskAssignedTo.assignedto.split("||");
+        // if (!assignedToIds.every(id => taskAssignedToIds.includes(id))) {
+        //     return res.status(StatusCodes.BAD_REQUEST).json({
+        //         status: false,
+        //         message: "Assigned to is not valid",
+        //         statuscode: StatusCodes.BAD_REQUEST,
+        //         data: null,
+        //         errors: []
+        //     });
+        // }
+
+        
 
         // Check if title already exists for the task
         if (!id) {
@@ -94,7 +125,7 @@ const manageSubtask = async (req, res) => {
         // Create or update subtask
         if (id) {
             // Update assignedto field correctly
-            const { rows: [updatedSubtask] } = await pg.query(`UPDATE divine."Subtask" SET title = $1, startdate = $2, enddate = $3, description = $4, assignedto = $5, taskstatus = $6 WHERE id = $7 RETURNING *`, [title, startdate, enddate, description, assignedto, taskstatus, id]);
+            const { rows: [updatedSubtask] } = await pg.query(`UPDATE divine."Subtask" SET title = COALESCE($1, title), startdate = COALESCE($2, startdate), enddate = COALESCE($3, enddate), description = COALESCE($4, description), assignedto = COALESCE($5, assignedto), taskstatus = COALESCE($6, taskstatus) WHERE id = $7 RETURNING *`, [title, startdate, enddate, description, assignedto, taskstatus, id]);
             if (!updatedSubtask) {
                 return res.status(StatusCodes.NOT_FOUND).json({
                     status: false,
@@ -109,7 +140,7 @@ const manageSubtask = async (req, res) => {
                 assignedToIds.forEach(async id => {
                     const { rows: [user] } = await pg.query(`SELECT email FROM divine."User" WHERE id = $1`, [id]);
                     if (user) {
-                        sendMail(user.email, `Subtask updated: ${title}`, `The subtask ${title} has been updated. New details: Title: ${title}, Start Date: ${startdate}, End Date: ${enddate}, Description: ${description}, Task Status: ${taskstatus}.`);
+                        sendEmail(user.email, `Subtask updated: ${title}`, `The subtask ${title} has been updated. New details: Title: ${title}, Start Date: ${startdate}, End Date: ${enddate}, Description: ${description}, Task Status: ${taskstatus}.`);
                     }
                 });
             }
@@ -127,7 +158,7 @@ const manageSubtask = async (req, res) => {
                 assignedToIds.forEach(async id => {
                     const { rows: [user] } = await pg.query(`SELECT email FROM divine."User" WHERE id = $1`, [id]);
                     if (user) {
-                        sendMail(user.email, `New subtask: ${title}`, `A new subtask ${title} has been created.`);
+                        sendEmail(user.email, `New subtask: ${title}`, `A new subtask ${title} has been created.`);
                     }
                 });
             }

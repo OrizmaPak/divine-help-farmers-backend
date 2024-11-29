@@ -10,7 +10,7 @@ const { activityMiddleware } = require("../../middleware/activity"); // Added tr
 const { uploadToGoogleDrive } = require("../../utils/uploadToGoogleDrive");
 
 const signup = async (req, res) => {
-    const { firstname, lastname, email, password, phone, othernames = '', verify = false, device = '', country = '', state = '' } = req.body;
+    const { firstname, lastname, branch, email, password, phone, othernames = '', verify = false, device = '', country = '', state = '' } = req.body;
     console.log({ firstname, lastname, email, password, othernames, ema: isValidEmail(email) });
     
 
@@ -22,6 +22,12 @@ const signup = async (req, res) => {
                 field: 'First Name',
                 message: 'First name not found' 
             }); 
+        }
+        if (!branch) {
+            errors.push({
+                field: 'Branch',
+                message: 'Branch not found'
+            });
         }
         if (!lastname) {
             errors.push({
@@ -64,8 +70,25 @@ const signup = async (req, res) => {
     }
 
     try {
+        // Check if the branch exists in the branch table
+        const branchExistsQuery = `SELECT * FROM divine."Branch" WHERE id = $1`;
+        const { rows: branchExistsResult } = await pg.query(branchExistsQuery, [branch]);
+
+        if (branchExistsResult.length === 0) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Branch does not exist.",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["Branch does not exist."]
+            });
+        }
+
         // Check if email already exists using raw query
         const { rows: theuser } = await pg.query(`SELECT * FROM divine."User" WHERE email = $1`, [email]);
+
+        // Check if phone number already exists using raw query
+        const { rows: phoneUser } = await pg.query(`SELECT * FROM divine."User" WHERE phone = $1`, [phone]);
 
         // CHECKING IF ITS AN ACTIVE USER IF HE EXISTS
         if (theuser.length > 0 && theuser[0].status != 'ACTIVE') {
@@ -83,6 +106,17 @@ const signup = async (req, res) => {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "Email already in use",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: []
+            });
+        }
+
+        // WHEN THE PHONE NUMBER IS ALREADY IN USE
+        if (phoneUser.length > 0) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Phone number already in use",
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
                 errors: []

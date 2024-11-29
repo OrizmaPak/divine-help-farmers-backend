@@ -9,7 +9,7 @@ const manageOnlineUser = async (req, res, next) => {
     try {
         const queryString = `
             SELECT *
-            FROM divine."lastseen"
+            FROM divine."Lastseen"
             WHERE userid = $1
         `;
 
@@ -17,7 +17,7 @@ const manageOnlineUser = async (req, res, next) => {
 
         if (existingUser.length > 0) {
             const updateQueryString = `
-                UPDATE divine."lastseen"
+                UPDATE divine."Lastseen"
                 SET date = NOW()
                 WHERE userid = $1
             `;
@@ -25,7 +25,7 @@ const manageOnlineUser = async (req, res, next) => {
             await pg.query(updateQueryString, [userid]);
         } else {
             const insertQueryString = `
-                INSERT INTO divine."lastseen" (userid, date)
+                INSERT INTO divine."Lastseen" (userid, date)
                 VALUES ($1, NOW())
             `;
 

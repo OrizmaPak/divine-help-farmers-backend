@@ -7,32 +7,44 @@ const { sendEmail } = require("../../../utils/sendEmail"); // Import function to
 const manageTask = async (req, res) => {
     try {
         // Extract task details from request body
-        const { id, title, description, priority, assignedto, branch, status, startdate, enddate, taskstatus } = req.body;
+        const { id, title, description, priority, assignedto, branch, status, startdate, enddate, taskstatus = "NOT STARTED" } = req.body;
 
-        // Validate required fields
-        if (!title || !priority || !branch || !startdate || !enddate || !taskstatus) { 
+        // Validate required fields with detailed error messages
+        const missingFields = [];
+        if(!id){if (!title) missingFields.push('Title');
+        if (!priority) missingFields.push('Priority');
+        if (!branch) missingFields.push('Branch');
+        if (!startdate) missingFields.push('Start Date');
+        if (!enddate) missingFields.push('End Date');
+        if (!taskstatus) missingFields.push('Task Status');}
+
+        if (missingFields.length > 0) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: "Title, priority, branch, start date, end date, and task status are required fields",
+                message: `The following fields are required: ${missingFields.join(', ')}`,
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
-                errors: []
+                errors: missingFields.map(field => ({
+                    field,
+                    message: `${field} is required`
+                }))
             });
         }
 
         // Check if the branch exists
-        const { rows: [branchExists] } = await pg.query(`SELECT * FROM divine."Branch" WHERE id = $1`, [branch]);
-        if (!branchExists) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                status: false,
-                message: "Branch not found",
-                statuscode: StatusCodes.NOT_FOUND,
-                data: null,
-                errors: []
-            });
-        }
-        
-        // Validate start date and end date values
+        if(!id){
+            const { rows: [branchExists] } = await pg.query(`SELECT * FROM divine."Branch" WHERE id = $1`, [branch]);
+            if (!branchExists) {
+                return res.status(StatusCodes.NOT_FOUND).json({
+                    status: false,
+                    message: "Branch not found",
+                    statuscode: StatusCodes.NOT_FOUND,
+                    data: null,
+                    errors: []
+                });
+            }
+            
+            // Validate start date and end date values
         const startDate = new Date(startdate);
         const endDate = new Date(enddate);
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -55,7 +67,7 @@ const manageTask = async (req, res) => {
                 errors: []
             });
         }
-
+        
         // Validate priority
         const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
         if (!validPriorities.includes(priority.toUpperCase())) {
@@ -79,7 +91,8 @@ const manageTask = async (req, res) => {
                 errors: []
             });
         }
-
+        
+    }
         // If task ID is provided, update the task
         if (id) {
             // If status is provided, update only the status
@@ -115,14 +128,14 @@ const manageTask = async (req, res) => {
                 // Update task details
                 const { rows: [updatedTask] } = await pg.query(`
                     UPDATE divine."Task"
-                    SET title = $1,
-                    description = $2,
-                    priority = $3,
-                    assignedto = $4,
-                    branch = $5,
-                    startdate = $6,
-                    enddate = $7,
-                    taskstatus = $8
+                    SET title = COALESCE($1, title),
+                    description = COALESCE($2, description),
+                    priority = COALESCE($3, priority),
+                    assignedto = COALESCE($4, assignedto),
+                    branch = COALESCE($5, branch),
+                    startdate = COALESCE($6, startdate),
+                    enddate = COALESCE($7, enddate),
+                    taskstatus = COALESCE($8, taskstatus)
                     WHERE id = $9
                     RETURNING *
                 `, [title, description, priority, assignedto, branch, startdate, enddate, taskstatus, id]);
@@ -138,15 +151,16 @@ const manageTask = async (req, res) => {
                 }
 
                 // Log activity for task update
-                const { rows: [branchName] } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [branch]);
-                await activityMiddleware(req, req.user.id, `Task updated successfully for branch ${branchName.branch}`, 'TASK');
+                const { branch: updatedBranch, title: updatedTitle, description: updatedDescription, priority: updatedPriority, assignedto: updatedAssignedTo, startdate: updatedStartDate, enddate: updatedEndDate, taskstatus: updatedTaskStatus } = updatedTask;
+
+                await activityMiddleware(req, req.user.id, `Task updated successfully for branch ${updatedBranch}`, 'TASK');
 
                 // Send email to the creator
                 await sendEmail({
                     to: req.user.email,
                     subject: 'Task Updated',
-                    text: `Your task with title ${title} has been updated successfully. The new details are: Title: ${title}, Description: ${description}, Priority: ${priority}, Assigned To: ${assignedto}, Branch: ${branchName.branch}, Start Date: ${startdate}, End Date: ${enddate}, Task Status: ${taskstatus}.`,
-                    html: `Your task with title ${title} has been updated successfully. The new details are: Title: ${title}, Description: ${description}, Priority: ${priority}, Assigned To: ${assignedto}, Branch: ${branchName.branch}, Start Date: ${startdate}, End Date: ${enddate}, Task Status: ${taskstatus}.`
+                    text: `Your task with title ${updatedTitle} has been updated successfully. The new details are: Title: ${updatedTitle}, Description: ${updatedDescription}, Priority: ${updatedPriority}, Assigned To: ${updatedAssignedTo}, Branch: ${updatedBranch}, Start Date: ${updatedStartDate}, End Date: ${updatedEndDate}, Task Status: ${updatedTaskStatus}.`,
+                    html: `Your task with title ${updatedTitle} has been updated successfully. The new details are: Title: ${updatedTitle}, Description: ${updatedDescription}, Priority: ${updatedPriority}, Assigned To: ${updatedAssignedTo}, Branch: ${updatedBranch}, Start Date: ${updatedStartDate}, End Date: ${updatedEndDate}, Task Status: ${updatedTaskStatus}.`
                 });
 
                 // Send email to the assigned users
@@ -213,7 +227,7 @@ const manageTask = async (req, res) => {
             if (assignedto) {
                 const assignedUsers = assignedto.split('||');
                 for (let user of assignedUsers) {
-                    const { rows: [assignedUser] } = await pg.query(`SELECT email FROM divine."User" WHERE id = $1`, [user]);
+                    const { rows: [assignedUser] } = await pg.query(`SELECT email FROM divine."User" WHERE id = $1`, [user.id]);
                     if (assignedUser) {
                         await sendEmail({
                             to: assignedUser.email,

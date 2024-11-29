@@ -32,10 +32,10 @@ const manageLoanProduct = async (req, res) => {
             field: 'interestmethod',
             message: 'Interest method not found'
         });
-    } else if (typeof interestmethod !== 'string' || !['NO INTEREST', 'FLAT RATE', 'ONE OF INTEREST', 'INTEREST ONLY', 'EQUAL INSTALLMENTS'].includes(interestmethod)) {
+    } else if (typeof interestmethod !== 'string' || !['NO INTEREST', 'FLAT RATE', 'ONE OF INTEREST', 'INTEREST ONLY', 'EQUAL INSTALLMENTS', 'REDUCING BALANCE', 'BALLOON LOAN', 'FIXED RATE', 'UNSECURE LOAN', 'INSTALLMENT LOAN', 'PAYDAY LOAN', 'MICRO LOAN', 'BRIDGE LOAN', 'AGRICULTURAL LOAN', 'EDUCATION LOAN', 'WORKIN CAPITAL'].includes(interestmethod)) {
         errors.push({
             field: 'interestmethod',
-            message: 'Interest method must be one of "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", or "EQUAL INSTALLMENTS"'
+            message: 'Interest method must be one of "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS", "REDUCING BALANCE", "BALLOON LOAN", "FIXED RATE", "UNSECURE LOAN", "INSTALLMENT LOAN", "PAYDAY LOAN", "MICRO LOAN", "BRIDGE LOAN", "AGRICULTURAL LOAN", "EDUCATION LOAN", or "WORKIN CAPITAL"'
         });
     }
     
@@ -258,7 +258,7 @@ const manageLoanProduct = async (req, res) => {
         const { rows: productNameRows } = await pg.query(productNameQuery);
 
         // If product name is not unique, return a bad request response
-        if (productNameRows.length > 0 && (!id || productNameRows[0].id !== id)) {
+        if (productNameRows.length > 0 && (!id || productNameRows[0].id != id)) {
             console.log('Product name is not unique');
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -270,11 +270,11 @@ const manageLoanProduct = async (req, res) => {
         }
 
         console.log('Checking if default penalty ID exists');
-        // Check if the default penalty ID exists in the defaultloanpenalty table
+        // Check if the default penalty ID exists in the loanfee table
         if (defaultpenaltyid) {
             const penaltyQuery = {
-                text: 'SELECT * FROM divine."defaultloanpenalty" WHERE id = $1',
-                values: [defaultpenaltyid]
+                text: 'SELECT * FROM divine."loanfee" WHERE id = $1 AND feemethod = $2',
+                values: [defaultpenaltyid, 'PENALTY']
             };
             const { rows: penaltyRows } = await pg.query(penaltyQuery);
 
@@ -351,12 +351,71 @@ const manageLoanProduct = async (req, res) => {
         } else {
             console.log('Creating new loan product');
             // Create new loan product
-            const createLoanProductQuery = {
-                text: `INSERT INTO divine."loanproduct" (productname, description, interestmethod, interestrate, repaymentsettings, repaymentfrequency, numberofrepayments, duration, durationcategory, currency, excludebranch, productofficer, defaultpenaltyid, registrationcharge, status, dateadded, createdby, eligibilityproductcategory, eligibilityproduct, eligibilityaccountage, eligibilityminbalance, eligibilitytype, maximumloan, minimumloan, eligibilityminimumloan, eligibilityminimumclosedaccounts) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) RETURNING *`,
-                values: [productname, description, interestmethod, interestrate, repaymentsettings, repaymentfrequency, numberofrepayments, duration, durationcategory, currency, excludebranch, productofficer, defaultpenaltyid, registrationcharge, "PENDING APPROVAL", new Date(), user.id, eligibilityproductcategory, eligibilityproduct, eligibilityaccountage, eligibilityminbalance, eligibilitytype, maximumloan, minimumloan, eligibilityminimumloan, eligibilityminimumclosedaccounts]
-            };
-            const { rows: createdLoanProductRows } = await pg.query(createLoanProductQuery);
-            loanProduct = createdLoanProductRows[0];
+                // Start of Selection
+                const createLoanProductQuery = {
+                    text: `INSERT INTO divine."loanproduct" (
+                            productname, 
+                            description, 
+                            interestmethod, 
+                            interestrate, 
+                            repaymentsettings, 
+                            repaymentfrequency, 
+                            numberofrepayments, 
+                            duration, 
+                            durationcategory, 
+                            currency, 
+                            excludebranch, 
+                            productofficer, 
+                            defaultpenaltyid, 
+                            registrationcharge, 
+                            status, 
+                            dateadded, 
+                            createdby, 
+                            eligibilityproductcategory, 
+                            eligibilityproduct, 
+                            eligibilityaccountage, 
+                            eligibilityminbalance, 
+                            eligibilitytype, 
+                            maximumloan, 
+                            minimumloan, 
+                            eligibilityminimumloan, 
+                            eligibilityminimumclosedaccounts
+                        ) VALUES (
+                            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 
+                            $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, 
+                            $21, $22, $23, $24, $25, $26
+                        ) RETURNING *`,
+                    values: [
+                        productname, 
+                        description, 
+                        interestmethod, 
+                        interestrate, 
+                        repaymentsettings, 
+                        repaymentfrequency, 
+                        numberofrepayments, 
+                        duration, 
+                        durationcategory, 
+                        currency, 
+                        excludebranch, 
+                        productofficer, 
+                        defaultpenaltyid, 
+                        registrationcharge, 
+                        "PENDING APPROVAL", 
+                        new Date(), 
+                        user.id, 
+                        eligibilityproductcategory, 
+                        eligibilityproduct, 
+                        eligibilityaccountage, 
+                        eligibilityminbalance, 
+                        eligibilitytype, 
+                        maximumloan, 
+                        minimumloan, 
+                        eligibilityminimumloan, 
+                        eligibilityminimumclosedaccounts
+                    ]
+                };
+                const { rows: createdLoanProductRows } = await pg.query(createLoanProductQuery);
+                loanProduct = createdLoanProductRows[0];
         }
 
         console.log('Returning success response'); 

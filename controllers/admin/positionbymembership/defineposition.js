@@ -3,12 +3,12 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware
 
 const definepositionbymembership = async (req, res) => {
-    const { id="", member, position, status="" } = req.body;
+    const { id="", member, position, branch=0, status="", userid=null } = req.body;
     
     const user = req.user
 
     // Basic validation
-    if (!member && !id || !position) {
+    if ((!member && !id) || !position) {
         let errors = [];
         if (!member) {
             errors.push({
@@ -16,7 +16,7 @@ const definepositionbymembership = async (req, res) => {
                 message: 'Member name not found' 
             }); 
         }
-        if (!position) {
+        if (!position) { 
             errors.push({
                 field: 'Position Name',
                 message: 'Position name not found' 
@@ -33,11 +33,10 @@ const definepositionbymembership = async (req, res) => {
     }
 
     try {
-        if(!id){
+        if (!id) {
             // Check if member exists using raw query
             const { rows: themember } = await pg.query(`SELECT * FROM divine."DefineMember" WHERE id = $1`, [member]);
 
-            // WHEN THE ACCOUNT IS ALREADY IN USE
             if (themember.length == 0) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
@@ -51,7 +50,6 @@ const definepositionbymembership = async (req, res) => {
             // Check if position already exists for the member using raw query
             const { rows: thepositions } = await pg.query(`SELECT * FROM divine."Position" WHERE member = $1`, [member]);
 
-            // WHEN THE ACCOUNT IS ALREADY IN USE
             let positionAlreadyExists = false;
             for (const pos of thepositions) {
                 if (pos.position === position) {
@@ -68,33 +66,62 @@ const definepositionbymembership = async (req, res) => {
                     errors: []
                 });
             }
-            
+
+            // Check if branch exists if branch is provided
+            if (branch) {
+                const { rows: thebranch } = await pg.query(`SELECT * FROM divine."Branch" WHERE id = $1`, [branch]);
+                if (thebranch.length == 0) {
+                    return res.status(StatusCodes.BAD_REQUEST).json({
+                        status: false,
+                        message: "Branch cannot be found",
+                        statuscode: StatusCodes.BAD_REQUEST,
+                        data: null,
+                        errors: []
+                    });
+                }
+            }
+
+            // Check if user exists if userid is provided
+            if (userid) {
+                const { rows: theuser } = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [userid]);
+                if (theuser.length == 0) {
+                    return res.status(StatusCodes.BAD_REQUEST).json({
+                        status: false,
+                        message: "User cannot be found",
+                        statuscode: StatusCodes.BAD_REQUEST,
+                        data: null,
+                        errors: []
+                    });
+                }
+            }
         }
 
         // DEFINE QUERY
         let query;
 
         if (id) {
-            if(id && status){
+            if (id && status) {
                 query = await pg.query(`UPDATE divine."Position" SET 
-                    status = $1,
+                    status = COALESCE($1, status),
                     lastupdated = $2
                     WHERE id = $3`, [status, new Date(), id]);
-            }else{
+            } else {
                 query = await pg.query(`UPDATE divine."Position" SET 
-                    member = $1, 
-                    position = $2, 
-                    lastupdated = $3,
-                    WHERE id = $4`, [member, position, new Date(), id]);
+                    member = COALESCE($1, member), 
+                    position = COALESCE($2, position), 
+                    branch = COALESCE($3, branch),
+                    userid = COALESCE($4, userid),
+                    lastupdated = $5
+                    WHERE id = $6`, [member, position, branch, userid, new Date(), id]);
             }
         } else {
             query = await pg.query(`INSERT INTO divine."Position" 
-                (member, position, createdby) 
-                VALUES ($1, $2, $3)`, [member, position, user.id]);
+                (member, position, branch, userid, createdby) 
+                VALUES ($1, $2, $3, $4, $5)`, [member, position, branch, userid, user.id]);
         }
 
-        // NOW SAVE THE BRANCH
-        const { rowCount: savebranch } = query
+        // NOW SAVE THE POSITION
+        const { rowCount: saveposition } = query
 
         // RECORD THE ACTIVITY
         await activityMiddleware(req, user.id, `${position} Position ${!id ? 'created' : 'updated'}`, 'POSITION');
@@ -107,7 +134,7 @@ const definepositionbymembership = async (req, res) => {
             errors: []
         };
 
-        if(savebranch > 0)return res.status(StatusCodes.OK).json(responseData);
+        if (saveposition > 0) return res.status(StatusCodes.OK).json(responseData);
     } catch (err) {
         console.error('Unexpected Error:', err);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -119,7 +146,6 @@ const definepositionbymembership = async (req, res) => {
         });
     }
 }   
-
 
 module.exports = {
     definepositionbymembership

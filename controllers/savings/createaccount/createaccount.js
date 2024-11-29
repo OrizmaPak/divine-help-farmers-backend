@@ -106,19 +106,204 @@ const manageSavingsAccount = async (req, res) => {
         }
 
         // Check if the user already has the savings product
-        const existingAccountQuery = `SELECT * FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2`;
+    if (!accountnumber) {
+        const existingAccountQuery = `SELECT COUNT(*) FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2`;
         const existingAccountResult = await pg.query(existingAccountQuery, [userid, savingsproductid]);
+        const accountCount = parseInt(existingAccountResult.rows[0].count);
 
-        if (existingAccountResult.rowCount > 0 && !accountnumber) {
-            await activityMiddleware(req, createdby, 'Attempt to create a savings account that already exists', 'ACCOUNT');
+        // Fetch the savings product details to get the useraccount limit
+        const userAccountLimit = productResult.rows[0].useraccount;
+
+        if (accountCount >= userAccountLimit) {
+            await activityMiddleware(req, createdby, 'Attempt to create a savings account that exceeds the allowed limit', 'ACCOUNT');
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: "User already has this savings product.",
+                message: "User has reached the limit of accounts for this savings product.",
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
-                errors: ["User already has this savings product."]
+                errors: ["User has reached the limit of accounts for this savings product."]
             });
         }
+    }
+
+    // Validate eligibility product category
+    if (productResult.eligibilityproductcategory === 'SAVINGS') {
+        // Fetch savings account number
+        const accountNumberQuery = {
+            text: `
+                SELECT accountnumber, dateadded 
+                FROM divine."savings" 
+                WHERE userid = $1 AND savingsproductid = $2
+            `,
+            values: [user.id, productResult.eligibilityproduct]
+        };
+        const { rows: accountRows } = await pg.query(accountNumberQuery);
+
+        if (accountRows.length === 0) {
+            errors.push({
+                field: 'eligibilityproduct',
+                message: 'User does not have an account in the specified savings product'
+            });
+        } else {
+            let oldestAccount = accountRows[0];
+                    for (const account of accountRows) {
+                        if (new Date(account.dateadded) < new Date(oldestAccount.dateadded) && account.status === 'ACTIVE') {
+                            oldestAccount = account;
+                        }
+                    }
+                    const { accountnumber, dateadded } = oldestAccount;
+
+            // Fetch account balance
+            const balanceQuery = {
+                text: `
+                    SELECT SUM(credit) - SUM(debit) AS balance 
+                    FROM divine."transaction" 
+                    WHERE accountnumber = $1
+                `,
+                values: [accountnumber]
+            };
+            const { rows: balanceRows } = await pg.query(balanceQuery);
+            const balance = balanceRows[0].balance || 0;
+
+            // Validate account age
+            if (productResult.eligibilityaccountage > 0) {
+                const accountAgeInDays = Math.floor((Date.now() - new Date(dateadded).getTime()) / (1000 * 60 * 60 * 24));
+                console.log(`Account is ${accountAgeInDays} days old.`);
+                const accountAgeInMonths = Math.floor(accountAgeInDays / 30);
+                if (accountAgeInMonths < productResult.eligibilityaccountage) {
+                    const ageDifference = productResult.eligibilityaccountage - accountAgeInMonths;
+                    errors.push({
+                        field: 'eligibilityaccountage',
+                        message: accountAgeInMonths === 0 
+                            ? `User account age is ${accountAgeInDays} days, which is less than the required eligibility account age by ${productResult.eligibilityaccountage * 30 - accountAgeInDays} days`
+                            : `User account age is ${accountAgeInMonths} months, which is less than the required eligibility account age by ${ageDifference} months`
+                    });
+                }
+            }
+
+            // Validate minimum balance
+            if (productResult.eligibilityminbalance > 0 && balance < productResult.eligibilityminbalance) {
+                errors.push({
+                    field: 'eligibilityminbalance',
+                    message: `User account balance is ${balance}, which is less than the required minimum balance of ${productResult.eligibilityminbalance}`
+                });
+            }
+
+            if(productResult.eligibilitymincredit > 0){
+                        // Validate minimum credit
+                    const creditQuery = {
+                        text: `
+                            SELECT SUM(credit) AS totalCredit 
+                            FROM divine."transaction" 
+                            WHERE accountnumber = $1
+                        `,
+                        values: [accountnumber]
+                    };
+                    const { rows: creditRows } = await pg.query(creditQuery);
+                    const totalCredit = creditRows[0].totalcredit || 0;
+
+                    if (productResult.eligibilitymincredit > 0 && totalCredit < productResult.eligibilitymincredit) {
+                        errors.push({
+                            field: 'eligibilitymincredit',
+                            message: `User account total credit is ${totalCredit}, which is less than the required minimum credit of ${productResult.eligibilitymincredit}`
+                        });
+                    }
+                }
+
+            if(productResult.eligibilitymindebit > 0){
+                // Validate minimum debit
+                const debitQuery = {
+                    text: `
+                        SELECT SUM(debit) AS totalDebit 
+                        FROM divine."transaction" 
+                        WHERE accountnumber = $1
+                    `,
+                    values: [accountnumber]
+                };
+                const { rows: debitRows } = await pg.query(debitQuery);
+                const totalDebit = debitRows[0].totaldebit || 0;
+
+                if (productResult.eligibilitymindebit > 0 && totalDebit < productResult.eligibilitymindebit) {
+                    errors.push({
+                        field: 'eligibilitymindebit',
+                        message: `User account total debit is ${totalDebit}, which is less than the required minimum debit of ${productResult.eligibilitymindebit}`
+                    });
+                }
+            }
+
+        }
+    }
+
+    if (productResult.eligibilityproductcategory === 'LOAN') {
+        // Fetch loan account details
+        const loanAccountQuery = {
+            text: 'SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2',
+            values: [userid, productResult.eligibilityproduct]
+        };
+        const { rows: loanAccountRows } = await pg.query(loanAccountQuery);
+
+        if (loanAccountRows.length === 0) {
+            errors.push({
+                field: 'eligibilityproduct',
+                message: 'User does not have an account in the specified loan product'
+            });
+        } else {
+            const loanAccount = loanAccountRows[0];
+            let totalClosedAmount = 0;
+            let closedAccountsCount = 0;
+
+            // Fetch totalClosedAmount and closedAccountsCount if needed
+            if (productResult.eligibilitytype === 'PERCENTAGE' || productResult.eligibilityminimumloan > 0 || productResult.eligibilityminimumclosedaccounts > 0) {
+                const aggregateQuery = {
+                    text: `
+                        SELECT 
+                            COALESCE(SUM(closeamount), 0) AS totalClosedAmount,
+                            COUNT(*) FILTER (WHERE closeamount > 0) AS closedAccountsCount
+                        FROM divine."loanaccounts"
+                        WHERE userid = $1 AND loanproduct = $2
+                    `,
+                    values: [user.id, productResult.eligibilityproduct]
+                };
+                const { rows } = await pg.query(aggregateQuery);
+                totalClosedAmount = parseFloat(rows[0].totalclosedamount) || 0;
+                closedAccountsCount = parseInt(rows[0].closedaccountscount, 10) || 0;
+            }
+
+            // // Validate loan amount based on eligibility type
+            // if (productResult.eligibilitytype === 'AMOUNT') {
+            //     if (loanamount < productResult.minimumloan || loanamount > productResult.maximumloan) {
+            //         errors.push({
+            //             field: 'loanamount',
+            //             message: 'Loan amount must be within the range of minimum and maximum loan amounts'
+            //         });
+            //     }
+            // } else if (productResult.eligibilitytype === 'PERCENTAGE') {
+            //     const calculatedMaximumLoan = (totalClosedAmount * productResult.maximumloan) / 100;
+            //     if (loanamount < productResult.minimumloan || loanamount > calculatedMaximumLoan) {
+            //         errors.push({
+            //             field: 'loanamount',
+            //             message: 'Loan amount must be within the range of minimum loan and calculated maximum loan based on closed amount'
+            //         });
+            //     }
+            // }
+
+            // Validate eligibility minimum loan
+            if (productResult.eligibilityminimumloan > 0 && totalClosedAmount < productResult.eligibilityminimumloan) {
+                errors.push({
+                    field: 'eligibilityminimumloan',
+                    message: 'User total closed loan amount is less than the required eligibility minimum loan amount'
+                });
+            }
+
+            // Validate eligibility minimum closed accounts
+            if (productResult.eligibilityminimumclosedaccounts > 0 && closedAccountsCount < productResult.eligibilityminimumclosedaccounts) {
+                errors.push({
+                    field: 'eligibilityminimumclosedaccounts',
+                    message: 'User closed loan accounts count is less than the required eligibility minimum closed accounts'
+                });
+            }
+        }
+    }
 
         // Fetch the organisation settings
         const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" LIMIT 1`;

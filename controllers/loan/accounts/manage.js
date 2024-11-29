@@ -1,14 +1,24 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { generateNextDates, validateCode } = require("../../../utils/datecode");
+const { generateRepaymentSchedule, calculateInterest } = require("../../../utils/loancalculator");
+
 
 const manageLoanAccount = async (req, res) => {
-    const { id, accountnumber, userid, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount } = req.body;
+    let { id, accountnumber, userid, registrationpoint, registrationcharge=0, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, seperateinterest='false', interestrate, defaultpenaltyid, loanamount } = req.body;
+    if(seperateinterest == 'true'){
+        seperateinterest = true;
+    }else{
+        seperateinterest = false;
+    }
     const user = req.user;
+    let generatedAccountNumber;
 
     // Basic validation
     const errors = [];
 
+    // Validate user ID
     if (!userid) {
         errors.push({
             field: 'userid',
@@ -21,6 +31,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate registration point
     if (registrationpoint !== undefined && registrationpoint !== '' && isNaN(parseInt(registrationpoint))) {
         errors.push({
             field: 'registrationpoint',
@@ -28,6 +39,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate registration charge
     if (registrationcharge !== undefined && registrationcharge !== '' && isNaN(parseFloat(registrationcharge))) {
         errors.push({
             field: 'registrationcharge',
@@ -35,6 +47,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate registration description
     if (registrationdesc !== undefined && registrationdesc !== '' && typeof registrationdesc !== 'string') {
         errors.push({
             field: 'registrationdesc',
@@ -42,6 +55,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate bank name 1
     if (bankname1 !== undefined && bankname1 !== '' && typeof bankname1 !== 'string') {
         errors.push({
             field: 'bankname1',
@@ -49,6 +63,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate bank account name 1
     if (bankaccountname1 !== undefined && bankaccountname1 !== '' && typeof bankaccountname1 !== 'string') {
         errors.push({
             field: 'bankaccountname1',
@@ -56,6 +71,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate bank account number 1
     if (bankaccountnumber1 !== undefined && bankaccountnumber1 !== '' && isNaN(parseInt(bankaccountnumber1))) {
         errors.push({
             field: 'bankaccountnumber1',
@@ -63,6 +79,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate bank name 2
     if (bankname2 !== undefined && bankname2 !== '' && typeof bankname2 !== 'string') {
         errors.push({
             field: 'bankname2',
@@ -70,6 +87,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate bank account name 2
     if (bankaccountname2 !== undefined && bankaccountname2 !== '' && typeof bankaccountname2 !== 'string') {
         errors.push({
             field: 'bankaccountname2',
@@ -77,6 +95,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate bank account number 2
     if (bankaccountnumber2 !== undefined && bankaccountnumber2 !== '' && isNaN(parseInt(bankaccountnumber2))) {
         errors.push({
             field: 'bankaccountnumber2',
@@ -84,6 +103,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate account officer
     if (accountofficer !== undefined && accountofficer !== '' && typeof accountofficer !== 'string') {
         errors.push({
             field: 'accountofficer',
@@ -91,6 +111,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate loan product
     if (!loanproduct) {
         errors.push({
             field: 'loanproduct',
@@ -103,6 +124,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate repayment frequency
     if (repaymentfrequency !== undefined && repaymentfrequency !== '' && typeof repaymentfrequency !== 'string') {
         errors.push({
             field: 'repaymentfrequency',
@@ -110,6 +132,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate number of repayments
     if (numberofrepayments !== undefined && numberofrepayments !== '' && isNaN(parseInt(numberofrepayments))) {
         errors.push({
             field: 'numberofrepayments',
@@ -117,6 +140,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate duration
     if (duration !== undefined && duration !== '' && isNaN(parseInt(duration))) {
         errors.push({
             field: 'duration',
@@ -124,6 +148,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate duration category
     if (durationcategory !== undefined && durationcategory !== '' && typeof durationcategory !== 'string') {
         errors.push({
             field: 'durationcategory',
@@ -131,6 +156,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate interest method
     if (interestmethod !== undefined && interestmethod !== '' && typeof interestmethod !== 'string') {
         errors.push({
             field: 'interestmethod',
@@ -138,6 +164,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate interest rate
     if (interestrate !== undefined && interestrate !== '' && isNaN(parseFloat(interestrate))) {
         errors.push({
             field: 'interestrate',
@@ -145,6 +172,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate default penalty ID
     if (defaultpenaltyid !== undefined && defaultpenaltyid !== '' && isNaN(parseInt(defaultpenaltyid))) {
         errors.push({
             field: 'defaultpenaltyid',
@@ -152,6 +180,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate loan amount
     if (loanamount === undefined || loanamount === '' || isNaN(parseFloat(loanamount))) {
         errors.push({
             field: 'loanamount',
@@ -159,6 +188,7 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // If there are validation errors, return a bad request response
     if (errors.length > 0) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
@@ -206,7 +236,7 @@ const manageLoanAccount = async (req, res) => {
         
         // Check if the branch exists
         const branchQuery = {
-            text: 'SELECT * FROM divine."branch" WHERE id = $1',
+            text: 'SELECT * FROM divine."Branch" WHERE id = $1',
             values: [branch]
         };
         const { rows: branchRows } = await pg.query(branchQuery);
@@ -234,7 +264,6 @@ const manageLoanAccount = async (req, res) => {
                 });
             }
         }
-
 
         // Check if the account officer exists
         if (accountofficer) {
@@ -283,13 +312,16 @@ const manageLoanAccount = async (req, res) => {
             });
         }
 
-        const accountRowsQuery = `SELECT accountnumber FROM divine."accountnumbers" WHERE accountnumber::text LIKE $1 ORDER BY accountnumber DESC LIMIT 1`;
+        // Fetch the highest account number with the given prefix
+        const accountRowsQuery = `SELECT accountnumber FROM divine."loanaccounts" WHERE accountnumber::text LIKE $1 ORDER BY accountnumber DESC LIMIT 1`;
         const { rows: accountRows } = await pg.query(accountRowsQuery, [`${accountNumberPrefix}%`]);
 
-        let generatedAccountNumber;
+        
         if (accountRows.length === 0) {
+            // Generate the first account number with the given prefix
             generatedAccountNumber = `${accountNumberPrefix}${'0'.repeat(10 - accountNumberPrefix.toString().length - 1)}1`;
         } else {
+            // Generate the next account number
             const highestAccountNumber = accountRows[0].accountnumber;
             const newAccountNumber = parseInt(highestAccountNumber) + 1;
             const newAccountNumberStr = newAccountNumber.toString();
@@ -308,6 +340,7 @@ const manageLoanAccount = async (req, res) => {
             }
         }
 
+        // If account number is not provided, validate repayment settings
         if (!accountnumber) {
             // Check if repayment settings is ACCOUNT
             if (loanProduct.repaymentsettings === 'ACCOUNT') {
@@ -365,10 +398,10 @@ const manageLoanAccount = async (req, res) => {
                         field: 'interestmethod',
                         message: 'Interest method not found'
                     });
-                } else if (typeof interestmethod !== 'string' || !['NO INTEREST', 'FLAT RATE', 'ONE OF INTEREST', 'INTEREST ONLY', 'EQUAL INSTALLMENTS'].includes(interestmethod)) {
+                } else if (typeof interestmethod !== 'string' || !['NO INTEREST', 'FLAT RATE', 'ONE OF INTEREST', 'INTEREST ONLY', 'EQUAL INSTALLMENTS', 'REDUCING BALANCE', 'BALLOON LOAN', 'FIXED RATE', 'UNSECURE LOAN', 'INSTALLMENT LOAN', 'PAYDAY LOAN', 'MICRO LOAN', 'BRIDGE LOAN', 'AGRICULTURAL LOAN', 'EDUCATION LOAN', 'WORKIN CAPITAL'].includes(interestmethod)) {
                     errors.push({
                         field: 'interestmethod',
-                        message: 'Interest method must be one of "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", or "EQUAL INSTALLMENTS"'
+                        message: 'Interest method must be one of "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS", "REDUCING BALANCE", "BALLOON LOAN", "FIXED RATE", "UNSECURE LOAN", "INSTALLMENT LOAN", "PAYDAY LOAN", "MICRO LOAN", "BRIDGE LOAN", "AGRICULTURAL LOAN", "EDUCATION LOAN", or "WORKIN CAPITAL"'
                     });
                 }
 
@@ -428,133 +461,209 @@ const manageLoanAccount = async (req, res) => {
                 }
             }
 
-                // Start of Selection
-                if (loanProduct.eligibilityproductcategory === 'SAVINGS') {
-                    const savingsAccountQuery = {
+            // Validate eligibility product category
+            if (loanProduct.eligibilityproductcategory === 'SAVINGS') {
+                // Fetch savings account number
+                const accountNumberQuery = {
+                    text: `
+                        SELECT accountnumber, dateadded 
+                        FROM divine."savings" 
+                        WHERE userid = $1 AND savingsproductid = $2
+                    `,
+                    values: [userid, loanProduct.eligibilityproduct]
+                };
+                const { rows: accountRows } = await pg.query(accountNumberQuery);
+
+                if (accountRows.length === 0) {
+                    errors.push({
+                        field: 'eligibilityproduct',
+                        message: 'User does not have an account in the specified savings product'
+                    });
+                } else {
+                    let oldestAccount = accountRows[0];
+                    for (const account of accountRows) {
+                        if (new Date(account.dateadded) < new Date(oldestAccount.dateadded) && account.status === 'ACTIVE') {
+                            oldestAccount = account;
+                        }
+                    }
+                    const { accountnumber, dateadded } = oldestAccount;
+
+                    // Fetch account balance
+                    const balanceQuery = {
                         text: `
-                            SELECT s.*, 
-                                   (SELECT SUM(credit) - SUM(debit) 
-                                    FROM divine."transaction" 
-                                    WHERE accountnumber = s.accountnumber) AS balance 
-                            FROM divine."savings" s 
-                            WHERE s.userid = $1 AND s.savingsproductid = $2
+                            SELECT SUM(credit) - SUM(debit) AS balance 
+                            FROM divine."transaction" 
+                            WHERE accountnumber = $1
                         `,
-                        values: [user.id, loanProduct.eligibilityproduct]
+                        values: [accountnumber]
                     };
-                    const { rows: savingsAccounts } = await pg.query(savingsAccountQuery);
+                    const { rows: balanceRows } = await pg.query(balanceQuery);
+                    const balance = balanceRows[0].balance || 0;
 
-                    if (savingsAccounts.length === 0) {
-                        errors.push({
-                            field: 'eligibilityproduct',
-                            message: 'User does not have an account in the specified savings product'
-                        });
-                    } else {
-                        const { dateadded, accountnumber, balance } = savingsAccounts[0];
-
-                        if (loanProduct.eligibilityaccountage > 0) {
-                            const accountAgeInMonths = Math.floor((Date.now() - new Date(dateadded).getTime()) / (1000 * 60 * 60 * 24 * 30));
-                            if (accountAgeInMonths < loanProduct.eligibilityaccountage) {
-                                errors.push({
-                                    field: 'eligibilityaccountage',
-                                    message: 'User account age is less than the required eligibility account age'
-                                });
-                            }
-                        }
-
-                        const { eligibilitytype, minimumloan, maximumloan } = loanProduct;
-
-                        if (eligibilitytype === 'AMOUNT') {
-                            if (loanAmount < minimumloan || loanAmount > maximumloan) {
-                                errors.push({
-                                    field: 'loanAmount',
-                                    message: 'Loan amount must be within the range of minimum and maximum loan amounts'
-                                });
-                            }
-                        } else if (eligibilitytype === 'PERCENTAGE') {
-                            const calculatedMaximumLoan = (balance * maximumloan) / 100;
-                            if (loanAmount < minimumloan || loanAmount > calculatedMaximumLoan) {
-                                errors.push({
-                                    field: 'loanAmount',
-                                    message: 'Loan amount must be within the range of minimum loan and calculated maximum loan based on account balance'
-                                });
-                            }
-                        }
-                    }
-                }
-
-                // Start of Selection
-                if (loanProduct.eligibilityproductcategory === 'LOAN') {
-                    const loanAccountQuery = {
-                        text: 'SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2',
-                        values: [user.id, loanProduct.eligibilityproduct]
-                    };
-                    const { rows: loanAccountRows } = await pg.query(loanAccountQuery);
-        
-                    if (loanAccountRows.length === 0) {
-                        errors.push({
-                            field: 'eligibilityproduct',
-                            message: 'User does not have an account in the specified loan product'
-                        });
-                    } else {
-                        const loanAccount = loanAccountRows[0];
-                        let totalClosedAmount = 0;
-                        let closedAccountsCount = 0;
-        
-                        // Fetch totalClosedAmount and closedAccountsCount if needed
-                        if (loanProduct.eligibilitytype === 'PERCENTAGE' || loanProduct.eligibilityminimumloan > 0 || loanProduct.eligibilityminimumclosedaccounts > 0) {
-                            const aggregateQuery = {
-                                text: `
-                                    SELECT 
-                                        COALESCE(SUM(closeamount), 0) AS totalClosedAmount,
-                                        COUNT(*) FILTER (WHERE closeamount > 0) AS closedAccountsCount
-                                    FROM divine."loanaccounts"
-                                    WHERE userid = $1 AND loanproduct = $2
-                                `,
-                                values: [user.id, loanProduct.eligibilityproduct]
-                            };
-                            const { rows } = await pg.query(aggregateQuery);
-                            totalClosedAmount = parseFloat(rows[0].totalclosedamount) || 0;
-                            closedAccountsCount = parseInt(rows[0].closedaccountscount, 10) || 0;
-                        }
-        
-                        // Validate loan amount based on eligibility type
-                        if (loanProduct.eligibilitytype === 'AMOUNT') {
-                            if (loanAmount < loanProduct.minimumloan || loanAmount > loanProduct.maximumloan) {
-                                errors.push({
-                                    field: 'loanAmount',
-                                    message: 'Loan amount must be within the range of minimum and maximum loan amounts'
-                                });
-                            }
-                        } else if (loanProduct.eligibilitytype === 'PERCENTAGE') {
-                            const calculatedMaximumLoan = (totalClosedAmount * loanProduct.maximumloan) / 100;
-                            if (loanAmount < loanProduct.minimumloan || loanAmount > calculatedMaximumLoan) {
-                                errors.push({
-                                    field: 'loanAmount',
-                                    message: 'Loan amount must be within the range of minimum loan and calculated maximum loan based on closed amount'
-                                });
-                            }
-                        }
-        
-                        // Validate eligibility minimum loan
-                        if (loanProduct.eligibilityminimumloan > 0 && totalClosedAmount < loanProduct.eligibilityminimumloan) {
+                    // Validate account age
+                    if (loanProduct.eligibilityaccountage > 0) {
+                        const accountAgeInDays = Math.floor((Date.now() - new Date(dateadded).getTime()) / (1000 * 60 * 60 * 24));
+                        console.log(`Account is ${accountAgeInDays} days old.`);
+                        const accountAgeInMonths = Math.floor(accountAgeInDays / 30);
+                        if (accountAgeInMonths < loanProduct.eligibilityaccountage) {
+                            const ageDifference = loanProduct.eligibilityaccountage - accountAgeInMonths;
                             errors.push({
-                                field: 'eligibilityminimumloan',
-                                message: 'User total closed loan amount is less than the required eligibility minimum loan amount'
+                                field: 'eligibilityaccountage',
+                                message: accountAgeInMonths === 0 
+                                    ? `User account age is ${accountAgeInDays} days, which is less than the required eligibility account age by ${loanProduct.eligibilityaccountage * 30 - accountAgeInDays} days`
+                                    : `User account age is ${accountAgeInMonths} months, which is less than the required eligibility account age by ${ageDifference} months`
                             });
                         }
-        
-                        // Validate eligibility minimum closed accounts
-                        if (loanProduct.eligibilityminimumclosedaccounts > 0 && closedAccountsCount < loanProduct.eligibilityminimumclosedaccounts) {
+                    }
+
+                    // Validate minimum balance
+                    if (loanProduct.eligibilityminbalance > 0 && balance < loanProduct.eligibilityminbalance) {
+                        errors.push({
+                            field: 'eligibilityminbalance',
+                            message: `User account balance is ${balance}, which is less than the required minimum balance of ${loanProduct.eligibilityminbalance}`
+                        });
+                    }
+
+                    if (loanProduct.eligibilitymincredit > 0) {
+                        // Validate minimum credit
+                        const creditQuery = {
+                            text: `
+                                SELECT SUM(credit) AS totalCredit 
+                                FROM divine."transaction" 
+                                WHERE accountnumber = $1
+                            `,
+                            values: [accountnumber]
+                        };
+                        const { rows: creditRows } = await pg.query(creditQuery);
+                        const totalCredit = creditRows[0].totalcredit || 0;
+
+                        if (totalCredit < loanProduct.eligibilitymincredit) {
                             errors.push({
-                                field: 'eligibilityminimumclosedaccounts',
-                                message: 'User closed loan accounts count is less than the required eligibility minimum closed accounts'
+                                field: 'eligibilitymincredit',
+                                message: `User account total credit is ${totalCredit}, which is less than the required minimum credit of ${loanProduct.eligibilitymincredit}`
+                            });
+                        }
+                    }
+
+                    if (loanProduct.eligibilitymindebit > 0) {
+                        // Validate minimum debit
+                        const debitQuery = {
+                            text: `
+                                SELECT SUM(debit) AS totalDebit 
+                                FROM divine."transaction" 
+                                WHERE accountnumber = $1
+                            `,
+                            values: [accountnumber]
+                        };
+                        const { rows: debitRows } = await pg.query(debitQuery);
+                        const totalDebit = debitRows[0].totaldebit || 0;
+
+                        if (totalDebit < loanProduct.eligibilitymindebit) {
+                            errors.push({
+                                field: 'eligibilitymindebit',
+                                message: `User account total debit is ${totalDebit}, which is less than the required minimum debit of ${loanProduct.eligibilitymindebit}`
+                            });
+                        }
+                    }
+
+                    const { eligibilitytype, minimumloan, maximumloan } = loanProduct;
+
+                    // Validate loan amount based on eligibility type
+                    if (eligibilitytype === 'AMOUNT') {
+                        if (loanamount < minimumloan || loanamount > maximumloan) {
+                            const amountDifference = loanamount < minimumloan ? minimumloan - loanamount : loanamount - maximumloan;
+                            const direction = loanamount < minimumloan ? 'below' : 'above';
+                            errors.push({
+                                field: 'loanamount',
+                                message: `Loan amount is ${amountDifference} ${direction} the allowed range of minimum and maximum loan amounts`
+                            });
+                        }
+                    } else if (eligibilitytype === 'PERCENTAGE') {
+                        const calculatedMaximumLoan = (balance * maximumloan) / 100;
+                        if (loanamount < minimumloan || loanamount > calculatedMaximumLoan) {
+                            const amountDifference = loanamount < minimumloan ? minimumloan - loanamount : loanamount - calculatedMaximumLoan;
+                            const direction = loanamount < minimumloan ? 'below' : 'above';
+                            errors.push({
+                                field: 'loanamount',
+                                message: `Loan amount is ${amountDifference} ${direction} the allowed range of minimum loan and calculated maximum loan based on account balance`
                             });
                         }
                     }
                 }
+            }
 
-            
+            if (loanProduct.eligibilityproductcategory === 'LOAN') {
+                // Fetch loan account details
+                const loanAccountQuery = {
+                    text: 'SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2',
+                    values: [userid, loanProduct.eligibilityproduct]
+                };
+                const { rows: loanAccountRows } = await pg.query(loanAccountQuery);
+    
+                if (loanAccountRows.length === 0) {
+                    errors.push({
+                        field: 'eligibilityproduct',
+                        message: 'User does not have an account in the specified loan product'
+                    });
+                } else {
+                    const loanAccount = loanAccountRows[0];
+                    let totalClosedAmount = 0;
+                    let closedAccountsCount = 0;
+    
+                    // Fetch totalClosedAmount and closedAccountsCount if needed
+                    if (loanProduct.eligibilitytype === 'PERCENTAGE' || loanProduct.eligibilityminimumloan > 0 || loanProduct.eligibilityminimumclosedaccounts > 0) {
+                        const aggregateQuery = {
+                            text: `
+                                SELECT 
+                                    COALESCE(SUM(closeamount), 0) AS totalClosedAmount,
+                                    COUNT(*) FILTER (WHERE closeamount > 0) AS closedAccountsCount
+                                FROM divine."loanaccounts"
+                                WHERE userid = $1 AND loanproduct = $2
+                            `,
+                            values: [userid, loanProduct.eligibilityproduct]
+                        };
+                        const { rows } = await pg.query(aggregateQuery);
+                        totalClosedAmount = parseFloat(rows[0].totalclosedamount) || 0;
+                        closedAccountsCount = parseInt(rows[0].closedaccountscount, 10) || 0;
+                    }
+    
+                    // Validate loan amount based on eligibility type
+                    if (loanProduct.eligibilitytype === 'AMOUNT') {
+                        if (loanamount < loanProduct.minimumloan || loanamount > loanProduct.maximumloan) {
+                            errors.push({
+                                field: 'loanamount',
+                                message: 'Loan amount must be within the range of minimum and maximum loan amounts'
+                            });
+                        }
+                    } else if (loanProduct.eligibilitytype === 'PERCENTAGE') {
+                        const calculatedMaximumLoan = (totalClosedAmount * loanProduct.maximumloan) / 100;
+                        if (loanamount < loanProduct.minimumloan || loanamount > calculatedMaximumLoan) {
+                            errors.push({
+                                field: 'loanamount',
+                                message: 'Loan amount must be within the range of minimum loan and calculated maximum loan based on closed amount'
+                            });
+                        }
+                    }
+    
+                    // Validate eligibility minimum loan
+                    if (loanProduct.eligibilityminimumloan > 0 && totalClosedAmount < loanProduct.eligibilityminimumloan) {
+                        errors.push({
+                            field: 'eligibilityminimumloan',
+                            message: 'User total closed loan amount is less than the required eligibility minimum loan amount'
+                        });
+                    }
+    
+                    // Validate eligibility minimum closed accounts
+                    if (loanProduct.eligibilityminimumclosedaccounts > 0 && closedAccountsCount < loanProduct.eligibilityminimumclosedaccounts) {
+                        errors.push({
+                            field: 'eligibilityminimumclosedaccounts',
+                            message: 'User closed loan accounts count is less than the required eligibility minimum closed accounts'
+                        });
+                    }
+                }
+            }
 
+            // If there are validation errors, return a bad request response
             if (errors.length > 0) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
@@ -566,7 +675,153 @@ const manageLoanAccount = async (req, res) => {
             }
         }
 
+        // let updatedaccountnumber = accountnumber
 
+        // THIS IS WHERE THE REPAYMENT SCHEDULE IS CREATED
+        // IF THE REPAYMENT SETTINGS ARE ACCOUNT, WE NEED TO CREATE A REPAYMENT SCHEDULE
+        if (loanProduct.repaymentsettings === 'ACCOUNT') {
+            // Validate repayment frequency
+            if (!validateCode(repaymentfrequency)) {
+                errors.push({
+                    field: 'repaymentfrequency',
+                    message: 'Invalid repayment frequency'
+                });
+            }
+
+            // Generate repayment dates
+            const repaymentDates = generateNextDates(repaymentfrequency, numberofrepayments);
+
+            // Calculate interest based on interest method
+            let interest = 0;
+            try {
+                interest = calculateInterest(loanamount, interestrate, numberofrepayments, interestmethod.replace(' ', '_'));
+                // if (loanProduct.interestmethod === 'INTEREST ONLY') {
+                //     numberofrepayments = 1;
+                // }
+            } catch (error) {
+                errors.push({
+                    field: 'interestmethod',
+                    message: error.message
+                });
+            }
+
+            // If there are validation errors, return a bad request response
+            if (errors.length > 0) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "Validation Errors",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: errors
+                });
+            }
+
+            console.log('seperateInterest before:', seperateinterest);
+
+
+            // Calculate repayment amounts
+            const repaymentSchedule = generateRepaymentSchedule(
+                loanamount,
+                interestrate,
+                numberofrepayments,
+                interestmethod.replace(' ', '_'),
+                new Date(),
+                seperateinterest,
+                repaymentDates,
+                interest
+            ).map((schedule, index) => ({
+                accountnumber: generatedAccountNumber,
+                scheduledpaymentdate: repaymentDates[index],
+                // Start of Selection
+                scheduleamount: parseFloat(schedule.principalAmount.toFixed(2)),
+                interestamount: parseFloat(schedule.interestAmount.toFixed(2)),
+                status: 'PENDING',
+                createdby: user.id,
+                dateadded: new Date()
+            }));
+
+            // Insert repayment schedule into the database
+            for (const schedule of repaymentSchedule) {
+                const insertScheduleQuery = {
+                    text: `INSERT INTO divine."loanpaymentschedule" (accountnumber, scheduledpaymentdate, scheduleamount, interestamount, status, createdby, dateadded) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    values: [schedule.accountnumber, schedule.scheduledpaymentdate, schedule.scheduleamount, schedule.interestamount, schedule.status, schedule.createdby, schedule.dateadded]
+                };
+                await pg.query(insertScheduleQuery);
+            }
+        } else if (loanProduct.repaymentsettings === 'PRODUCT') {
+            // Use loan product data for repayment frequency and interest method
+            const productRepaymentFrequency = loanProduct.repaymentfrequency;
+            const productInterestMethod = loanProduct.interestmethod.replace(' ', '_');
+            const productLoanAmount = loanProduct.loanamount;
+            const productInterestRate = loanProduct.interestrate;
+            const productNumberOfRepayments = loanProduct.numberofrepayments;
+
+            // Validate repayment frequency from loan product
+            if (!validateCode(productRepaymentFrequency)) {
+                errors.push({
+                    field: 'repaymentfrequency',
+                    message: 'Invalid repayment frequency from loan product'
+                });
+            }
+
+            // Generate repayment dates using loan product's repayment frequency
+            const repaymentDates = generateNextDates(productRepaymentFrequency, productNumberOfRepayments);
+
+            // Calculate interest based on loan product's interest method
+            let interest = 0;
+            try {
+                interest = calculateInterest(productLoanAmount, productInterestRate, productNumberOfRepayments, productInterestMethod);
+            } catch (error) {
+                errors.push({
+                    field: 'interestmethod',
+                    message: error.message
+                });
+            }
+
+            // If there are validation errors, return a bad request response
+            if (errors.length > 0) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "Validation Errors",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: errors
+                });
+            }
+
+            console.log('seperateInterest before:', loanProduct.seperateinterest);
+
+            // Calculate repayment amounts using loan product data
+            const repaymentSchedule = generateRepaymentSchedule(
+                productLoanAmount,
+                productInterestRate,
+                productNumberOfRepayments,
+                productInterestMethod,
+                new Date(),
+                loanproduct.seperateinterest,
+                repaymentDates,
+                interest
+            ).map((schedule, index) => ({
+                accountnumber: generatedAccountNumber,
+                scheduledpaymentdate: repaymentDates[index],
+                scheduleamount: parseFloat(schedule.principalAmount.toFixed(2)),
+                interestamount: parseFloat(schedule.interestAmount.toFixed(2)),
+                status: 'PENDING',
+                createdby: user.id,
+                dateadded: new Date()
+            }));
+
+            // Insert repayment schedule into the database
+            for (const schedule of repaymentSchedule) {
+                const insertScheduleQuery = {
+                    text: `INSERT INTO divine."loanpaymentschedule" (accountnumber, scheduledpaymentdate, scheduleamount, interestamount, status, createdby, dateadded) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    values: [schedule.accountnumber, schedule.scheduledpaymentdate, schedule.scheduleamount, schedule.interestamount, schedule.status, schedule.createdby, schedule.dateadded]
+                };
+                await pg.query(insertScheduleQuery);
+            }
+        }
+
+        // If account number is provided, update the existing loan account
         if (accountnumber) {
             // Check if the account number already exists
             const accountNumberExistsQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
@@ -600,6 +855,8 @@ const manageLoanAccount = async (req, res) => {
                 }
             }
 
+            let loandata
+
             // Update existing loan account
             const updateaccountnumberQuery = {
                 text: `UPDATE divine."loanaccounts" SET 
@@ -628,31 +885,41 @@ const manageLoanAccount = async (req, res) => {
                         status = COALESCE($23, status),
                         dateadded = COALESCE($24, dateadded),
                         createdby = COALESCE($25, createdby),
-                        dateclosed = COALESCE($26, dateclosed)
-                       WHERE id = $27 RETURNING *`,
-                values: [accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, 'ACTIVE', new Date(), user.id, null, id]
+                        dateclosed = COALESCE($26, dateclosed),
+                        closeamount = COALESCE($27, closeamount),
+                        seperateinterest = COALESCE($28, seperateinterest)
+                       WHERE id = $29 RETURNING *`,
+                values: [accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, 'ACTIVE', new Date(), user.id, null, null, null, id]
             };
             const { rows: updatedaccountnumberRows } = await pg.query(updateaccountnumberQuery);
-            accountnumber = updatedaccountnumberRows[0];
+            loandata = updatedaccountnumberRows[0];
         } else {
             // Create new loan account
-            const createaccountnumberQuery = {
-                text: `INSERT INTO divine."loanaccounts" 
-                        (accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdate, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, status, dateadded, createdby, dateclosed) 
-                       VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25) RETURNING *`,
-                values: [generatedAccountNumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, 'ACTIVE', new Date(), user.id, null]
-            };
+                // Start of Selection
+                const createaccountnumberQuery = {
+                    text: `INSERT INTO divine."loanaccounts" 
+                            (accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdate, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, status, dateadded, createdby, dateclosed, closeamount, seperateinterest) 
+                       VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28) RETURNING *`,
+                    values: [generatedAccountNumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, 'ACTIVE', new Date(), user.id, null, null, seperateinterest]
+                };
             const { rows: newaccountnumberRows } = await pg.query(createaccountnumberQuery);
-            accountnumber = newaccountnumberRows[0];
+            loandata = newaccountnumberRows[0];
         }
 
+        // Log activity and return success response
         await activityMiddleware(req, user.id, id ? 'Loan account updated successfully' : 'Loan account created successfully', 'LOAN_ACCOUNT');
+
+        const installmentsQuery = {
+            text: `SELECT * FROM divine."loanpaymentschedule" WHERE accountnumber = $1`,
+            values: [loandata.accountnumber]
+        };
+        const { rows: installments } = await pg.query(installmentsQuery);
 
         return res.status(StatusCodes.OK).json({
             status: true,
             message: id ? "Loan account updated successfully" : "Loan account created successfully",
             statuscode: StatusCodes.OK,
-            data: accountnumber,
+            data: {loandata, installments},
             errors: []
         });
     } catch (error) {

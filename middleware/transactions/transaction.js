@@ -18,6 +18,7 @@ const { savingsCredit } = require('./savings/credit');
 const { savingsDebit } = require('./savings/debit');
 const { personalCredit } = require('./personal/credit');
 const { personalDebit } = require('./personal/debit');
+const { loanCredit } = require('./loan/credit');
 
 // Middleware function to save a transaction
 const saveTransactionMiddleware = async (req, res, next) => {
@@ -87,7 +88,8 @@ const saveTransactionMiddleware = async (req, res, next) => {
         i}
 
         // 1. Validate the account number and status
-        const accountQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
+        const savingsAccountQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
+        const loanAccountQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
         let parsedAccountNumber = accountnumber;
         if (isNaN(accountnumber)) {
             parsedAccountNumber = parseInt(accountnumber, 10);
@@ -95,7 +97,8 @@ const saveTransactionMiddleware = async (req, res, next) => {
                 parsedAccountNumber = '0000000000';
             }
         }
-        const accountResult = await client.query(accountQuery, [parsedAccountNumber]);
+        const accountResult = await client.query(savingsAccountQuery, [parsedAccountNumber]);
+        const loanAccountResult = await client.query(loanAccountQuery, [parsedAccountNumber]);
         if (accountResult.rowCount !== 0) {
             whichaccount = 'SAVINGS';
         } else if (accountnumber.startsWith(orgSettings.personal_account_prefix)) {
@@ -117,13 +120,18 @@ const saveTransactionMiddleware = async (req, res, next) => {
             }
             whichaccount = 'PERSONAL';
             const accountuser = userResult.rows[0]; // Save the user data in accountuser variable
+        } else if (loanAccountResult.rowCount !== 0) {
+            whichaccount = 'LOAN';  
+            const loanaccountuser = loanAccountResult.rows[0]; // Save the user data in loanaccountuser variable
+            req.body.loanaccountnumber = loanaccountuser.accountnumber;
+            req.body.loanaccount = loanaccountuser;
         }
         // establish the personal accountnumber
         req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${user.phone}`
         req.body.phone = user.phone;
         personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`
 
-        if (accountResult.rowCount === 0 && !accountnumber.startsWith(orgSettings.personal_account_prefix)) {
+        if (accountResult.rowCount === 0 && !accountnumber.startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0) {
             await saveFailedTransaction(client, req, res, 'Invalid account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after invalid personnal account number', 'TRANSACTION');
@@ -276,6 +284,11 @@ const saveTransactionMiddleware = async (req, res, next) => {
                 await personalCredit(client, req, res, next, req.body.personalaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
                 await personalDebit(client, req, res, next, req.body.personalaccountnumber, debit, description, ttype, transactionStatus, whichaccount);
         }     
+
+        if (whichaccount === 'LOAN') {
+            await loanCredit(client, req, res, next, req.body.loanaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            // await loanDebit(client, req, res, next, req.body.loanaccountnumber, debit, description, ttype, transactionStatus, whichaccount);
+        }
         
 
 

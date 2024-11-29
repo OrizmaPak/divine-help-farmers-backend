@@ -3,54 +3,93 @@ const pg = require("../../../db/pg");
 
 const getTransactionRejectionDate = async (req, res) => {
     try {
-        const { startDate, endDate, branch } = req.query;
-        // let query = `SELECT * FROM divine."Rejecttransactiondate" WHERE status = ACTIVE`;
-        let query = `SELECT r.*, b.branch AS branchname FROM divine."Rejecttransactiondate" r LEFT JOIN divine."Branch" b ON r.branch = b.id WHERE status = ACTIVE`;
-        let params = [];
+        let query = {
+            text: `SELECT * FROM divine."Rejecttransactiondate"`,
+            values: []
+        };
 
-        if (startDate && endDate) {
-            query += ` AND r.rejectiondate BETWEEN $1 AND $2`;
-            params = [startDate, endDate];
-        } else if (startDate) {
-            query += ` AND r.rejectiondate >= $1`;
-            params = [startDate];
-        } else if (endDate) {
-            query += ` AND r.rejectiondate <= $1`;
-            params = [endDate];
+        // Dynamically build the WHERE clause based on query parameters
+        let whereClause = '';
+        let valueIndex = 1;
+        Object.keys(req.query).forEach((key) => {
+            if (key !== 'q') {
+                if (whereClause) {
+                    whereClause += ` AND `;
+                } else {
+                    whereClause += ` WHERE `;
+                }
+                whereClause += `"${key}" = $${valueIndex}`;
+                query.values.push(req.query[key]);
+                valueIndex++;
+            }
+        });
+
+        // Add search query if provided
+        if (req.query.q) {
+            // Fetch column names from the 'Rejecttransactiondate' table
+            const { rows: columns } = await pg.query(`
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'Rejecttransactiondate'
+            `);
+
+            const cols = columns.map(row => row.column_name);
+
+            // Generate the dynamic SQL query
+            const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
+            if (whereClause) {
+                whereClause += ` AND (${searchConditions})`;
+            } else {
+                whereClause += ` WHERE (${searchConditions})`;
+            }
+            query.values.push(`%${req.query.q}%`);
+            valueIndex++;
         }
 
-        if (branch) {
-            query += ` AND r.branch = $${params.length + 1}`;
-            params.push(branch);
-        }
+        query.text += whereClause;
 
-        const { rows } = await pg.query(query, params);
+        // Add pagination
+        const searchParams = new URLSearchParams(req.query);
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10);
+        const offset = (page - 1) * limit;
 
-        if (rows.length > 0) {
-            return res.status(StatusCodes.OK).json({
-                status: true,
-                message: "Transaction rejection dates fetched successfully",
-                statuscode: StatusCodes.OK,
-                data: rows,
-                errors: []
-            });
-        } else {
-            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-                status: false,
-                message: "An unexpected error occurred",
-                statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
-                data: null,
-                errors: []
-            });
-        }
-    } catch (err) {
-        console.error('Unexpected Error:', err);
+        query.text += ` LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;
+        query.values.push(limit, offset);
+
+        const result = await pg.query(query);
+        const rejectionDates = result.rows; 
+
+        // Get total count for pagination
+        const countQuery = {
+            text: `SELECT COUNT(*) FROM divine."Rejecttransactiondate" ${whereClause}`,
+            values: query.values.slice(0, -2) // Exclude limit and offset
+        };
+        const { rows: [{ count: total }] } = await pg.query(countQuery);
+        const pages = Math.ceil(total / limit);
+
+        return res.status(StatusCodes.OK).json({
+            status: true,
+            message: "Transaction rejection dates fetched successfully",
+            statuscode: StatusCodes.OK,
+            data: rejectionDates,
+            pagination: {
+                total: Number(total),
+                pages,
+                page,
+                limit
+            },
+            errors: []
+        });
+    } catch (error) {
+        console.error('Unexpected Error:', error);
+
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
             message: "An unexpected error occurred",
             statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
             data: null,
-            errors: []
+            errors: [error.message]
         });
     }
 }

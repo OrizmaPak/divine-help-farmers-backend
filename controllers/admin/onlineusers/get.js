@@ -3,6 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
 const getOnlineUsers = async (req, res) => {
+    
     try {
         const { q, userid, branch } = req.query;
         let params = [];
@@ -19,6 +20,7 @@ const getOnlineUsers = async (req, res) => {
                 u.email,
                 u.role,
                 u.branch,
+                b.branch AS branchname,
                 u.phone,
                 u.address,
                 u.createdby,
@@ -38,6 +40,8 @@ const getOnlineUsers = async (req, res) => {
                 divine."User" u ON l.userid = u.id
             LEFT JOIN 
                 divine."User" u2 ON u.createdby = u2.id
+            LEFT JOIN 
+                divine."Branch" b ON u.branch = b.id
             WHERE 
                 l.date > NOW() - INTERVAL '1 hour'
         `;

@@ -4,45 +4,26 @@ const { activityMiddleware } = require("../../../middleware/activity"); // Impor
 
 // Function to handle GET request for registration points
 const getRegistrationPoint = async (req, res) => {
-    // Extract branch and status from query parameters with default status as 'ACTIVE'
-    let { branch, status="ACTIVE" } = req.query;
-
-    // If branch is not provided, use the branch from the authenticated user
-    if(!branch){
-        branch = req.user.branch
-    }
-
-    // Basic validation to check if branch is a number
-    if (branch && isNaN(branch)) {
-        let errors = [];
-        errors.push({
-            field: 'Branch',
-            message: 'Branch must be a number'
-        });
-
-        // Return error response if branch is not a number
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            status: false,
-            message: "Invalid Field",
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
-            errors: errors
-        });
-    }
+    // Extract id and status from query parameters with default status as 'ACTIVE'
+    let { id, status="ACTIVE" } = req.query;
 
     try {
         // Base query to select all registration points
-        let queryString = `SELECT * FROM divine."Registrationpoint" WHERE 1=1`;
+        let queryString = `
+            SELECT rp.* 
+            FROM divine."Registrationpoint" rp
+            WHERE 1=1
+        `;
         let params = [];
 
-        // Add branch condition to the query if branch is provided
-        if (branch) {
-            queryString += ` AND branch = $${params.length + 1}`;
-            params.push(branch);
+        // Add id condition to the query if id is provided
+        if (id) {
+            queryString += ` AND rp.id = $${params.length + 1}`;
+            params.push(id);
         }
         // Add status condition to the query if status is provided
         if (status) {
-            queryString += ` AND status = $${params.length + 1}`;
+            queryString += ` AND rp.status = $${params.length + 1}`;
             params.push(status);
         }
 
@@ -63,11 +44,11 @@ const getRegistrationPoint = async (req, res) => {
             });
         } else {
             // Log activity if no registration points are found
-            await activityMiddleware(req, req.user.id, 'No registration points found for the branch', 'REGISTRATIONPOINT');
+            await activityMiddleware(req, req.user.id, 'No registration points found', 'REGISTRATIONPOINT');
             // Return success response with no data
             return res.status(StatusCodes.OK).json({
                 status: true,
-                message: "No registration points found for the branch",
+                message: "No registration points found",
                 statuscode: StatusCodes.OK,
                 data: [],
                 errors: []
@@ -91,4 +72,3 @@ const getRegistrationPoint = async (req, res) => {
 module.exports = {
     getRegistrationPoint
 };
-

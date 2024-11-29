@@ -172,9 +172,6 @@ const applyMinimumCreditAmountPenalty = async (client, req, res, orgSettings) =>
     }
 };
 
-
-
-
 // Helper function for penalty calculation
 const calculatePenalty = (product) => {
     if (product.penaltytype === 'PERCENTAGE') {
@@ -225,7 +222,7 @@ const generateNewReference = async (client, accountnumber, req, res) => {
                 req.body.whichaccount = 'GLACCOUNT';
             } else {
                 // Check if the account number is in the loan table
-                const loanQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
+                const loanQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
                 const loanResult = await client.query(loanQuery, [accountnumber]);
                 if (loanResult.rowCount !== 0) {
                     prefix = req.orgSettings.loan_transaction_prefix;
@@ -332,7 +329,7 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
         [req.body.personalaccountnumber, credit ? credit : req.body.credit, 0, newPersonalReference, req.body.description, req.body.ttype, status, `Credit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
     );
     
-};
+};    
 
 // Example function to handle excess account logic for credit
 const handleRedirection = async (client, req, res, accountuser, reference, transactiondesc, whichaccount, credit, debit) => {
@@ -466,6 +463,39 @@ function calculateWithdrawalLimit(savingsProduct, currentBalance) {
     return 0; // Default to 0 if no valid limit type is specified
 }
 
+const makePaymentAndCloseAccount = async (client, loanAccountNumber, credit, description, ttype, transactionStatus, loanaccount) => {
+    try {
+        // Save the transaction
+        req.body.whichaccount = 'LOAN'
+        await saveTransaction(client, null, {
+            accountnumber: loanAccountNumber,
+            credit,
+            debit: 0,
+            reference: await generateNewReference(client, loanAccountNumber, null, null),
+            description,
+            ttype,
+            status: 'ACTIVE',
+            transactiondesc: 'Full payment made and loan account closed',
+            whichaccount: 'LOAN',
+            currency: loanAccount.currency,
+            tfrom: req.body.tfrom
+        }, null);
+        
+        // Update the loan account balance to zero
+        await client.query(
+            `UPDATE divine."loanaccounts" SET dateclosed = now(), closeamount = $1 WHERE accountnumber = $2`,
+            [credit, loanaccount.totalamount]
+        );
+
+        console.log('Loan account closed successfully');
+    } catch (error) {
+        console.error('Error closing loan account:', error.stack);
+        throw new Error('Error closing loan account');
+    }
+};
+
+
+
 // Example function to generate dates for compulsory deposits
 // const generateDates = () => {
 //     // Implement logic to generate dates
@@ -486,6 +516,7 @@ module.exports = {
     calculateWithdrawalLimit,
     handleCreditRedirectToPersonnalAccount,
     handleRedirection,
-    applyMinimumCreditAmountPenalty
+    applyMinimumCreditAmountPenalty,
+    makePaymentAndCloseAccount
     // generateDates, // Uncomment if needed
 };

@@ -7,12 +7,21 @@ async function getroles(req, res) {
         const page = parseInt(searchParams.get('page')) || 1;
         const limit = parseInt(searchParams.get('limit')) || 10;
         const q = searchParams.get('q') || '';
+        const id = searchParams.get('id');
         const offset = (page - 1) * limit;
 
-        const query = {
-            text: `SELECT * FROM divine."Roles" WHERE role ILIKE $1 OR permissions ILIKE $1 OR description ILIKE $1 ORDER BY role LIMIT $2 OFFSET $3`,
-            values: [`%${q}%`, limit, offset]
-        };
+        let query;
+        if (id) {
+            query = {
+                text: `SELECT * FROM divine."Roles" WHERE id = $1`,
+                values: [id]
+            };
+        } else {
+            query = {
+                text: `SELECT * FROM divine."Roles" WHERE role ILIKE $1 OR permissions ILIKE $1 OR description ILIKE $1 ORDER BY role LIMIT $2 OFFSET $3`,
+                values: [`%${q}%`, limit, offset]
+            };
+        }
 
         const { rows: roles, rowCount: count } = await pg.query(query);
 
@@ -44,12 +53,3 @@ async function getroles(req, res) {
 }
 
 module.exports = { getroles };
-
-
-
-
-
-
-
-
-

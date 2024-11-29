@@ -1,43 +1,95 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { divideAndRoundUp } = require("../../../utils/pageCalculator");
 
 const getLoanAccount = async (req, res) => {
     const user = req.user;
-    const { id } = req.params;
 
     try {
-        // Check if the loan account exists
-        const loanAccountQuery = {
-            text: 'SELECT * FROM divine."loanaccounts" WHERE id = $1',
-            values: [id]
+        let query = {
+            text: `SELECT * FROM divine."loanaccounts"`,
+            values: []
         };
-        const { rows: loanAccountRows } = await pg.query(loanAccountQuery);
 
-        if (loanAccountRows.length === 0) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                status: false,
-                message: 'Loan account not found',
-                statuscode: StatusCodes.NOT_FOUND,
-                data: null,
-                errors: []
-            });
+        // Dynamically build the WHERE clause based on query parameters
+        let whereClause = '';
+        let valueIndex = 1;
+        Object.keys(req.query).forEach((key) => {
+            if (key !== 'q') {
+                if (whereClause) {
+                    whereClause += ` AND `;
+                } else {
+                    whereClause += ` WHERE `;
+                }
+                whereClause += `"${key}" = $${valueIndex}`;
+                query.values.push(req.query[key]);
+                valueIndex++;
+            }
+        });
+
+        // Add search query if provided
+        if (req.query.q) {
+            // Fetch column names from the 'loanaccounts' table
+            const { rows: columns } = await pg.query(`
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'loanaccounts'
+            `);
+
+            const cols = columns.map(row => row.column_name);
+
+            // Generate the dynamic SQL query
+            const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
+            if (whereClause) {
+                whereClause += ` AND (${searchConditions})`;
+            } else {
+                whereClause += ` WHERE (${searchConditions})`;
+            }
+            query.values.push(`%${req.query.q}%`);
+            valueIndex++;
         }
 
-        const loanAccount = loanAccountRows[0];
+        query.text += whereClause;
 
-        await activityMiddleware(req, user.id, 'Loan account fetched successfully', 'LOAN_ACCOUNT');
+        // Add pagination
+        const searchParams = new URLSearchParams(req.query);
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10);
+        const offset = (page - 1) * limit;
+
+        query.text += ` LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;
+        query.values.push(limit, offset);
+
+        const result = await pg.query(query);
+        const loanAccounts = result.rows;
+
+        // Get total count for pagination
+        const countQuery = {
+            text: `SELECT COUNT(*) FROM divine."loanaccounts" ${whereClause}`,
+            values: query.values.slice(0, -2) // Exclude limit and offset
+        };
+        const { rows: [{ count: total }] } = await pg.query(countQuery);
+        const pages = divideAndRoundUp(total, limit);
+
+        await activityMiddleware(req, user.id, 'Loan accounts fetched successfully', 'LOAN_ACCOUNT');
 
         return res.status(StatusCodes.OK).json({
             status: true,
-            message: "Loan account fetched successfully",
+            message: "Loan accounts fetched successfully",
             statuscode: StatusCodes.OK,
-            data: loanAccount,
+            data: loanAccounts,
+            pagination: {
+                total: Number(total),
+                pages,
+                page,
+                limit
+            },
             errors: []
         });
     } catch (error) {
         console.error('Unexpected Error:', error);
-        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching loan account', 'LOAN_ACCOUNT');
+        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching loan accounts', 'LOAN_ACCOUNT');
 
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,

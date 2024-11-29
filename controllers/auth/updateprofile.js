@@ -7,10 +7,14 @@ const { calculateExpiryDate, isPastDate } = require("../../utils/expiredate");
 const { sendEmail } = require("../../utils/sendEmail");
 const { authMiddleware } = require("../../middleware/authentication");
 const { activityMiddleware } = require("../../middleware/activity"); // Added tracker middleware
+const { uploadToGoogleDrive } = require("../../utils/uploadToGoogleDrive");
 
   
 async function updateuser(req, res) {
 
+    if (req.files) {
+        await uploadToGoogleDrive(req, res);
+      }
     const { _userid='', firstname, lastname, othernames, image, country, state, role, status, address, branch } = req.body;
 
     // CHECK IF USER IS AUTHENTICATED
@@ -18,11 +22,14 @@ async function updateuser(req, res) {
     // DECLARE THE USER OPERATED ON
     let userid;
 
+
     if(req.user.role == 'USERADMIN' && _userid){
         userid = _userid;
     }else{
         userid = user.id
     }
+
+    console.log('req.body', req.body)
 
     try{
 
@@ -37,7 +44,7 @@ async function updateuser(req, res) {
                                  SET firstname = COALESCE($1, firstname), 
                                      lastname = COALESCE($2, lastname), 
                                      othernames = COALESCE($3, othernames), 
-                                     image = CASE WHEN $4::TEXT = '' THEN image ELSE $4::TEXT END,
+                                     image = COALESCE(NULLIF($4, ''), image),
                                      role = COALESCE($5, role),
                                      lastupdated = COALESCE($6, lastupdated),
                                      state = COALESCE($7, state),
@@ -48,13 +55,13 @@ async function updateuser(req, res) {
             }
             // TRACK ACTIVITY
             const activity = activityMiddleware(req, user.id, `Updated Profile`, 'AUTH');
-            
-            // INFORM THE USER 
+            // RETURN THE UPDATED PROFILE
+            const updatedUser = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [userid]);
             return res.status(StatusCodes.OK).json({
                 status: true,
                 message: 'Profile Update Successful',
                 statuscode: StatusCodes.OK,
-                data: null,
+                data: updatedUser.rows[0],
                 errors: []
             });
 

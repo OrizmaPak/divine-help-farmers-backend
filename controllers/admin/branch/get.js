@@ -38,6 +38,11 @@ const getbranch = async (req, res) => {
     let params = []; // Array to hold query parameters
 
     // Dynamically add conditions based on the presence of filters
+    if (id) {
+        queryString += ` AND id = $${params.length + 1}`;
+        params.push(id);
+    }
+
     if (q) {
         // Fetch column names from the 'Budget' table
         const { rows: columns } = await pg.query(`
@@ -98,8 +103,26 @@ const getbranch = async (req, res) => {
         // return new Response(JSON.stringify({queryString, params, sort}))
         console.log(queryString, params)
         const { rows: branches } = await pg.query(queryString, params); // Pass params array
-        // return res.json(branches)
-        // return res.json({queryString, params, branches})
+
+        // Fetch user names for each branch
+        const userIds = branches.map(branch => branch.userid).filter(id => id);
+        const userNamesQuery = `
+            SELECT id, CONCAT(firstname, ' ', lastname, ' ', othernames) AS fullname
+            FROM divine."User"
+            WHERE id = ANY($1::int[])
+        `;
+        const { rows: userNames } = await pg.query(userNamesQuery, [userIds]);
+
+        // Map user names to branches
+        const userNameMap = userNames.reduce((acc, user) => {
+            acc[user.id] = user.fullname;
+            return acc;
+        }, {});
+
+        branches.forEach(branch => {
+            branch.useridname = userNameMap[branch.userid] || null;
+        });
+
         let catchparams = params.slice(0, -2)
         const { rows: [{ count: total }] } = await pg.query(catchquery, catchparams);
         const pages = divideAndRoundUp(total, limit);

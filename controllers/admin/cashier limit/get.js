@@ -11,20 +11,21 @@ const getCashierLimit = async (req, res) => {
     try {
         // Building the SQL query dynamically based on query parameters
         let queryString = `
-            SELECT *
+            SELECT divine."Cashierlimit".*, CONCAT(divine."User".firstname, ' ', divine."User".lastname, ' ', COALESCE(divine."User".othernames, '')) AS cashiername
             FROM divine."Cashierlimit"
+            LEFT JOIN divine."User" ON divine."Cashierlimit".cashier = divine."User".id
             WHERE 1=1
         `;
         let params = [];
 
         // Adding cashier condition to the query if provided
         if (cashier) {
-            queryString += ` AND cashier = $${params.length + 1}`;
+            queryString += ` AND divine."Cashierlimit".cashier = $${params.length + 1}`;
             params.push(cashier);
         }
         // Adding status condition to the query if provided
         if (status) {
-            queryString += ` AND status = $${params.length + 1}`;
+            queryString += ` AND divine."Cashierlimit".status = $${params.length + 1}`;
             params.push(status);
         }
 
@@ -71,4 +72,3 @@ const getCashierLimit = async (req, res) => {
 module.exports = {
     getCashierLimit
 };
-

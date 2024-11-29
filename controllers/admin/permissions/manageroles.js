@@ -3,7 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
 async function manageroles(req, res) {
-    const { role, permissions, description, status } = req.body;
+    const {id, role, permissions, description, status } = req.body;
 
     if(role == 'CUSTOM' || role == 'custom'){
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -28,7 +28,7 @@ async function manageroles(req, res) {
 
     try {
         // Check if the role already exists
-        const { rows: existingRoles } = await pg.query(`SELECT * FROM divine."Roles" WHERE role = $1`, [role]);
+        const { rows: existingRoles } = await pg.query(`SELECT * FROM divine."Roles" WHERE id = $1`, [id]);
 
         if (existingRoles.length > 0) {
             // If the role exists, update it

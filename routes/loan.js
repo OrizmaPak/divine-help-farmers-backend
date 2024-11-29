@@ -4,6 +4,8 @@ const { getLoanFees } = require('../controllers/loan/fee/getfee');
 const { manageLoanProduct } = require('../controllers/loan/product/manage');
 const { getLoanProducts } = require('../controllers/loan/product/getproduct');
 const { manageLoanAccount } = require('../controllers/loan/accounts/manage');
+const { getLoanAccount } = require('../controllers/loan/accounts/getaccount');
+const { getLoanAccountDetails } = require('../controllers/loan/accounts/getaccountdetails');
 const router = express.Router();
 
 
@@ -19,6 +21,10 @@ router.route('/product')
 
 router.route('/account')
     .post(manageLoanAccount)
+    .get(getLoanAccount)
+
+router.route('/account/details')
+    .post(getLoanAccountDetails)
     
 
 module.exports = router;

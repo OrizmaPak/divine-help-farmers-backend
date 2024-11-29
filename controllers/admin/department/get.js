@@ -5,84 +5,111 @@ const { divideAndRoundUp } = require("../../../utils/pageCalculator"); // Import
 
 // Function to handle GET request for departments
 const getDepartment = async (req, res) => {
-
-    // Extract pagination parameters from the request query
-    const searchParams = new URLSearchParams(req.query);
-    const page = parseInt(searchParams.get('page') || '1', 10); // Current page number
-    const limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10); // Number of items per page
-    const branch = searchParams.get('branch') || ''; // Filter by branch
-    const status = searchParams.get('status') || 'ACTIVE'; // Filter by status
-    const q = searchParams.get('q') || ''; // Search query
-    const sort = searchParams.get('sort') || 'id'; // Sorting field
-    const order = searchParams.get('order') || 'DESC'; // Sorting order
-    const offset = (page - 1) * limit; // Calculate offset for pagination
-
-    let queryString = `SELECT * FROM divine."Department" WHERE 1=1`; // Base query string
-    let params = []; // Array to hold query parameters
-
-    // Dynamically add conditions based on the presence of filters
-    if (q) {
-        // Fetch column names from the 'Department' table to dynamically generate search conditions
-        const { rows: columns } = await pg.query(`
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_name = 'Department'
-        `);
-
-        const cols = columns.map(row => row.column_name);
-
-        // Generate the dynamic SQL query for search
-        const searchConditions = cols.map(col => `${col}::text ILIKE $${params.length + 1}`).join(' OR ');
-        queryString += ` AND (${searchConditions})`;
-        params.push(`%${q}%`);
-    }
-
-    if (branch) {
-        // Add condition for branch filter
-        queryString += ` AND branch = $${params.length + 1}`;
-        params.push(branch);
-    }
-
-    if (status) {
-        // Add condition for status filter
-        queryString += ` AND status = $${params.length + 1}`;
-        params.push(status);
-    }
-
-    // Append the ORDER BY and LIMIT clauses to the query string
-    const sortParam = sort+' '+order;
-    queryString += ` ORDER BY ${sortParam} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-    params.push(limit, offset);
-
-    // Convert all parameters to strings
-    params = params.map(param => param.toString());
-
     try {
-        console.log(queryString, params) // Log the query string and parameters for debugging
+        // Extract parameters from the request query
+        const searchParams = new URLSearchParams(req.query);
+        const page = parseInt(searchParams.get('page') || '1', 10); // Current page number
+        const limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10); // Number of items per page
+        const branch = searchParams.get('branch') || ''; // Filter by branch
+        const status = searchParams.get('status') || 'ACTIVE'; // Filter by status
+        const q = searchParams.get('q') || ''; // Search query
+        const sort = searchParams.get('sort') || 'id'; // Sorting field
+        const order = searchParams.get('order') || 'DESC'; // Sorting order
+        const id = searchParams.get('id'); // Filter by id
+        const offset = (page - 1) * limit; // Calculate offset for pagination
+
+        let queryString = `
+            SELECT d.*, b.branch AS branchname, CONCAT(u.firstname, ' ', u.lastname) AS useridname
+            FROM divine."Department" d
+            LEFT JOIN divine."Branch" b ON d.branch = b.id
+            LEFT JOIN divine."User" u ON d.userid = u.id
+            WHERE 1=1
+        `; // Base query string with joins for branch and user names
+        let params = []; // Array to hold query parameters
+
+        // Dynamically add conditions based on the presence of filters
+        if (id) {
+            queryString += ` AND d.id = $${params.length + 1}`;
+            params.push(id);
+        } else {
+            if (q) {
+                // Fetch column names from the 'Department' table to dynamically generate search conditions
+                const { rows: columns } = await pg.query(`
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'Department'
+                `);
+
+                const cols = columns.map(row => row.column_name);
+
+                // Generate the dynamic SQL query for search
+                const searchConditions = cols.map(col => `${col}::text ILIKE $${params.length + 1}`).join(' OR ');
+                queryString += ` AND (${searchConditions})`;
+                params.push(`%${q}%`); 
+            }
+
+            if (branch) {
+                // Add condition for branch filter
+                queryString += ` AND d.branch = $${params.length + 1}`;
+                params.push(branch);
+            }
+
+            if (status) {
+                // Add condition for status filter
+                queryString += ` AND d.status = $${params.length + 1}`;
+                params.push(status);
+            }
+
+            // Append the ORDER BY and LIMIT clauses to the query string
+            const sortParam = `${sort} ${order}`;
+            queryString += ` ORDER BY ${sortParam} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+            params.push(limit, offset);
+        }
+
+        // Convert all parameters to strings
+        params = params.map(param => param.toString());
+
+        console.log(queryString, params); // Log the query string and parameters for debugging
         const { rows: departments } = await pg.query(queryString, params); // Execute the query with parameters
-        let catchparams = params.slice(0, -2) // Parameters for the count query
-        const { rows: [{ count: total }] } = await pg.query(`SELECT COUNT(*) FROM divine."Department" WHERE 1=1 ${branch ? `AND branch = $1` : ''} ${status ? `AND status = $2` : ''}`, catchparams);
+
+        // Prepare parameters for the count query
+        let countQuery = `SELECT COUNT(*) FROM divine."Department" WHERE 1=1`;
+        let countParams = [];
+        if (branch) {
+            countQuery += ` AND branch = $${countParams.length + 1}`;
+            countParams.push(branch);
+        }
+        if (status) {
+            countQuery += ` AND status = $${countParams.length + 1}`;
+            countParams.push(status);
+        }
+
+        const { rows: [{ count: total }] } = await pg.query(countQuery, countParams);
         const pages = divideAndRoundUp(total, limit); // Calculate total pages
-        if(departments.length > 0) return res.status(StatusCodes.OK).json({
-            status: true,
-            message: "Departments fetched successfully",
-            statuscode: StatusCodes.OK,
-            data: departments,
-            pagination: {
-                total: Number(total),
-                pages, 
-                page,
-                limit
-            },
-            errors: []
-        });
-        if(departments.length == 0) return res.status(StatusCodes.OK).json({
-            status: true,
-            message: "No Departments found",
-            statuscode: StatusCodes.OK,
-            data: '',
-            errors: []  
-        });
+
+        if (departments.length > 0) {
+            return res.status(StatusCodes.OK).json({
+                status: true,
+                message: "Departments fetched successfully",
+                statuscode: StatusCodes.OK,
+                data: departments,
+                pagination: {
+                    total: Number(total),
+                    pages,
+                    page,
+                    limit
+                },
+                errors: []
+            });
+        } else {
+            return res.status(StatusCodes.OK).json({
+                status: true,
+                message: "No Departments found",
+                statuscode: StatusCodes.OK,
+                data: '',
+                errors: []
+            });
+        }
     } catch (err) {
         console.error('Unexpected Error:', err); // Log any unexpected errors
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({

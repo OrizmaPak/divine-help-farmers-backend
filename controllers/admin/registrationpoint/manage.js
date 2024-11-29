@@ -3,7 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware
 
 const manageRegistrationPoint = async (req, res) => {
-    const { id="", registrationpoint, branch, status } = req.body;
+    const { id = "", registrationpoint, description, branch, status } = req.body;
 
     // Basic validation
     if (!registrationpoint || !branch) {
@@ -11,15 +11,15 @@ const manageRegistrationPoint = async (req, res) => {
         if (!registrationpoint) {
             errors.push({
                 field: 'Registration Point',
-                message: 'Registration point not found' 
-            }); 
-        }
-        if (!branch) {
-            errors.push({
-                field: 'Branch',
-                message: 'Branch not found'
+                message: 'Registration point not found'
             });
         }
+        // if (!branch) {
+        //     errors.push({
+        //         field: 'Branch',
+        //         message: 'Branch not found'
+        //     });
+        // }
 
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
@@ -39,7 +39,7 @@ const manageRegistrationPoint = async (req, res) => {
             data: null,
             errors: []
         });
-    } 
+    }
 
     try {
         if (!id) { // Create new registration point
@@ -56,10 +56,10 @@ const manageRegistrationPoint = async (req, res) => {
             }
 
             const { rows: [newRegistrationPoint] } = await pg.query(`
-                INSERT INTO divine."Registrationpoint" (registrationpoint, branch, datecreated, createdby)
-                VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+                INSERT INTO divine."Registrationpoint" (registrationpoint, description, branch, datecreated, createdby)
+                VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
                 RETURNING *
-            `, [registrationpoint, branch, req.user.id]);
+            `, [registrationpoint, description, branch, req.user.id]);
 
             await activityMiddleware(req, req.user.id, `Registration point created successfully in ${branchExists.rows[0].branch}`, 'REGISTRATIONPOINT'); // Tracker middleware
             return res.status(StatusCodes.CREATED).json({
@@ -70,60 +70,34 @@ const manageRegistrationPoint = async (req, res) => {
                 errors: []
             });
         } else { // Update existing registration point
-            if (status) { // Update only the status if provided
-                const { rows: [updatedRegistrationPoint] } = await pg.query(`
-                    UPDATE divine."Registrationpoint"
-                    SET status = $1
-                    WHERE id = $2
-                    RETURNING *
-                `, [status, id]);
+            const { rows: [updatedRegistrationPoint] } = await pg.query(`
+                UPDATE divine."Registrationpoint"
+                SET registrationpoint = COALESCE($1, registrationpoint),
+                    description = COALESCE($2, description),
+                    branch = COALESCE($3, branch),
+                    status = COALESCE($4, status)
+                WHERE id = $5
+                RETURNING *
+            `, [registrationpoint, description, branch, status, id]);
 
-                if (!updatedRegistrationPoint) {
-                    return res.status(StatusCodes.NOT_FOUND).json({
-                        status: false,
-                        message: "Registration point not found",
-                        statuscode: StatusCodes.NOT_FOUND,
-                        data: null,
-                        errors: []
-                    });
-                }
-
-                await activityMiddleware(req, req.user.id, `Registration point status updated successfully in ${branchExists.rows[0].branch}`, 'REGISTRATIONPOINT'); // Tracker middleware
-                return res.status(StatusCodes.OK).json({
-                    status: true,
-                    message: "Registration point status updated successfully",
-                    statuscode: StatusCodes.OK,
-                    data: updatedRegistrationPoint,
-                    errors: []
-                });
-            } else { // If status is not true, update the registration point
-                const { rows: [updatedRegistrationPoint] } = await pg.query(`
-                    UPDATE divine."Registrationpoint"
-                    SET registrationpoint = $1,
-                    branch = $2
-                    WHERE id = $3
-                    RETURNING *
-                `, [registrationpoint, branch, id]);
-
-                if (!updatedRegistrationPoint) {
-                    return res.status(StatusCodes.NOT_FOUND).json({
-                        status: false,
-                        message: "Registration point not found",
-                        statuscode: StatusCodes.NOT_FOUND,
-                        data: null,
-                        errors: []
-                    });
-                }
-
-                await activityMiddleware(req, req.user.id, `Registration point status updated successfully in ${branchExists.rows[0].branch}`, 'REGISTRATIONPOINT'); // Tracker middleware
-                return res.status(StatusCodes.OK).json({
-                    status: true,
-                    message: "Registration point status updated successfully",
-                    statuscode: StatusCodes.OK,
-                    data: updatedRegistrationPoint,
+            if (!updatedRegistrationPoint) {
+                return res.status(StatusCodes.NOT_FOUND).json({
+                    status: false,
+                    message: "Registration point not found",
+                    statuscode: StatusCodes.NOT_FOUND,
+                    data: null,
                     errors: []
                 });
             }
+
+            await activityMiddleware(req, req.user.id, `Registration point updated successfully in ${branchExists.rows[0].branch}`, 'REGISTRATIONPOINT'); // Tracker middleware
+            return res.status(StatusCodes.OK).json({
+                status: true,
+                message: "Registration point updated successfully",
+                statuscode: StatusCodes.OK,
+                data: updatedRegistrationPoint,
+                errors: []
+            });
         }
     } catch (err) {
         console.error('Unexpected Error:', err);
@@ -141,4 +115,3 @@ const manageRegistrationPoint = async (req, res) => {
 module.exports = {
     manageRegistrationPoint
 };
-

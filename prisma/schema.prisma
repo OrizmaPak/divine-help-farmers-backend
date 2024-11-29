@@ -133,7 +133,9 @@ model Membership {
 model Position {
   id            Int       @id @default(sequence())
   member        Int  
-  position      String    
+  position      String
+  userid        Int? @default(0)
+  branch        Int?      @default(0)
   createdby     Int       @default(0)
   dateadded     DateTime  @default(now())
   lastupdated   DateTime?
@@ -263,7 +265,6 @@ model Organisationsettings {
 model Rejecttransactiondate {
   id                 Int       @id @default(sequence())
   rejectiondate      DateTime
-  branch             Int?
   status             String    @default("ACTIVE")
   reason             String?
 }
@@ -271,6 +272,7 @@ model Rejecttransactiondate {
 model Registrationpoint {
   id                 Int       @id @default(sequence())
   registrationpoint  String
+  description        String?
   branch             Int
   status             String    @default("ACTIVE")
   datecreated        DateTime?
@@ -413,7 +415,20 @@ model savingsproduct {
   compulsorydepositpenaltytype      String?   // "AMOUNT" or "PERCENTAGE"
   compulsorydepositpenaltyfrom      String?   // Reference to another product ID
   compulsorydepositpenaltyfallbackfrom String?  // Reference to fallback product ID
-  status                            String @default("ACTIVE")
+
+  useraccount                      Int? @default(1) // number of maximum account a user can open for this product... note that this is yet to be implemented in the code base
+  eligibilityproductcategory       String? // "LOAN" or "SAVINGS" 
+  eligibilityproduct               Int? @default(0)  // the product that the user must have account in
+
+  eligibilityaccountage    Int?    // in months for SAVINGS
+  eligibilityminbalance    Float?
+  eligibilitymincredit    Float?
+  eligibilitymindebit    Float?
+  
+  eligibilityminimumloan           Float? // for LOAN
+  eligibilityminimumclosedaccounts Int?
+
+  status                          String @default("ACTIVE")
 
 
   // Interest
@@ -532,8 +547,9 @@ model Accounts {
 model loanfee {
   id                       Int        @id @default(sequence()) 
   feename                  String    @unique
-  feemethod                String    // "FORM FEE" or "PROCESSING FEE" or "INSURANCE FEE" or "DEDUCTION FEE" or
+  feemethod                String    // "FORM FEE" or "PROCESSING FEE" or "INSURANCE FEE" or "DEDUCTION FEE" or "PENALTY"
   chargesbasedon           String    // "PRINCIPAL AMOUNT ONLY" or "PRINCIPAL AND INTEREST"
+  chargerage               Float?    
   glaccount                String
   status                   String @default("ACTIVE")
   dateadded                DateTime
@@ -552,17 +568,19 @@ model loanproduct {
       numberofrepayments       Int?
       duration                 Int? // refers to the cycle
       durationcategory         String? // "DAY" or "WEEK" or "MONTH" or "YEAR"
-      interestmethod           String  // "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS"
+      interestmethod            String  // "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS", "REDUCING BALANCE", "BALLOON LOAN", "FIXED RATE", "UNSECURE LOAN", "INSTALLMENT LOAN", "PAYDAY LOAN", "MICRO LOAN", "BRIDGE LOAN", "AGRICULTURAL LOAN", "EDUCATION LOAN", "WORKIN CAPITAL"
       interestrate             Float
       defaultpenaltyid         Int?
       seperateinterest         Boolean? @default(false)
 
-      useraccount              Int? @default(1) // number of maximum account a user can open for this product
+      useraccount              Int? @default(1) // number of maximum account a user can open for this product... note that this is yet to be implemented in the code base
       eligibilityproductcategory       String? // "LOAN" or "SAVINGS" 
       eligibilityproduct       Int? @default(0)  // the product that the user must have account in
 
       eligibilityaccountage    Int?    // in months for SAVINGS
       eligibilityminbalance    Float?
+      eligibilitymincredit    Float?
+      eligibilitymindebit    Float?
       
       eligibilityminimumloan   Float? // for LOAN
       eligibilityminimumclosedaccounts Int?
@@ -603,7 +621,7 @@ model loanaccounts {
       numberofrepayments        Int?
       duration                  Int? // refers to the cycle
       durationcategory          String? // "DAY" or "WEEK" or "MONTH" or "YEAR"
-      interestmethod            String  // "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS"
+      interestmethod            String  // "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS", "REDUCING BALANCE", "BALLOON LOAN", "FIXED RATE", "UNSECURE LOAN", "INSTALLMENT LOAN", "PAYDAY LOAN", "MICRO LOAN", "BRIDGE LOAN", "AGRICULTURAL LOAN", "EDUCATION LOAN", "WORKIN CAPITAL"
       interestrate              Float
       defaultpenaltyid          Int?
       seperateinterest         Boolean? @default(false)
@@ -614,3 +632,35 @@ model loanaccounts {
       closeamount               Float?
       createdby                 Int
 }
+
+model loanpaymentschedule {
+      id                        Int       @id @default(sequence())
+      accountnumber             Int
+      scheduledpaymentdate      DateTime
+      gracepaymentdate          DateTime?
+      scheduleamount            Float
+      interestamount            Float
+      status                    String    @default("ACTIVE") // "PENDING", "PAID", "MISSED", etc.
+      createdby                 Int
+      dateadded                 DateTime
+      reference                 String?
+}
+
+model collateral {
+  id                 Int      @id @default(sequence())
+  accountnumber      Int
+  documenttitle      String
+  documentnumber     String
+  description        String
+  docposition        String @default("ISSUED") // "ISSUED", "WITHHELD", "INVALID", "RETURNED", "DESTROYED", "LOST", "DAMAGED", "RECOVERED"
+  documentexpiration DateTime?
+  worth              Float
+  file1              String?
+  file2              String?
+  file3              String?
+  file4              String?
+  file5              String?
+  dateadded          DateTime @default(now())
+  createdby          Int 
+}
+
