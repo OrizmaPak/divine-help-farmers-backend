@@ -503,7 +503,6 @@ model savings {
   status                    String @default("ACTIVE")
   dateadded                 DateTime
   createdby                 Int
-  
 }
 
 model transaction {

@@ -3,7 +3,8 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware
 
 const manageRegistrationPoint = async (req, res) => {
-    const { id = "", registrationpoint, description, branch, status } = req.body;
+    const user = req.user;
+    const { id = "", registrationpoint, description, branch=user.branch, status } = req.body;
 
     // Basic validation
     if (!registrationpoint || !branch) {

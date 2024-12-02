@@ -5,8 +5,9 @@ const { activityMiddleware } = require("../../../middleware/activity");
 
 // Function to get cashier limits
 const getCashierLimit = async (req, res) => {
-    // Extracting cashier and status from query parameters
-    let { cashier, status } = req.query;
+    // Extracting cashier, status, and id from query parameters
+    let { cashier, status, id } = req.query;
+    const user = req.user;
 
     try {
         // Building the SQL query dynamically based on query parameters
@@ -18,6 +19,18 @@ const getCashierLimit = async (req, res) => {
         `;
         let params = [];
 
+        // Determine access level based on user role and permissions
+        if (user.role !== 'SUPERADMIN' && (!user.permissions || !user.permissions.includes('CHANGE BRANCH'))) {
+            // Restrict to users from the same branch
+            queryString += ` AND divine."User".branch = $${params.length + 1}`;
+            params.push(user.branch);
+        }
+
+        // Adding id condition to the query if provided
+        if (id) {
+            queryString += ` AND divine."Cashierlimit".id = $${params.length + 1}`;
+            params.push(id);
+        }
         // Adding cashier condition to the query if provided
         if (cashier) {
             queryString += ` AND divine."Cashierlimit".cashier = $${params.length + 1}`;

@@ -7,7 +7,8 @@ const { sendEmail } = require("../../../utils/sendEmail"); // Import function to
 const manageTask = async (req, res) => {
     try {
         // Extract task details from request body
-        const { id, title, description, priority, assignedto, branch, status, startdate, enddate, taskstatus = "NOT STARTED" } = req.body;
+        const user = req.user;
+        const { id, title, description, priority, assignedto, branch=user.branch, status, startdate, enddate, taskstatus = "NOT STARTED" } = req.body;
 
         // Validate required fields with detailed error messages
         const missingFields = [];

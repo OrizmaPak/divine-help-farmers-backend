@@ -8,7 +8,7 @@ const getdefinedmembershipposition = async (req, res) => {
 
     try {
         let query = {
-            text: `SELECT * FROM divine."Position" WHERE 1=1`,
+            text: `SELECT p.*, b.branch AS branchname FROM divine."Position" p LEFT JOIN divine."Branch" b ON p.branch = b.id WHERE 1=1`,
             values: []
         };
 
@@ -18,7 +18,7 @@ const getdefinedmembershipposition = async (req, res) => {
         Object.keys(req.query).forEach((key) => {
             if (key !== 'q') {
                 if (whereClause) {
-                    whereClause += ` AND `;
+                       whereClause += ` AND `;
                 } else {
                     whereClause += ` WHERE `;
                 }

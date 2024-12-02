@@ -27,36 +27,39 @@ async function manageroles(req, res) {
     const user = req.user
 
     try {
-        // Check if the role already exists
-        const { rows: existingRoles } = await pg.query(`SELECT * FROM divine."Roles" WHERE id = $1`, [id]);
 
-        if (existingRoles.length > 0) {
-            // If the role exists, update it
-            if (status && status !== 'ACTIVE') {
-                // If the status is not ACTIVE, update only the status
-                await pg.query(`UPDATE divine."Roles" SET status = $1 WHERE role = $2`, [status, role]);
-                await pg.query(`UPDATE divine."User" SET permissions = $1 WHERE role = $2`, [role, role]);
-                await activityMiddleware(req, user.id, `Role ${role} status updated successfully`);
-            }else if (status && status == 'ACTIVE') {
-                // If the status is not ACTIVE, update only the status
-                await pg.query(`UPDATE divine."Roles" SET status = $1 WHERE role = $2`, [status, role]);
-                await pg.query(`UPDATE divine."User" SET permissions = $1 WHERE role = $2`, [permission, role]);
-                await activityMiddleware(req, user.id, `Role ${role} status updated successfully`);
-            }else {
-                // If the status is ACTIVE, update the role and give all users with the role the permission of the role
-                await pg.query(`UPDATE divine."Roles" SET permissions = $1, description = $2 WHERE role = $3`, [permissions, description, role]);
-                await pg.query(`UPDATE divine."User" SET permissions = $1 WHERE role = $2`, [permissions, role]);
-                await activityMiddleware(req, user.id, `Role ${role} updated successfully and permissions updated for users with role ${role}`);
-            }
-        } else {
-            // If the role does not exist, create it
-            await pg.query(`INSERT INTO divine."Roles" (role, permissions, description) VALUES ($1, $2, $3)`, [role, permissions, description]);
-            await activityMiddleware(req, user.id, `Role ${role} created successfully`);
+        if(id){
+                // Check if the role already exists
+                const { rows: existingRoles } = await pg.query(`SELECT * FROM divine."Roles" WHERE id = $1`, [id]);
+        
+                if (existingRoles.length > 0) {
+                    // If the role exists, update it
+                    if (status && status !== 'ACTIVE') {
+                        // If the status is not ACTIVE, update only the status
+                        await pg.query(`UPDATE divine."Roles" SET status = $1 WHERE role = $2`, [status, role]);
+                        await pg.query(`UPDATE divine."User" SET permissions = $1 WHERE role = $2`, [role, role]);
+                        await activityMiddleware(req, user.id, `Role ${role} status updated successfully`);
+                    }else if (status && status == 'ACTIVE') {
+                        // If the status is not ACTIVE, update only the status
+                        await pg.query(`UPDATE divine."Roles" SET status = $1 WHERE role = $2`, [status, role]);
+                        await pg.query(`UPDATE divine."User" SET permissions = $1 WHERE role = $2`, [permission, role]);
+                        await activityMiddleware(req, user.id, `Role ${role} status updated successfully`);
+                    }else {
+                        // If the status is ACTIVE, update the role and give all users with the role the permission of the role
+                        await pg.query(`UPDATE divine."Roles" SET permissions = $1, description = $2 WHERE role = $3`, [permissions, description, role]);
+                        await pg.query(`UPDATE divine."User" SET permissions = $1 WHERE role = $2`, [permissions, role]);
+                        await activityMiddleware(req, user.id, `Role ${role} updated successfully and permissions updated for users with role ${role}`);
+                    }
+                } 
+        }
+        if(!id){
+                await pg.query(`INSERT INTO divine."Roles" (role, permissions, description) VALUES ($1, $2, $3)`, [role, permissions, description]);
+                await activityMiddleware(req, user.id, `Role ${role} created successfully`);
         }
 
         return res.status(StatusCodes.OK).json({
             status: true,
-            message: "Role created/updated successfully",
+            message: id ? "Role updated successfully" : "Role created successfully",
             statuscode: StatusCodes.OK,
             data: null,
             errors: []

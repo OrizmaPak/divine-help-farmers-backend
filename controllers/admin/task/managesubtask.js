@@ -68,19 +68,21 @@ const manageSubtask = async (req, res) => {
             }
         }
 
+        let assignedToIds
+
        if(!id){ // Check if start date and end date are within task's start and end date
-        if (new Date(startdate) < new Date(taskExists.startdate) || new Date(enddate) > new Date(taskExists.enddate)) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "Start date and end date must be within task's start and end date",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });
-        }
+        // if (new Date(startdate) < new Date(taskExists.startdate) || new Date(enddate) > new Date(taskExists.enddate)) {
+        //     return res.status(StatusCodes.BAD_REQUEST).json({
+        //         status: false,
+        //         message: "Start date and end date must be within task's start and end date",
+        //         statuscode: StatusCodes.BAD_REQUEST,
+        //         data: null,
+        //         errors: []
+        //     });
+        // }
 
         // Check if assigned to is valid
-        const assignedToIds = assignedto ? assignedto.split("||").map(id => id.trim()) : [];
+        assignedToIds = assignedto ? assignedto.split("||").map(id => id.trim()) : [];
         for (let id of assignedToIds) {
             const { rows: [user] } = await pg.query(`SELECT id FROM divine."User" WHERE id = $1`, [id]);
             if (!user) {

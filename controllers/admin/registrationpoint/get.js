@@ -4,17 +4,26 @@ const { activityMiddleware } = require("../../../middleware/activity"); // Impor
 
 // Function to handle GET request for registration points
 const getRegistrationPoint = async (req, res) => {
-    // Extract id and status from query parameters with default status as 'ACTIVE'
-    let { id, status="ACTIVE" } = req.query;
+    // Extract id, status, and branch from query parameters with default status as 'ACTIVE'
+    let { id, status="ACTIVE", branch } = req.query;
+    const user = req.user; // Extract user from request
 
     try {
-        // Base query to select all registration points
+        // Base query to select all registration points with branch name
         let queryString = `
-            SELECT rp.* 
+            SELECT rp.*, b.branch AS branchname
             FROM divine."Registrationpoint" rp
+            LEFT JOIN divine."Branch" b ON rp.branch = b.id
             WHERE 1=1
         `;
         let params = [];
+
+        // Determine access level based on user role and permissions
+        if (user.role !== 'SUPERADMIN' && (!user.permissions || !user.permissions.includes('CHANGE BRANCH'))) {
+            // Restrict to registration points from the same branch
+            queryString += ` AND rp.branch = $${params.length + 1}`;
+            params.push(user.branch);
+        }
 
         // Add id condition to the query if id is provided
         if (id) {
@@ -25,6 +34,11 @@ const getRegistrationPoint = async (req, res) => {
         if (status) {
             queryString += ` AND rp.status = $${params.length + 1}`;
             params.push(status);
+        }
+        // Add branch condition to the query if branch is provided
+        if (branch) {
+            queryString += ` AND rp.branch = $${params.length + 1}`;
+            params.push(branch);
         }
 
         // Execute the query with parameters

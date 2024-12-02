@@ -31,7 +31,7 @@ const manageCashierLimit = async (req, res) => {
 
         // Check if the cashier limit exists
         const { rows: [cashierLimitExists] } = await pg.query(`SELECT * FROM divine."Cashierlimit" WHERE cashier = $1`, [cashier]);
-        if (cashierLimitExists) {
+        if (cashierLimitExists && !id) {
             return res.status(StatusCodes.CONFLICT).json({
                 status: false,
                 message: "Cashier limit already exists",

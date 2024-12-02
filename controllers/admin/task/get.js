@@ -4,6 +4,7 @@ const { activityMiddleware } = require("../../../middleware/activity");
 
 const getTask = async (req, res) => {
     let { id, startdate, enddate, branch, priority, taskstatus } = req.query;
+    const user = req.user; // Extract user from request
 
     try {
         let queryString = `
@@ -40,6 +41,13 @@ const getTask = async (req, res) => {
             WHERE 1=1
         `;
         let params = [];
+
+        // Determine access level based on user role and permissions
+        if (user.role !== 'SUPERADMIN' && (!user.permissions || !user.permissions.includes('CHANGE BRANCH'))) {
+            // Restrict to tasks from the same branch
+            queryString += ` AND t.branch = $${params.length + 1}`;
+            params.push(user.branch);
+        }
 
         if (id) {
             queryString += ` AND t.id = $${params.length + 1}`;

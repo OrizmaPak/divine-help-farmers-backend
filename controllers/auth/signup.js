@@ -15,7 +15,7 @@ const signup = async (req, res) => {
     
 
     // Basic validation
-    if (!firstname || !lastname || !email || !password || !phone || !isValidEmail(email)) {
+    if (!firstname || !lastname || !email || !password || !phone || !isValidEmail(email) || !branch) {
         let errors = [];
         if (!firstname) {
             errors.push({

@@ -13,6 +13,7 @@ app.set('trust proxy', 1);
 
 // routers
 const authRouter = require('./routes/auth');
+const branchRouter = require('./routes/branch');
 const adminRouter = require('./routes/admin');
 const inventoryRouter = require('./routes/inventory');
 const glaccountsRouter = require('./routes/glaccounts');
@@ -55,6 +56,7 @@ app.use(requestprocessor);
 
 // routes
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/branch', branchRouter);
 app.use('/api/v1/admin', authMiddleware, adminRouter);
 app.use('/api/v1/inventory', authMiddleware, inventoryRouter);
 app.use('/api/v1/glaccounts', authMiddleware, glaccountsRouter);
