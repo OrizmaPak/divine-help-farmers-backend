@@ -4,10 +4,11 @@ const pg = require("../../../db/pg");
 async function getroles(req, res) {
     try {
         const searchParams = new URLSearchParams(req.query);
-        const page = parseInt(searchParams.get('page')) || 1;
-        const limit = parseInt(searchParams.get('limit')) || 10;
+        const page = parseInt(searchParams.get('page'), 10) || 1;
+        const limit = parseInt(searchParams.get('limit'), 10) || 10;
         const q = searchParams.get('q') || '';
         const id = searchParams.get('id');
+        const role = searchParams.get('role');
         const offset = (page - 1) * limit;
 
         let query;
@@ -15,6 +16,11 @@ async function getroles(req, res) {
             query = {
                 text: `SELECT * FROM divine."Roles" WHERE id = $1`,
                 values: [id]
+            };
+        } else if (role) {
+            query = {
+                text: `SELECT * FROM divine."Roles" WHERE role = $1`,
+                values: [role]
             };
         } else {
             query = {
@@ -47,7 +53,7 @@ async function getroles(req, res) {
             message: "An unexpected error occurred",
             statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
             data: null,
-            errors: [] 
+            errors: [error.message]
         });
     }
 }

@@ -9,7 +9,7 @@ const pg = new Client({
 // Connect to the database
 pg.connect()
   .then(() => console.log('Connected to the database pg'))
-  .catch(err => console.error('Connection error'));
-  // .catch(err => console.error('Connection error', err.stack));
+  // .catch(err => console.erro.r('Connection error'));
+  .catch(err => console.error('Connection error', err.stack));
 
-module.exports = pg;
+module.exports = pg; 

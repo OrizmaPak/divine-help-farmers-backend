@@ -3,7 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
 const requisition = async (req, res) => {
-    const { branchfrom, branchto, departmentfrom, departmentto, rowsize, ...inventoryData } = req.body;
+    const { branchfrom, branchto, description, transactiondate, departmentfrom, departmentto, rowsize, ...inventoryData } = req.body;
     const uniformReference = new Date().getTime().toString();
 
     // Validate required fields
@@ -67,6 +67,8 @@ const requisition = async (req, res) => {
     const itemids = [];
     const qtys = [];
     const prices = [];
+    const descriptions = [];
+    const transactiondates = [];
     for (let i = 1; i <= rowsize; i++) {
         const itemIdKey = `itemid${i}`;
         const qtyKey = `qty${i}`;
@@ -85,12 +87,15 @@ const requisition = async (req, res) => {
         itemids.push(inventoryData[itemIdKey]);
         qtys.push(inventoryData[qtyKey]);
         prices.push(inventoryData[priceKey]);
+        descriptions.push(inventoryData[description]);
+        transactiondates.push(inventoryData[transactiondate]);
     }
 
     try {
         // Check if the quantity requested is greater than available stock for each itemid
         for (let i = 0; i < itemids.length; i++) {
             const { rows: inventoryRows } = await pg.query(`SELECT SUM(qty) AS totalQty FROM divine."Inventory" WHERE itemid = $1 AND branch = $2 AND department = $3`, [itemids[i], branchfrom, departmentfrom]);
+            console.log('inventoryRows:', inventoryRows, itemids[i], branchfrom, departmentfrom);
             const totalQty = inventoryRows[0].totalqty??0;
             if (qtys[i] > totalQty) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -102,8 +107,8 @@ const requisition = async (req, res) => {
                         `Quantity requested for itemid ${itemids[i]} is greater than available stock. Requested quantity: ${qtys[i]}, Available quantity: ${totalQty}`
                     ]
                 });
-            }
-        }
+            } 
+        } 
 
         // Process each itemid
         for (let i = 0; i < itemids.length; i++) {
@@ -112,7 +117,7 @@ const requisition = async (req, res) => {
             const fallbackDataFrom = fallbackRowsFrom.length > 0 ? fallbackRowsFrom[0] : {};
 
             // Update the qty to negative in branchfrom and departmentfrom
-            const { rowCount: insertResult } = await pg.query(`INSERT INTO divine."Inventory" (itemid, itemname, department, branch, units, cost, price, pricetwo, beginbalance, qty, minimumbalance, "group", applyto, itemclass, composite, compositeid, description, imageone, imagetwo, imagethree, status, "reference", transactiondate, transactiondesc, dateadded, createdby, sellingprice) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`, [itemids[i], fallbackDataFrom.itemname, departmentfrom, branchfrom, fallbackDataFrom.units, fallbackDataFrom.cost, fallbackDataFrom.price, fallbackDataFrom.pricetwo, fallbackDataFrom.beginbalance, -qtys[i], fallbackDataFrom.minimumbalance, fallbackDataFrom.group, fallbackDataFrom.applyto, fallbackDataFrom.itemclass, fallbackDataFrom.composite, fallbackDataFrom.compositeid, fallbackDataFrom.description, fallbackDataFrom.imageone, fallbackDataFrom.imagetwo, fallbackDataFrom.imagethree, 'PENDING REQUISITION', uniformReference, new Date(), 'Requisition to departmentto in branchto', new Date(), req.user.id, prices[i]]);
+            const { rowCount: insertResult } = await pg.query(`INSERT INTO divine."Inventory" (itemid, itemname, department, branch, units, cost, price, pricetwo, beginbalance, qty, minimumbalance, "group", applyto, itemclass, composite, compositeid, description, imageone, imagetwo, imagethree, status, "reference", transactiondate, transactiondesc, dateadded, createdby, sellingprice) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`, [itemids[i], fallbackDataFrom.itemname, departmentfrom, branchfrom, fallbackDataFrom.units, fallbackDataFrom.cost, fallbackDataFrom.price, fallbackDataFrom.pricetwo, fallbackDataFrom.beginbalance, -qtys[i], fallbackDataFrom.minimumbalance, fallbackDataFrom.group, fallbackDataFrom.applyto, fallbackDataFrom.itemclass, fallbackDataFrom.composite, fallbackDataFrom.compositeid, fallbackDataFrom.description, fallbackDataFrom.imageone, fallbackDataFrom.imagetwo, fallbackDataFrom.imagethree, 'ACTIVE', uniformReference, transactiondates[i]??new Date(), 'Requisition to departmentto in branchto'+'||'+descriptions[i], new Date(), req.user.id, prices[i]]);
             if (insertResult === 0) {
                 // Log activity for failed requisition
                 await activityMiddleware(res, req.user.id, `Failed requisition for itemid ${itemids[i]}`, 'FAILED REQUISITION');
@@ -122,14 +127,14 @@ const requisition = async (req, res) => {
                     statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
                     data: null,
                     errors: ["Something went wrong"]
-                });
+                }); 
             }
             // Fetch fallback data for branchto and departmentto
             const { rows: fallbackRowsTo } = await pg.query(`SELECT * FROM divine."Inventory" WHERE itemid = $1 AND branch = $2 AND department = $3 ORDER BY id DESC LIMIT 1`, [itemids[i], branchto, departmentto]);
             const fallbackDataTo = fallbackRowsTo.length > 0 ? fallbackRowsTo[0] : fallbackDataFrom; // Use fallbackDataFrom if fallbackRowsTo is empty
 
             // Insert or update the qty to positive in branchto and departmentto
-            const result = await pg.query(`INSERT INTO divine."Inventory" (itemid, itemname, department, branch, units, cost, price, pricetwo, beginbalance, qty, minimumbalance, "group", applyto, itemclass, composite, compositeid, description, imageone, imagetwo, imagethree, status, "reference", transactiondate, transactiondesc, dateadded, createdby, sellingprice) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27) RETURNING *`, [itemids[i], fallbackDataTo.itemname, departmentto, branchto, fallbackDataTo.units, prices[i], fallbackDataTo.price, fallbackDataTo.pricetwo, fallbackDataTo.beginbalance, qtys[i], fallbackDataTo.minimumbalance, fallbackDataTo.group, fallbackDataTo.applyto, fallbackDataTo.itemclass, fallbackDataTo.composite, fallbackDataTo.compositeid, fallbackDataTo.description, fallbackDataTo.imageone, fallbackDataTo.imagetwo, fallbackDataTo.imagethree, 'PENDING REQUISITION', uniformReference, new Date(), 'Requisition from departmentfrom in branchfrom', new Date(), req.user.id, prices[i]]);
+            const result = await pg.query(`INSERT INTO divine."Inventory" (itemid, itemname, department, branch, units, cost, price, pricetwo, beginbalance, qty, minimumbalance, "group", applyto, itemclass, composite, compositeid, description, imageone, imagetwo, imagethree, status, "reference", transactiondate, transactiondesc, dateadded, createdby, sellingprice) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27) RETURNING *`, [itemids[i], fallbackDataTo.itemname, departmentto, branchto, fallbackDataTo.units, prices[i], fallbackDataTo.price, fallbackDataTo.pricetwo, fallbackDataTo.beginbalance, qtys[i], fallbackDataTo.minimumbalance, fallbackDataTo.group, fallbackDataTo.applyto, fallbackDataTo.itemclass, fallbackDataTo.composite, fallbackDataTo.compositeid, fallbackDataTo.description, fallbackDataTo.imageone, fallbackDataTo.imagetwo, fallbackDataTo.imagethree, 'PENDING REQUISITION', uniformReference, transactiondates[i]??new Date(), 'Requisition from departmentfrom in branchfrom'+'||'+descriptions[i], new Date(), req.user.id, prices[i]]);
             if (result.rowCount === 0) {
                 console.error(`Failed to insert inventory for itemid ${itemids[i]} in branchto and departmentto`);
                 // Log activity for failed requisition

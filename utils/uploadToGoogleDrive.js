@@ -10,7 +10,10 @@ cloudinary.config({
 });
 
 async function uploadToGoogleDrive(req, res) {
+    console.log('Starting uploadToGoogleDrive function');
     const uploadedFiles = req.files; // Array of uploaded files
+    console.log('Uploaded files:', uploadedFiles);
+
     if (!uploadedFiles || uploadedFiles.length === 0) {
         // No files were uploaded, return the request as is
         console.log('No files were uploaded');
@@ -19,9 +22,11 @@ async function uploadToGoogleDrive(req, res) {
 
     // Iterate over each file and upload to Cloudinary
     for (let file of uploadedFiles) {
+        console.log('Processing file:', file.originalname);
         try {
             // Construct the file path
             const filePath = path.join(__dirname, '..', file.path);
+            console.log('File path constructed:', filePath);
 
             // Upload the file to Cloudinary
             const result = await cloudinary.uploader.upload(filePath, {
@@ -33,6 +38,7 @@ async function uploadToGoogleDrive(req, res) {
 
             // Add the secure URL to the request body under the appropriate field name
             req.body[file.fieldname] = result.secure_url;
+            console.log(`Secure URL added to request body for field ${file.fieldname}:`, result.secure_url);
 
             // Delete the file from the server after uploading
             fs.unlink(filePath, (err) => {
@@ -50,6 +56,7 @@ async function uploadToGoogleDrive(req, res) {
 
     // Return the modified request body (with the secure URLs added)
     console.log('Modified request body:', req.body);
+    console.log('uploadToGoogleDrive function completed');
     return req;
 }
 

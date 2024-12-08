@@ -37,6 +37,7 @@ const manageSavingsProduct = async (req, res) => {
         compulsorydepositpenaltyfallbackfrom,
         compulsorydepositdeficit = false,
         status = "ACTIVE",
+        membership = "",
         interestrowsize = 0,
         deductionrowsize = 0,
         ...body
@@ -135,6 +136,40 @@ const manageSavingsProduct = async (req, res) => {
             message: "The 'compulsorydepositfrequencyamount' is required when 'compulsorydeposit' is true.",
             errors: ["Missing compulsorydepositfrequencyamount"]
         });
+    }
+
+    // Membership validation
+    if (membership) {
+        // Split membership by '|' to handle multiple memberships
+        const membershipIds = membership.split('|').map(id => id.trim());
+
+        // Check if all membershipIds are valid numbers
+        const invalidIds = membershipIds.filter(id => !/^\d+$/.test(id));
+        if (invalidIds.length > 0) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: `Invalid membership ID(s): ${invalidIds.join(", ")}. Membership IDs must be numeric.`,
+                errors: ["Invalid membership ID format"]
+            });
+        }
+
+        // Convert to integers
+        const numericMembershipIds = membershipIds.map(id => parseInt(id, 10));
+
+        // Query to check existence of all membership IDs
+        const queryText = `SELECT id FROM divine."Membership" WHERE id = ANY($1::int[])`;
+        const { rows: existingMemberships } = await pg.query(queryText, [numericMembershipIds]);
+
+        const existingIds = existingMemberships.map(row => row.id);
+        const nonExistentIds = numericMembershipIds.filter(id => !existingIds.includes(id));
+
+        if (nonExistentIds.length > 0) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: `Membership ID(s) not found: ${nonExistentIds.join(", ")}.`,
+                errors: ["Invalid membership ID(s)"]
+            });
+        }
     }
 
     // Process interests and deductions arrays
@@ -271,9 +306,10 @@ const manageSavingsProduct = async (req, res) => {
                     compulsorydepositpenaltyfrom = $25,
                     compulsorydepositpenaltyfallbackfrom = $26,
                     compulsorydepositdeficit = $27,
-                    status = $28,
+                    membership = $28,
+                    status = $29,
                     updatedat = NOW()
-                WHERE id = $29`,
+                WHERE id = $30`,
                 [
                     productname,
                     currency,
@@ -302,6 +338,7 @@ const manageSavingsProduct = async (req, res) => {
                     compulsorydepositpenaltyfrom,
                     compulsorydepositpenaltyfallbackfrom,
                     compulsorydepositdeficit,
+                    membership,
                     status,
                     id
                 ]
@@ -431,6 +468,7 @@ const manageSavingsProduct = async (req, res) => {
                     compulsorydepositpenaltyfrom,
                     compulsorydepositpenaltyfallbackfrom,
                     compulsorydepositdeficit,
+                    membership,
                     status,
                     dateadded
                 ) VALUES (
@@ -439,7 +477,7 @@ const manageSavingsProduct = async (req, res) => {
                     $11, $12, $13, $14, $15,
                     $16, $17, $18, $19, $20,
                     $21, $22, $23, $24, $25,
-                    $26, $27, $28, NOW()
+                    $26, $27, $28, $29, NOW()
                 ) RETURNING id`;
 
             const values = [
@@ -470,6 +508,7 @@ const manageSavingsProduct = async (req, res) => {
                 compulsorydepositpenaltyfrom,
                 compulsorydepositpenaltyfallbackfrom,
                 compulsorydepositdeficit,
+                membership,
                 status
             ];
 

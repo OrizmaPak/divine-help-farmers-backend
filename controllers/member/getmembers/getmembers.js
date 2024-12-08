@@ -15,16 +15,16 @@
             };
     
             // Determine access level based on user role and permissions
+            let whereClause = '';
             if (user.role !== 'SUPERADMIN' && (!user.permissions || !user.permissions.includes('ACCESS ALL USERS'))) {
                 // Restrict to users from the same branch
-                query.text += query.text.includes('WHERE') ? ` AND "branch" = $${query.values.length + 1}` : ` WHERE "branch" = $${query.values.length + 1}`;
+                whereClause += whereClause ? ` AND "branch" = $${query.values.length + 1}` : ` WHERE "branch" = $${query.values.length + 1}`;
                 query.values.push(user.branch);
             }
 
             console.log(user.branch)
     
             // Dynamically build the WHERE clause based on query parameters
-            let whereClause = '';
             let valueIndex = query.values.length + 1;
             Object.keys(req.query).forEach((key) => {
                 if (key !== 'q') {

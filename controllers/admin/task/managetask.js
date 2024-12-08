@@ -117,6 +117,7 @@ const manageTask = async (req, res) => {
 
                 // Log activity for task status update
                 const { rows: [branchName] } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [branch]);
+                c
                 await activityMiddleware(req, req.user.id, `Task status updated successfully for branch ${branchName.branch}`, 'TASK');
                 return res.status(StatusCodes.OK).json({
                     status: true,
@@ -125,7 +126,7 @@ const manageTask = async (req, res) => {
                     data: updatedTask,
                     errors: []
                 });
-            } else {
+            } else { 
                 // Update task details
                 const { rows: [updatedTask] } = await pg.query(`
                     UPDATE divine."Task"

@@ -15,6 +15,9 @@ const { manageissuelog } = require('../controllers/inventory/Issuesandreturn/iss
 const { getissuelog } = require('../controllers/inventory/Issuesandreturn/getissuelog');
 const { getStockLedger } = require('../controllers/inventory/report/getstockledger');
 const { getStockValuation } = require('../controllers/inventory/report/stockvaluation');
+const { updatemultipleinventory } = require('../controllers/inventory/updateinventory/updatemultipleinventory');
+const { deleteinventory } = require('../controllers/inventory/updateinventory/deleteinventory');
+const { harddeleteinventory } = require('../controllers/inventory/updateinventory/harddeleteinventory');
 const router = express.Router();
 
 
@@ -35,8 +38,15 @@ router.route('/openingstock')
 router.route('/update')
     .post(updateinventory)
 
+router.route('/updatemultiple')
+    .post(updatemultipleinventory)
+
 router.route('/update/images')
     .post(updateImages)
+
+router.route('/delete')
+    .post(deleteinventory)
+    // .post(harddeleteinventory)
 
 // REQUISITION
 router.route('/requisition')

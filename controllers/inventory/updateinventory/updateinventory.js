@@ -2,32 +2,36 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { uploadToGoogleDrive } = require("../../../utils/uploadToGoogleDrive");
 
 // Define the updateinventory function
 const updateinventory = async (req, res) => {
+    console.log('update inventory', req.files)
+    if (req.files) {
+        await uploadToGoogleDrive(req, res);
+    }
+    console.log('update inventory2')
     // Destructure the request body
     const { itemid, branch, department="", ...inventoryData } = req.body;
 
     // Check if itemid and branch are provided
-    if (!itemid || !branch) {
+    if (!itemid) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Itemid and branch are required",
+            message: "Itemid are required",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
-            errors: ["Itemid and branch are required"]
+            errors: ["Itemid are required"]
         });
     }
 
     try {
         // Initialize departments array
-        let departments = [department];
-        // If department is not provided, fetch all departments for the itemid
+        let departments = department && department.includes('||') ? department.split('||') : [department];
         if (!department) {
-            const { rows: allDepartments } = await pg.query(`SELECT department FROM divine."Inventory" WHERE itemid = $1 GROUP BY department`, [itemid]);
-            departments = allDepartments.map(d => d.department);
+            const { rows: itemDepartments } = await pg.query(`SELECT department FROM divine."Inventory" WHERE itemid = $1 GROUP BY department`, [itemid]);
+            departments = [...new Set(itemDepartments.map(d => d.department))];
         }
-
         // Fetch the department with the highest id for the itemid
         let { rows: maxIdDepartment } = await pg.query(`SELECT * FROM divine."Inventory" WHERE itemid = $1 ORDER BY id DESC LIMIT 1`, [itemid]);
 
@@ -36,13 +40,40 @@ const updateinventory = async (req, res) => {
             maxIdDepartment = maxIdDepartment.rows;
         }
 
+        
+        // If department is not provided, fetch all departments for the itemid
+        // if (!department) {
+        //     const { rows: allDepartments } = await pg.query(`SELECT department FROM divine."Inventory" WHERE itemid = $1 GROUP BY department`, [itemid]);
+        //     departments = allDepartments.map(d => d.department);
+        // } 
+
+
         // DECLARING THE ITEM NAME CAUSE SOME PEOPLE MIGHT DECIDE TO CHANGE IT ACROSS DEPARTMENTS
         let itmn 
+
+        // Initialize an array to store branches in the order of departments
+        let branches = branch && branch.includes('||') ? branch.split('||') : [branch];; 
+
+        // Iterate over each department and fetch the corresponding branch
+        if(!branch)for (let dept of departments) {
+            console.log('dept:', dept);
+            const { rows } = await pg.query(`SELECT branch FROM divine."Department" WHERE id = $1`, [dept]);
+            console.log('rows:', rows);
+            if (rows.length > 0) {
+                branches.push(rows[0].branch);
+            } else {
+                branches.push(null); // or handle the case where no branch is found for the department
+            }
+        }
+
+        // console.log('Branches:', branches);
+        // console.log('departments:', departments);
+        // return;
 
         // Iterate over each department
         for (let i = 0; i < departments.length; i++) {
             // Construct the data object
-            const data = { ...inventoryData, itemid, branch, department: departments[i] };
+            const data = { ...inventoryData, itemid, branch: branches[i], department: departments[i] };
             // If it's not the first department, fill in missing data with the max id data
             if (i > 0) {
                 for (let key in maxIdDepartment[0]) {

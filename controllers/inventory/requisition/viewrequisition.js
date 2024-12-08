@@ -23,24 +23,24 @@ const viewrequisition = async (req, res) => {
     // Extract other filter parameters
     const branch = searchParams.get('branch') || '';
     const department = searchParams.get('department') || ''; // Added department filter
-    const status = searchParams.get('status') || 'ACTIVE'; // Added status filter
+    const status = searchParams.get('status') || ''; // Added status filter
     const startdate = searchParams.get('startdate') || null; // Added start date filter
     const enddate = searchParams.get('enddate') || null; // Added end date filter
 
     // Base query string for inventory selection
-    let queryString = `SELECT * FROM divine."Inventory" WHERE status = $1 AND transactiondesc LIKE '%Requisition%'`;
-    let params = [status]; // Array to hold query parameters
+    let queryString = `SELECT * FROM divine."Inventory" WHERE transactiondesc LIKE '%Requisition%'`;
+    let params = []; // Array to hold query parameters
 
     // Dynamically add conditions based on the presence of filters
-    if (branch) {
-        queryString += ` AND branch = $${params.length + 1}`;
-        params.push(branch);
-    }
+    // if (branch) {
+    //     queryString += ` AND branch = $${params.length + 1}`;
+    //     params.push(branch);
+    // }
 
-    if (department) {
-        queryString += ` AND department = $${params.length + 1}`;
-        params.push(department);
-    }
+    // if (department) {
+    //     queryString += ` AND department = $${params.length + 1}`;
+    //     params.push(department);
+    // }
 
     // Add date range filter for transactiondate
     if (startdate && enddate) {
@@ -69,6 +69,7 @@ const viewrequisition = async (req, res) => {
 
         // Process each inventory item
         for (const item of inventory) {
+             console.log('item:', item);
             // Check if the reference is already in the batches object
             if (!batches[item.reference]) {
                 batches[item.reference] = { 
@@ -94,12 +95,14 @@ const viewrequisition = async (req, res) => {
                 batches[item.reference].reference = item.reference;
                 batches[item.reference].branchto = item.branch;
                 batches[item.reference].departmentto = item.department;
+                batches[item.reference].transactiondate = item.transactiondate;
                 batches[item.reference].items.push({
                     itemid: item.itemid,
                     itemname: item.itemname,
                     units: item.units,
                     qty: item.qty,
                     price: item.price,
+                    cost: item.cost,
                     sellingprice: item.sellingprice
                 });
                 // Fetch branch and department names
@@ -109,7 +112,7 @@ const viewrequisition = async (req, res) => {
                 batches[item.reference].departmenttoname = departmenttoname;
             }
         }
-
+        
         // Convert batches object to an array of batches
         uniqueInventory = Object.values(batches);
 
@@ -119,14 +122,14 @@ const viewrequisition = async (req, res) => {
             status: true,
             message: "Inventory fetched successfully",
             statuscode: StatusCodes.OK,
-            data: uniqueInventory,
+            data: uniqueInventory.filter(item => (!branch || item.branchfrom == branch)).filter(item => (!department || item.departmentfrom == department)),
             pagination: { 
                 total: Number(uniqueInventory.length),
                 pages: divideAndRoundUp(uniqueInventory.length, limit),
                 page,
                 limit
             },
-            errors: []
+            errors: [] 
         });
     } catch (err) {
         console.error('Unexpected Error:', err);

@@ -134,8 +134,10 @@ const getInventory = async (req, res) => {
     try {
         console.log(queryString, params)
         const { rows: inventory } = await pg.query(queryString, params); // Pass params array
+        console.log('1st', queryString, params)
         let catchparams = params.slice(0, -2)
         const { rows: [{ count: total }] } = await pg.query(catchquery, catchparams);
+        console.log('2nd', catchquery, catchparams)
         const pages = divideAndRoundUp(total, limit);
         if(inventory.length > 0) {
             // Handle unique itemid and add up qty for similar itemid
@@ -147,7 +149,7 @@ const getInventory = async (req, res) => {
                 } else {
                     uniqueInventory.push(item);
                 }
-            });
+            }); 
             // Fetch departmentname and branchname from their tables
             await Promise.all(uniqueInventory.map(async (item, i) => {
                 const { rows: [{ department }] } = await pg.query(`SELECT department FROM divine."Department" WHERE id = $1`, [item.department]);

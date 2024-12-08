@@ -4,10 +4,21 @@ const { activityMiddleware } = require("../../../middleware/activity"); // Added
 
 // Function to define a department
 const defineDepartment = async (req, res) => {
-    const { id="", department, branch, userid, status="" } = req.body;
+    const user = req.user;
+    const { id = "", department, branch=user.branch, userid, status = "", category = "STORE", applyforsales = "JUST DEPARTMENT" } = req.body;
     
-    const user = req.user
-
+    // Ensure userid is a valid integer
+    const userIdInt = parseInt(userid, 10);
+    if (isNaN(userIdInt)) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+            status: false,
+            message: "Invalid user ID",
+            statuscode: StatusCodes.BAD_REQUEST,
+            data: null,
+            errors: []
+        });
+    }
+    
     // Basic validation
     if (!department || !branch) {
         let errors = [];
@@ -34,11 +45,11 @@ const defineDepartment = async (req, res) => {
     }
 
     try {
-         // Check if department exists for the branch or if another department in the branch has the name
+        // Check if department exists for the branch or if another department in the branch has the name
         const { rows: thedepartment } = await pg.query(
             `SELECT * FROM divine."Department" 
             WHERE (department = $1 AND branch = $2) 
-            OR (branch = $2 AND department = $1 AND (id != $3 OR $3 = '0'))`, 
+            OR (branch = $2 AND department = $1 AND (divine."Department".id != $3 OR $3 = '0'))`, 
             [department, branch, id === '' ? '0' : id]
         );
 
@@ -53,36 +64,37 @@ const defineDepartment = async (req, res) => {
             });
         }
 
-
         // DEFINE QUERY
         let query;
 
         if (id) {
-            if(id && status){
+            if (id && status) {
                 // Update the department status
                 query = await pg.query(`UPDATE divine."Department" SET 
-                    status = $1,
-                    lastupdated = $2,
-                    userid = $3
+                    status = COALESCE($1, status),
+                    lastupdated = COALESCE($2, lastupdated),
+                    userid = COALESCE($3, userid)
                     WHERE id = $4`, [status, new Date(), userid, id]);
-            }else{
+            } else {
                 // Update the department details
                 query = await pg.query(`UPDATE divine."Department" SET 
-                    department = $1, 
-                    branch = $2, 
-                    lastupdated = $3,
-                    userid = $4
-                    WHERE id = $5`, [department, branch, new Date(), userid, id]);
+                    department = COALESCE($1, department), 
+                    branch = COALESCE($2, branch), 
+                    category = COALESCE($3, category),
+                    applyforsales = COALESCE($4, applyforsales),
+                    lastupdated = COALESCE($5, lastupdated),
+                    userid = COALESCE($6, userid)
+                    WHERE id = $7`, [department, branch, category, applyforsales, new Date(), userid, id]);
             }
         } else {
             // Insert a new department
             query = await pg.query(`INSERT INTO divine."Department" 
-                (department, branch, createdby, userid) 
-                VALUES ($1, $2, $3, $4)`, [department, branch, user.id, userid]);
+                (department, branch, category, applyforsales, createdby, userid) 
+                VALUES ($1, $2, $3, $4, $5, $6)`, [department, branch, category, applyforsales, user.id, userIdInt]);
         }
 
         // NOW SAVE THE DEPARTMENT
-        const { rowCount: savedepartment } = query
+        const { rowCount: savedepartment } = query;
 
         // Prepare the response data
         const responseData = {
@@ -94,7 +106,7 @@ const defineDepartment = async (req, res) => {
         };
 
         // Return the response
-        if(savedepartment > 0) {
+        if (savedepartment > 0) {
             // TRACK THE ACTIVITY
             await activityMiddleware(req, user.id, `${department} Department ${!id ? 'created' : 'updated'}`, 'DEPARTMENT');
             return res.status(StatusCodes.OK).json(responseData);
@@ -110,7 +122,6 @@ const defineDepartment = async (req, res) => {
         });
     }
 }   
-
 
 module.exports = {
     defineDepartment

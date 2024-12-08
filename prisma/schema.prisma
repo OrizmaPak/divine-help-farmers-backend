@@ -66,6 +66,7 @@ model User {
   address       String?
   role          String    @default("USER")
   permissions   String?
+  userpermissions   String? @default("")
   password      String
   officeaddress String?
   image2         String?
@@ -105,6 +106,8 @@ model Department {
   id            Int       @id @default(sequence())
   department    String    
   branch        Int
+  category      String? @default("STORE") // "OFFICE", "STORE", "IT", "MOBILE UNIT", "OTHER"
+  applyforsales String? @default("JUST DEPARTMENT") // "JUST DEPARTMENT", "STOCK", "NON STOCK"
   userid        Int?
   dateadded     DateTime  @default(now())
   status        String    @default("ACTIVE")
@@ -347,6 +350,7 @@ model Inventory {
   reference          String?
   transactiondate    String?
   transactiondesc    String?
+  reorderlevel       String? @default("2")
   issue              String?
   issuetype          String?
   supplier           String?
@@ -429,6 +433,7 @@ model savingsproduct {
   eligibilityminimumclosedaccounts Int?
 
   status                          String @default("ACTIVE")
+  membership                      String? @default("")
 
 
   // Interest
