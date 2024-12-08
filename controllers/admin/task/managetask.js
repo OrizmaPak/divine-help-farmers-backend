@@ -94,6 +94,7 @@ const manageTask = async (req, res) => {
         }
         
     }
+    const { rows: [branchName] } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [branch]);
         // If task ID is provided, update the task
         if (id) {
             // If status is provided, update only the status
@@ -105,26 +106,25 @@ const manageTask = async (req, res) => {
                     RETURNING *
                 `, [status, id]);
 
-                if (!updatedTask) {
+                if (!updatedTask) { 
                     return res.status(StatusCodes.NOT_FOUND).json({
                         status: false,
                         message: "Task not found",
                         statuscode: StatusCodes.NOT_FOUND,
-                        data: null,
+                        data: null, 
                         errors: []
                     });
                 }
 
                 // Log activity for task status update
-                const { rows: [branchName] } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [branch]);
-                c
+                
                 await activityMiddleware(req, req.user.id, `Task status updated successfully for branch ${branchName.branch}`, 'TASK');
                 return res.status(StatusCodes.OK).json({
                     status: true,
                     message: "Task status updated successfully",
                     statuscode: StatusCodes.OK,
                     data: updatedTask,
-                    errors: []
+                    errors: [] 
                 });
             } else { 
                 // Update task details
