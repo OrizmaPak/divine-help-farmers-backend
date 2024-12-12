@@ -8,15 +8,16 @@ const manageissuelog = async (req, res) => {
     // Destructure the request body
     const { branch, department, rowsize, reference, ...itemDetails } = req.body;
 
+    
     // FOR UPDATE SEND REFERENCE 
-
+    
     // Validate the presence of branch, department, and rowsize
     if (!branch || !department || !rowsize) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Branch, department, and rowsize are required",
             statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            data: null, 
             errors: ["Branch, department, and rowsize are required"]
         });
     }
@@ -32,7 +33,7 @@ const manageissuelog = async (req, res) => {
             errors: ["Branch does not exist"]
         });
     }
-
+    
     // Validate that the department exists in the branch
     const departmentExists = await pg.query(`SELECT * FROM divine."Department" WHERE id = $1 AND branch = $2`, [department, branch]);
     if (departmentExists.rows.length === 0) {
@@ -56,7 +57,7 @@ const manageissuelog = async (req, res) => {
         issueTypes.push(itemDetails[`issuetype${i}`]);
         issues.push(itemDetails[`issue${i}`]);
     }
-
+    
     // Validate the number of itemids, qtys, issueTypes, and issues match the rowsize
     if (itemids.length != rowsize || qtys.length != rowsize || issueTypes.length != rowsize || issues.length != rowsize) {
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -67,10 +68,10 @@ const manageissuelog = async (req, res) => {
             errors: ["Number of itemids, qtys, issueTypes, and issues must match the rowsize"]
         });
     }
-
+    
     try {
         // Start a transaction
-        pg.connect()
+        // pg.connect()
         await pg.query('BEGIN');
 
         // Process each item

@@ -547,7 +547,7 @@ model Accounts {
   dateadded                DateTime
   createdby                Int
 }
-
+ 
 model loanfee {
   id                       Int        @id @default(sequence()) 
   feename                  String    @unique

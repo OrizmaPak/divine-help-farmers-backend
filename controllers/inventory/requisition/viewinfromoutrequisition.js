@@ -5,7 +5,7 @@ const { addOneDay } = require("../../../utils/expiredate"); // Import utility fu
 const { divideAndRoundUp } = require("../../../utils/pageCalculator"); // Import utility function for pagination
 
 // Function to handle GET inventory request
-const viewrequisition = async (req, res) => {
+const viewinfromoutrequisition = async (req, res) => {
 
     let userid;
 
@@ -69,7 +69,7 @@ const viewrequisition = async (req, res) => {
 
         // Process each inventory item
         for (const item of inventory) {
-             console.log('item:', item);
+            console.log('item:', item);
             // Check if the reference is already in the batches object
             if (!batches[item.reference]) {
                 batches[item.reference] = { 
@@ -84,12 +84,17 @@ const viewrequisition = async (req, res) => {
 
             // Determine if the item is part of a batch based on qty
             if (item.qty < 0) {
+                // Filter out references where the inventory with negative qty has status of PENDING REQUISITION
+                if (item.status === 'PENDING REQUISITION') {
+                    delete batches[item.reference];
+                    continue;
+                }
                 batches[item.reference].reference = item.reference;
                 batches[item.reference].branchfrom = item.branch;
                 batches[item.reference].departmentfrom = item.department;
                 // Fetch branch and department names
                 // batches[item.reference].outitems.push({
-                //     itemid: item.itemid,
+                //     itemid: item.itemid, 
                 //     itemname: item.itemname,
                 //     units: item.units,
                 //     qty: item.qty, 
@@ -135,7 +140,7 @@ const viewrequisition = async (req, res) => {
             status: true,
             message: "Inventory fetched successfully",
             statuscode: StatusCodes.OK,
-            data: uniqueInventory.filter(item => (!branch || item.branchfrom == branch)).filter(item => (!department || item.departmentfrom == department)),
+            data: uniqueInventory.filter(item => (!branch || item.branchto == branch)).filter(item => (!department || item.departmentto == department)),
             pagination: { 
                 total: Number(uniqueInventory.length),
                 pages: divideAndRoundUp(uniqueInventory.length, limit),
@@ -158,6 +163,6 @@ const viewrequisition = async (req, res) => {
 }
 
 module.exports = {
-    viewrequisition
+    viewinfromoutrequisition
 };
 

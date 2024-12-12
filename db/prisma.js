@@ -15,10 +15,10 @@ if (process.env.NODE_ENV === 'production') {
 
 prisma.$connect().then(() => {
   console.log('Prisma connected successfully');
-}).catch((error) => {
-  console.error('Prisma connection error:');
-  // console.error('Prisma connection error:', error);
+}).catch((error) => {  
+  // console.error('Prisma connection error:'); 
+  console.error('Prisma connection error:', error);
 });
-
-module.exports = prisma;
  
+module.exports = prisma;
+   

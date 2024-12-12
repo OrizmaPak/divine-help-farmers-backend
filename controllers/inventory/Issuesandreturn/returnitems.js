@@ -87,7 +87,6 @@ const managereturnitems = async (req, res) => {
 
     try {
         // Start a transaction
-        pg.connect()
         await pg.query('BEGIN');
 
         // DECLARING THE REFERENCE IF ITS CREATION

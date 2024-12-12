@@ -5,7 +5,7 @@ const { addOneDay } = require("../../../utils/expiredate"); // Import utility fu
 const { divideAndRoundUp } = require("../../../utils/pageCalculator"); // Import utility function for pagination
 
 // Function to handle GET inventory request
-const viewrequisition = async (req, res) => {
+const viewinrequisition = async (req, res) => {
 
     let userid;
 
@@ -28,7 +28,7 @@ const viewrequisition = async (req, res) => {
     const enddate = searchParams.get('enddate') || null; // Added end date filter
 
     // Base query string for inventory selection
-    let queryString = `SELECT * FROM divine."Inventory" WHERE transactiondesc LIKE '%Requisition%'`;
+    let queryString = `SELECT * FROM divine."Inventory" WHERE transactiondesc LIKE '%inRequisition%'`;
     let params = []; // Array to hold query parameters
 
     // Dynamically add conditions based on the presence of filters
@@ -84,12 +84,17 @@ const viewrequisition = async (req, res) => {
 
             // Determine if the item is part of a batch based on qty
             if (item.qty < 0) {
+                // Filter out references where the inventory with negative qty has status of ACTIVE
+                if (item.status === 'ACTIVE') {
+                    delete batches[item.reference];
+                    continue;
+                }
                 batches[item.reference].reference = item.reference;
                 batches[item.reference].branchfrom = item.branch;
                 batches[item.reference].departmentfrom = item.department;
                 // Fetch branch and department names
                 // batches[item.reference].outitems.push({
-                //     itemid: item.itemid,
+                //     itemid: item.itemid, 
                 //     itemname: item.itemname,
                 //     units: item.units,
                 //     qty: item.qty, 
@@ -158,6 +163,6 @@ const viewrequisition = async (req, res) => {
 }
 
 module.exports = {
-    viewrequisition
+    viewinrequisition
 };
 

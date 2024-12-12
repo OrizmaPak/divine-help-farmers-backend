@@ -3,23 +3,46 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware for activity tracking
 
 const getissuelog = async (req, res) => {
-    const { startdate, enddate } = req.query;
-    let query = `SELECT * FROM divine."Inventory" WHERE status = 'ACTIVE' AND transactiondesc LIKE '%Issue%'`;
+    const { startdate, enddate, branch, department, status = "ACTIVE" } = req.query;
+    let query = `
+        SELECT Inventory.*, Branch.branch AS branchname, Department.department AS departmentname, Issue.issuetype AS issuetypename
+        FROM divine."Inventory" AS Inventory
+        JOIN divine."Branch" AS Branch ON Inventory.branch::int = Branch.id
+        JOIN divine."Department" AS Department ON Inventory.department::int = Department.id
+        JOIN divine."issue" AS Issue ON Inventory.issuetype::int = Issue.id
+        WHERE Inventory.transactiondesc LIKE '%Issue%'
+    `;
     let params = [];
 
     if (startdate && enddate) {
-        query += ` AND transactiondate BETWEEN $1 AND $2`;
+        query += ` AND Inventory.transactiondate BETWEEN $1 AND $2`;
         params.push(startdate, enddate);
     } else if (startdate) {
-        query += ` AND transactiondate >= $1`;
+        query += ` AND Inventory.transactiondate >= $1`;
         params.push(startdate);
-    } else if (enddate) {
-        query += ` AND transactiondate <= $1`;
+    } else if (enddate) { 
+        query += ` AND Inventory.transactiondate <= $1`; 
         params.push(enddate);
+    }
+
+    if (branch) {
+        query += ` AND Inventory.branch = $${params.length + 1}`;
+        params.push(branch);
+    }
+
+    if (department) {
+        query += ` AND Inventory.department = $${params.length + 1}`;
+        params.push(department);
+    }
+
+    if (status) {
+        query += ` AND Inventory.status = $${params.length + 1}`;
+        params.push(status);
     }
 
     try {
         const { rows: inventory } = await pg.query(query, params);
+        console.log(query)
 
         await activityMiddleware(req, req.user.id, 'Inventory with ISSUES retrieved successfully', 'ISSUE_LOG'); // Tracker middleware
 

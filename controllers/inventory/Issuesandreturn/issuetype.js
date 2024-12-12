@@ -4,9 +4,9 @@ const pg = require("../../../db/pg");
 
 const manageIssueType = async (req, res) => {
     const user = req.user;
-    const { id, issuetype, status } = req.body;
-    
-    if (!issuetype) {
+    const { id, issuetype, status = "ACTIVE" } = req.body;
+
+    if (!issuetype && !status) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Missing compulsory issuetype",
@@ -14,33 +14,48 @@ const manageIssueType = async (req, res) => {
             data: null,
             errors: []
         });
-    }
-
-    const existingIssueType = await pg.query(`SELECT * FROM divine."issue" WHERE issuetype = $1`, [issuetype]);
-    if (existingIssueType.rows.length > 0) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            status: false,
-            message: "Issue type already exists",
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
-            errors: []
-        });
-    }
-    
+    } 
 
     try {
         if (!id) {
+            const existingIssueType = await pg.query(`SELECT * FROM divine."issue" WHERE issuetype = $1`, [issuetype]);
+            if (existingIssueType.rows.length > 0) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "Issue type already exists",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+
             await pg.query(`INSERT INTO divine."issue" (issuetype, createdby, dateadded) VALUES ($1, $2, $3)`, [issuetype, user.id, new Date()]);
             await activityMiddleware(req, user.id, 'Issue type created successfully', 'ISSUE');
             return res.status(StatusCodes.OK).json({
                 status: true,
                 message: "Issue type created successfully",
                 statuscode: StatusCodes.OK,
-                data: null,
+                data: null, 
                 errors: []
             });
         } else {
-            await pg.query(`UPDATE divine."issue" SET ${status ? 'status' : 'issuetype'} = $1 WHERE id = $2`, [status || issuetype, id]);
+            if (status === "DELETED") {
+                const { rows: inventoryItems } = await pg.query(`SELECT * FROM divine."Inventory" WHERE issuetype = $1`, [id]);
+                if (inventoryItems.length > 0) {
+                    return res.status(StatusCodes.BAD_REQUEST).json({
+                        status: false,
+                        message: "Cannot delete issue type as it is associated with existing inventory items",
+                        statuscode: StatusCodes.BAD_REQUEST,
+                        data: null,
+                        errors: []
+                    });
+                }
+            }
+
+            await pg.query(
+                `UPDATE divine."issue" SET issuetype = COALESCE($1, issuetype), status = COALESCE($2, status) WHERE id = $3`,
+                [issuetype, status, id]
+            );
             await activityMiddleware(req, user.id, 'Issue type updated successfully', 'ISSUE');
             return res.status(StatusCodes.OK).json({
                 status: true,
