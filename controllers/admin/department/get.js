@@ -1,6 +1,5 @@
 const { StatusCodes } = require("http-status-codes"); // Import StatusCodes for HTTP status codes
 const pg = require("../../../db/pg"); // Import PostgreSQL client
-const { addOneDay } = require("../../../utils/expiredate"); // Import utility for adding one day to a date
 const { divideAndRoundUp } = require("../../../utils/pageCalculator"); // Import utility for pagination calculations
 
 // Function to handle GET request for departments
@@ -29,7 +28,7 @@ const getDepartment = async (req, res) => {
 
         // Dynamically add conditions based on the presence of filters
         if (id) {
-            queryString += ` AND d.id = $${params.length + 1}`;
+            queryString += ` AND d."id" = $${params.length + 1}`;
             params.push(id);
         } else {
             if (q) {
@@ -37,50 +36,72 @@ const getDepartment = async (req, res) => {
                 const { rows: columns } = await pg.query(`
                     SELECT column_name
                     FROM information_schema.columns
-                    WHERE table_name = 'Department'
+                    WHERE table_name = 'Department' AND table_schema = 'divine'
                 `);
 
                 const cols = columns.map(row => row.column_name);
 
-                // Generate the dynamic SQL query for search
-                const searchConditions = cols.map(col => `${col}::text ILIKE $${params.length + 1}`).join(' OR ');
+                if (cols.length === 0) {
+                    throw new Error("No columns found for Department table.");
+                }
+
+                // Generate the dynamic SQL query for search with correct parameter indexing
+                const searchConditions = cols.map(col => {
+                    params.push(`%${q}%`); // Push a separate parameter for each column
+                    return `d."${col}"::text ILIKE $${params.length}`;
+                }).join(' OR ');
+
                 queryString += ` AND (${searchConditions})`;
-                params.push(`%${q}%`); 
             }
 
             if (branch) {
                 // Add condition for branch filter
-                queryString += ` AND d.branch = $${params.length + 1}`;
+                queryString += ` AND d."branch" = $${params.length + 1}`;
                 params.push(branch);
             }
 
             if (status) {
                 // Add condition for status filter
-                queryString += ` AND d.status = $${params.length + 1}`;
+                queryString += ` AND d."status" = $${params.length + 1}`;
                 params.push(status);
             }
 
+            // Define valid sort fields and map them to their qualified names
+            const validSortFields = {
+                'id': 'd."id"',
+                'department': 'd."department"',
+                'branch': 'b."branch"',
+                'status': 'd."status"',
+                // Add other sortable fields as necessary
+            };
+
+            // Validate and set sort field
+            const sortField = validSortFields[sort] || 'd."id"';
+
+            // Validate and set sort order
+            const validOrder = ['ASC', 'DESC'];
+            const sortOrder = validOrder.includes(order.toUpperCase()) ? order.toUpperCase() : 'DESC';
+
+            // Combine sort parameters
+            const sortParam = `${sortField} ${sortOrder}`;
+
             // Append the ORDER BY and LIMIT clauses to the query string
-            const sortParam = `${sort} ${order}`;
             queryString += ` ORDER BY ${sortParam} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
             params.push(limit, offset);
         }
-
-        // Convert all parameters to strings
-        params = params.map(param => param.toString());
 
         console.log(queryString, params); // Log the query string and parameters for debugging
         const { rows: departments } = await pg.query(queryString, params); // Execute the query with parameters
 
         // Prepare parameters for the count query
-        let countQuery = `SELECT COUNT(*) FROM divine."Department" WHERE 1=1`;
+        let countQuery = `SELECT COUNT(*) FROM divine."Department" d WHERE 1=1`;
         let countParams = [];
         if (branch) {
-            countQuery += ` AND branch = $${countParams.length + 1}`;
+            countQuery += ` AND d."branch" = $${countParams.length + 1}`;
             countParams.push(branch);
         }
         if (status) {
-            countQuery += ` AND status = $${countParams.length + 1}`;
+            countQuery += ` AND d."status" = $${countParams.length + 1}`;
             countParams.push(status);
         }
 

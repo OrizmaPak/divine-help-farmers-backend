@@ -3,7 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware
 
 const definemembership = async (req, res) => {
-    const { id="", member, status="" } = req.body;
+    const { id="", member, status="", addmember="NO" } = req.body;
     
     const user = req.user
 
@@ -49,18 +49,20 @@ const definemembership = async (req, res) => {
             if(status){
                 query = await pg.query(`UPDATE divine."DefineMember" SET 
                     status = $1,
-                    lastupdated = $2
-                    WHERE id = $3`, [status, new Date(), id]);
+                    lastupdated = $2,
+                    addmember = $3
+                    WHERE id = $4`, [status, new Date(), addmember, id]);
             }else{
                 query = await pg.query(`UPDATE divine."DefineMember" SET 
                     member = $1, 
-                    lastupdated = $2
-                    WHERE id = $3`, [member, new Date(), id]);
+                    lastupdated = $2,
+                    addmember = $3
+                    WHERE id = $4`, [member, new Date(), addmember, id]);
             }
         } else {
             query = await pg.query(`INSERT INTO divine."DefineMember" 
-                (member, createdby) 
-                VALUES ($1, $2)`, [member, user.id]);
+                (member, createdby, addmember) 
+                VALUES ($1, $2, $3)`, [member, user.id, addmember]);
         }
 
         // NOW SAVE THE BRANCH

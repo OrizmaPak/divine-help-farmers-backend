@@ -5,6 +5,9 @@ const { activityMiddleware } = require("../../../middleware/activity");
 const manageSavingsAccount = async (req, res) => {
     const { savingsproductid, userid, amount = 0, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, sms, whatsapp, email, createdby, accountnumber } = req.body;
 
+
+
+
     try {
         // Type validation based on the model
         let typeErrors = [];

@@ -27,6 +27,9 @@ const { manageCashierLimit } = require('../controllers/admin/cashier limit/manag
 const { getCashierLimit } = require('../controllers/admin/cashier limit/get');
 const { getOnlineUsers } = require('../controllers/admin/onlineusers/get');
 const { checkUser } = require('../controllers/auth/checkuser');
+const { addStaffToRegistrationPoint } = require('../controllers/admin/registrationpoint/addstafftoregpoint');
+const { manageMembership } = require('../controllers/admin/memberships/managemembership');
+const { getMembershipMembers } = require('../controllers/admin/memberships/getmembershipmembers');
 
 // BRANCH MANAGEMENT
 router.route('/branch')
@@ -48,6 +51,11 @@ router.route('/organizationsettings')
 router.route('/organizationmembership')
     .post(definemembership)
     .get(getdefinedmembership)
+
+// MANAGE MEMBERSHIPS
+router.route('/memberships')
+    .post(manageMembership) 
+    .get(getMembershipMembers)
 
 // ORGANIZATION POSITIONS BY MEMBERSHIP
 router.route('/positionbymembership')
@@ -76,6 +84,8 @@ router.route('/rejecttransactiondate')
 router.route('/registrationpoints')
     .post(manageRegistrationPoint)
     .get(getRegistrationPoint)
+router.route('/addStaffToRegistrationPoint')
+    .post(addStaffToRegistrationPoint)
 
 // MANAGE TASK SCHEDULE
 router.route('/taskschedule')
@@ -88,10 +98,11 @@ router.route('/subtaskschedule')
 router.route('/cashierlimit')
     .post(manageCashierLimit)
     .get(getCashierLimit) 
-
+ 
 // GET ALL ONLINE USERS
 router.route('/onlineusers')
     .get(getOnlineUsers)
+
 
 
 module.exports = router;

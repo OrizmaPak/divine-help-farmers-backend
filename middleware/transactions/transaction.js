@@ -1,6 +1,6 @@
 const pg = require('../../db/pg'); // Use your existing pg setup
 const { StatusCodes } = require('http-status-codes'); // Assuming you are using http-status-codes for status codes
-const {activityMiddleware} = require('../activity'); // Import activity middleware
+const { activityMiddleware } = require('../activity'); // Import activity middleware
 const { 
     saveFailedTransaction, 
     savePendingTransaction, 
@@ -22,11 +22,11 @@ const { loanCredit } = require('./loan/credit');
 
 // Middleware function to save a transaction
 const saveTransactionMiddleware = async (req, res, next) => {
-    let user = req.user;
-    const client = pg
+    let user = req.user; // Get the user from the request
+    const client = pg; // Use the pg client for database operations
     try {
         await client.query('BEGIN'); // Start a transaction
-        await activityMiddleware(req, req.user.id, 'Transaction started', 'TRANSACTION');
+        await activityMiddleware(req, req.user.id, 'Transaction started', 'TRANSACTION'); // Log the start of a transaction
 
         // Extract transaction details from the request body
         const {
@@ -45,20 +45,18 @@ const saveTransactionMiddleware = async (req, res, next) => {
             tax = false,
         } = req.body;
 
-        let whichaccount;
-        let accountuser;
-        let personnalaccount
+        let whichaccount; // Variable to determine the type of account
+        let accountuser; // Variable to store account user details
+        let personnalaccount; // Variable to store personal account number
 
-        // Log activity
+        // Log activity for attempting to save transaction
         await activityMiddleware(req, req.user.id, 'Attempting to save transaction', 'TRANSACTION');
         
-        // 4. Generate a transaction reference if not provided
-        // let transactionReference = reference??'';
-
-        // 7. Check for back-dated or future transactions
+        // Query to get organisation settings
         const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" LIMIT 1`;
         const orgSettingsResult = await client.query(orgSettingsQuery);
         if (orgSettingsResult.rowCount === 0) {
+            // If organisation settings are not found, rollback the transaction
             await activityMiddleware(req, req.user.id, 'Organisation settings not found', 'TRANSACTION');
             await client.query('ROLLBACK'); // Rollback the transaction
             await activityMiddleware(req, req.user.id, 'Transaction rolled back due to missing organisation settings', 'TRANSACTION');
@@ -70,11 +68,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             req.body.transactiondesc += 'Organisation settings not found.|';
             return next();
         }
-        const orgSettings = orgSettingsResult.rows[0];
-        req['orgSettings'] = orgSettings;
+        const orgSettings = orgSettingsResult.rows[0]; // Store organisation settings
+        req['orgSettings'] = orgSettings; // Attach organisation settings to request
 
-        // 3. Check if both credit and debit are greater than zero
+        // Check if both credit and debit are greater than zero
         if (credit > 0 && debit > 0) {
+            // If both are greater than zero, save the transaction as failed
             await saveFailedTransaction(client, req, res, 'Invalid transaction', await generateNewReference(client, accountnumber, req, res), whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after invalid credit and debit', 'TRANSACTION');
@@ -85,56 +84,56 @@ const saveTransactionMiddleware = async (req, res, next) => {
             };
             req.body.transactiondesc += 'Both credit and debit cannot be greater than zero.|';
             return next();
-        i}
+        }
 
-        // 1. Validate the account number and status
+        // Validate the account number and status
         const savingsAccountQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
         const loanAccountQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
         let parsedAccountNumber = accountnumber;
         if (isNaN(accountnumber)) {
             parsedAccountNumber = parseInt(accountnumber, 10);
             if (isNaN(parsedAccountNumber)) {
-                parsedAccountNumber = '0000000000';
+                parsedAccountNumber = '0000000000'; // Default account number if parsing fails
             }
         }
         const accountResult = await client.query(savingsAccountQuery, [parsedAccountNumber]);
         const loanAccountResult = await client.query(loanAccountQuery, [parsedAccountNumber]);
         if (accountResult.rowCount !== 0) {
-            whichaccount = 'SAVINGS';
+            whichaccount = 'SAVINGS'; // Set account type to SAVINGS
         } else if (accountnumber.startsWith(orgSettings.personal_account_prefix)) {
             const phoneNumber = accountnumber.substring(orgSettings.personal_account_prefix.length);
             const userQuery = `SELECT * FROM divine."User" WHERE phone = $1`;
             const userResult = await client.query(userQuery, [phoneNumber]);
             if (userResult.rowCount === 0) {
-                // await client.query('ROLLBACK'); // Rollback the transaction
+                // If personal account number is invalid, save the transaction as failed
                 await saveFailedTransaction(client, req, res, 'Invalid personal account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
                 await client.query('COMMIT'); // Commit the transaction
                 await activityMiddleware(req, req.user.id, 'Transaction failed due to invalid personal account number', 'TRANSACTION');
                 req.transactionError = {
                     status: StatusCodes.EXPECTATION_FAILED,
-                    message: 'Invalid personal  or savings account number.',
+                    message: 'Invalid personal or savings account number.',
                     errors: ['Account not found.']
                 }; 
-                req.body.transactiondesc += 'Invalid personal  or savings account number.|';
-                // return next(); 
+                req.body.transactiondesc += 'Invalid personal or savings account number.|';
             }
-            whichaccount = 'PERSONAL';
+            whichaccount = 'PERSONAL'; // Set account type to PERSONAL
             const accountuser = userResult.rows[0]; // Save the user data in accountuser variable
         } else if (loanAccountResult.rowCount !== 0) {
-            whichaccount = 'LOAN';  
+            whichaccount = 'LOAN'; // Set account type to LOAN
             const loanaccountuser = loanAccountResult.rows[0]; // Save the user data in loanaccountuser variable
             req.body.loanaccountnumber = loanaccountuser.accountnumber;
             req.body.loanaccount = loanaccountuser;
         }
-        // establish the personal accountnumber
-        req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${user.phone}`
+        // Establish the personal account number
+        req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${user.phone}`;
         req.body.phone = user.phone;
-        personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`
+        personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`;
 
         if (accountResult.rowCount === 0 && !accountnumber.startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0) {
+            // If account number is invalid, save the transaction as failed
             await saveFailedTransaction(client, req, res, 'Invalid account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
             await client.query('COMMIT'); // Commit the transaction
-            await activityMiddleware(req, req.user.id, 'Transaction committed after invalid personnal account number', 'TRANSACTION');
+            await activityMiddleware(req, req.user.id, 'Transaction committed after invalid personal account number', 'TRANSACTION');
             req.transactionError = {
                 status: StatusCodes.EXPECTATION_FAILED,
                 message: 'Invalid account number.',
@@ -144,12 +143,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             return next();
         }
 
-          // 5. Initialize transaction status and reason for rejection
-          let transactionStatus = 'PENDING';
-          let reasonForRejection = '';
-          let reasonForPending = '';
+        // Initialize transaction status and reason for rejection
+        let transactionStatus = 'PENDING';
+        let reasonForRejection = '';
+        let reasonForPending = '';
 
-           // 6. Check for currency mismatch     
+        // Check for currency mismatch and date restrictions
         const currentDate = new Date();
         if (!orgSettings.allow_back_dated_transaction && new Date(transactiondate) < currentDate) {
             transactionStatus = 'FAILED';
@@ -187,7 +186,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
             transactionStatus = 'FAILED';
             reasonForRejection = 'Transaction date is a rejected date';
             // Immediately save the transaction as failed and stop processing
-            req.body.status = 'REJECTED'
+            req.body.status = 'REJECTED';
             await saveFailedTransaction(client, req, res, reasonForRejection, await generateNewReference(client, accountnumber, req, res), whichaccount);
             await client.query('COMMIT'); // Commit the transaction
             await activityMiddleware(req, req.user.id, 'Transaction committed after rejected date', 'TRANSACTION');
@@ -200,16 +199,15 @@ const saveTransactionMiddleware = async (req, res, next) => {
             return next();
         }
         
-
         // Get the user of the account number if it's a savings account      
         if (whichaccount === 'SAVINGS') {            
-            accountuser = accountResult.rows[0];
+            accountuser = accountResult.rows[0]; // Get account user details
             console.log('as e dey hot', accountuser);
-            req.body['userid'] = accountuser.userid;
-       
+            req.body['userid'] = accountuser.userid; // Attach user ID to request body
 
-            const account = accountResult.rows[0];
+            const account = accountResult.rows[0]; // Get account details
             if (account.status !== 'ACTIVE') {
+                // If account is not active, save the transaction as failed
                 await saveFailedTransaction(client, req, res, 'Account is not active.', await generateNewReference(client, accountnumber, req, res), whichaccount);
                 await client.query('COMMIT'); // Commit the transaction
                 await activityMiddleware(req, req.user.id, 'Transaction committed after inactive account', 'TRANSACTION');
@@ -222,10 +220,11 @@ const saveTransactionMiddleware = async (req, res, next) => {
                 return next();
             }
 
-            // 2. Validate the savings product
+            // Validate the savings product
             const savingsProductQuery = `SELECT * FROM divine."savingsproduct" WHERE id = $1`;
             const savingsProductResult = await client.query(savingsProductQuery, [account.savingsproductid]);
             if (savingsProductResult.rowCount === 0) {
+                // If savings product is invalid, save the transaction as failed
                 await saveFailedTransaction(client, req, res, 'Invalid savings product', await generateNewReference(client, accountnumber, req, res), whichaccount);
                 await client.query('COMMIT'); // Commit the transaction
                 await activityMiddleware(req, req.user.id, 'Transaction committed after invalid savings product', 'TRANSACTION');
@@ -238,8 +237,23 @@ const saveTransactionMiddleware = async (req, res, next) => {
                 return next();
             }
 
-            const savingsProduct = savingsProductResult.rows[0];
+            const savingsProduct = savingsProductResult.rows[0]; // Get savings product details
+            // Check for frequency override
+            const frequencyOverrideQuery = `
+                SELECT * FROM divine."frequencyoverride" 
+                WHERE savingsproductid = $1 AND branch = $2 AND status = 'ACTIVE'
+            `;
+            const frequencyOverrideResult = await client.query(frequencyOverrideQuery, [savingsProduct.id, account.branch]);
+
+            if (frequencyOverrideResult.rowCount > 0) {
+                const frequencyOverride = frequencyOverrideResult.rows[0];
+                savingsProduct.compulsorydepositfrequency = frequencyOverride.compulsorydepositfrequency; // Apply frequency override
+                console.log('Frequency override applied:', savingsProduct.compulsorydepositfrequency);
+            }
+
+            // Check if savings product is inactive
             if (savingsProduct.status !== 'ACTIVE') {
+                // If savings product is inactive, save the transaction as failed
                 await saveFailedTransaction(client, req, res, 'Inactive savings product', await generateNewReference(client, accountnumber, req, res), whichaccount);
                 await client.query('COMMIT'); // Commit the transaction
                 await activityMiddleware(req, req.user.id, 'Transaction committed after inactive savings product', 'TRANSACTION');
@@ -264,39 +278,29 @@ const saveTransactionMiddleware = async (req, res, next) => {
                     message: 'Transaction failed due to currency mismatch.',
                     errors: ['Currency mismatch or not provided.']
                 };
-                // req.body.transactiondesc += 'Transaction failed due to currency mismatch.|';
                 return next();
             }    
 
-            // WHERE CREDIT AND DEBIT IS HANDLED
-
-            
-            
-            // Group transactions based on credit and debit
+            // Handle credit and debit for savings account
             await savingsCredit(client, req, res, next, accountnumber, credit, description, ttype, transactionStatus, savingsProduct, whichaccount, req.user.id);
-    
             await savingsDebit(client, req, res, next, accountnumber, debit, description, ttype, transactionStatus, savingsProduct, whichaccount, accountuser);
- 
         }
 
-
+        // Handle transactions for personal accounts
         if (whichaccount === 'PERSONAL') {            
-                await personalCredit(client, req, res, next, req.body.personalaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
-                await personalDebit(client, req, res, next, req.body.personalaccountnumber, debit, description, ttype, transactionStatus, whichaccount);
+            await personalCredit(client, req, res, next, req.body.personalaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            await personalDebit(client, req, res, next, req.body.personalaccountnumber, debit, description, ttype, transactionStatus, whichaccount);
         }     
 
+        // Handle transactions for loan accounts
         if (whichaccount === 'LOAN') {
             await loanCredit(client, req, res, next, req.body.loanaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
-            // await loanDebit(client, req, res, next, req.body.loanaccountnumber, debit, description, ttype, transactionStatus, whichaccount);
         }
         
-
-
-        // Log activity
+        // Log activity for successful transaction save
         await activityMiddleware(req, req.user.id, 'Transaction saved successfully', 'TRANSACTION');
 
         await client.query('COMMIT'); // Commit the transaction
-        // res.status(StatusCodes.CREATED).json({ transaction: creditTransaction || debitTransaction });
     } catch (error) {
         await client.query('ROLLBACK'); // Rollback the transaction on error
         console.error('Transaction failed at:', error.stack);
@@ -334,10 +338,8 @@ const saveTransactionMiddleware = async (req, res, next) => {
             errors: [error.message]
         };
     } finally {
-        return next();
+        return next(); // Proceed to the next middleware
     }
 };
 
-
-
-module.exports = saveTransactionMiddleware;
+module.exports = saveTransactionMiddleware; // Export the middleware function

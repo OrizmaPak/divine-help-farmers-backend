@@ -7,31 +7,32 @@ const { validateCode } = require("../../../utils/datecode");
 
 // Function to handle POST request for creating or updating a savings product
 const manageSavingsProduct = async (req, res) => {
-    const {
-        id,
+    console.log("Starting manageSavingsProduct function");
+    let {
+        id, 
         productname,
         currency,
-        maxbalance,
-        allowdeposit,
-        allowwithdrawal,
-        withdrawallimit,
-        withdrawalcharges,
+        maxbalance = 0,
+        allowdeposit = false,
+        allowwithdrawal = false,
+        withdrawallimit = 0,
+        withdrawalcharges = 0,
         withdrawalchargetype,
         withdrawalchargeinterval,
-        depositcharge,
+        depositcharge = 0,
         depositechargetype = "PERCENTAGE",
         withdrawallimittype,
         chargehere = false,
-        activationfee,
-        minimumaccountbalance,
-        allowoverdrawn,
-        compulsorydeposit,
+        activationfee = 0,
+        minimumaccountbalance = 0,
+        allowoverdrawn = false,
+        compulsorydeposit = false,
         compulsorydeposittype,
-        compulsorydepositspillover,
+        compulsorydepositspillover = false,
         compulsorydepositfrequency,
-        compulsorydepositfrequencyamount,
-        compulsorydepositfrequencyskip,
-        compulsorydepositpenalty,
+        compulsorydepositfrequencyamount = 0, 
+        compulsorydepositfrequencyskip = 0,
+        compulsorydepositpenalty = 0,
         compulsorydepositpenaltytype,
         compulsorydepositpenaltyfrom,
         compulsorydepositpenaltyfallbackfrom,
@@ -40,14 +41,74 @@ const manageSavingsProduct = async (req, res) => {
         membership = "",
         interestrowsize = 0,
         deductionrowsize = 0,
+        withdrawalcontrol = false,
+        withdrawalcontrolamount = 0,
+        withdrawalcontrolsize,
+        withdrawalcontroltype,
+        withdrawalcontrolwindow,
+        eligibilityaccountage = 0,
+        eligibilityminbalance = 0,
+        eligibilitymincredit = 0,
+        eligibilitymindebit = 0,
+        eligibilityminimumclosedaccounts = 0,
+        eligibilityminimumloan = 0,
+        eligibilityproduct = 0,
+        eligibilityproductcategory,
+        useraccount = 1,
         ...body
     } = req.body;
+    console.log("Extracted request body and user1");
+    // return res.status(StatusCodes.OK).json({
+    //     status: false,
+    //     message: allowdeposit,
+    // });
+    
+    // Override default values with those from the body if they exist
+    try {            
+        maxbalance = req.body.maxbalance != null && req.body.maxbalance.length ? req.body.maxbalance : 0;
+        allowdeposit = req.body.allowdeposit ? true : false;
+        allowwithdrawal = req.body.allowwithdrawal ? true : false;
+        withdrawallimit = req.body.withdrawallimit != null && req.body.withdrawallimit.length ? req.body.withdrawallimit : 0;
+        withdrawalcharges = req.body.withdrawalcharges != null && req.body.withdrawalcharges.length ? req.body.withdrawalcharges : 0;
+        depositcharge = req.body.depositcharge != null && req.body.depositcharge.length ? req.body.depositcharge : 0;
+        chargehere = req.body.chargehere ? true : false;
+        activationfee = req.body.activationfee != null && req.body.activationfee.length ? req.body.activationfee : 0;
+        minimumaccountbalance = req.body.minimumaccountbalance != null && req.body.minimumaccountbalance.length ? req.body.minimumaccountbalance : 0;
+        allowoverdrawn = req.body.allowoverdrawn ? true : false;
+        compulsorydeposit = req.body.compulsorydeposit ? true : false;
+        compulsorydepositspillover = req.body.compulsorydepositspillover ? true : false;
+        compulsorydepositfrequencyamount = req.body.compulsorydepositfrequencyamount != null && req.body.compulsorydepositfrequencyamount.length ? req.body.compulsorydepositfrequencyamount : 0;
+        compulsorydepositfrequencyskip = req.body.compulsorydepositfrequencyskip != null && req.body.compulsorydepositfrequencyskip.length ? req.body.compulsorydepositfrequencyskip : 0;
+        compulsorydepositpenalty = req.body.compulsorydepositpenalty != null && req.body.compulsorydepositpenalty.length ? req.body.compulsorydepositpenalty : 0; 
+        compulsorydepositdeficit = req.body.compulsorydepositdeficit ? true : false;
+        withdrawalcontrol = req.body.withdrawalcontrol ? true : false;
+        withdrawalcontrolamount = req.body.withdrawalcontrolamount != null && req.body.withdrawalcontrolamount.length ? req.body.withdrawalcontrolamount : 0;
+        eligibilityaccountage = req.body.eligibilityaccountage != null && req.body.eligibilityaccountage.length ? req.body.eligibilityaccountage : 0;
+        eligibilityminbalance = req.body.eligibilityminbalance != null && req.body.eligibilityminbalance.length ? req.body.eligibilityminbalance : 0;
+        eligibilitymincredit = req.body.eligibilitymincredit != null && req.body.eligibilitymincredit.length ? req.body.eligibilitymincredit : 0;
+        eligibilitymindebit = req.body.eligibilitymindebit != null && req.body.eligibilitymindebit.length ? req.body.eligibilitymindebit : 0;
+        eligibilityminimumclosedaccounts = req.body.eligibilityminimumclosedaccounts != null && req.body.eligibilityminimumclosedaccounts.length ? req.body.eligibilityminimumclosedaccounts : 0;
+        eligibilityminimumloan = req.body.eligibilityminimumloan != null && req.body.eligibilityminimumloan.length ? req.body.eligibilityminimumloan : 0;
+        eligibilityproduct = req.body.eligibilityproduct != null && req.body.eligibilityproduct.length ? req.body.eligibilityproduct : 0;
+        useraccount = req.body.useraccount ?? 1;
+    } catch (error) {
+        console.error("Error processing request body:", error);
+        return res.status(StatusCodes.BAD_REQUEST).json({
+            status: false,
+            message: "Invalid request body data.",
+            errors: [error.message]
+        });
+    }
 
+
+    console.log("Extracted request body and user2");
     const user = req.user;
+    console.log("Extracted request body and user3");
 
     // Currency validation
     const validCurrencies = ["NGN", "USD"];
     if (!validCurrencies.includes(currency)) {
+        console.log("Invalid currency detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: `Invalid currency: ${currency}. Allowed values: ${validCurrencies.join(", ")}.`,
@@ -58,6 +119,7 @@ const manageSavingsProduct = async (req, res) => {
     // Withdrawal charge type validation
     const validChargeTypes = ["PERCENTAGE", "AMOUNT"];
     if (withdrawalchargetype && !validChargeTypes.includes(withdrawalchargetype)) {
+        console.log("Invalid withdrawalchargetype detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: `Invalid 'withdrawalchargetype': ${withdrawalchargetype}. Allowed values: ${validChargeTypes.join(", ")}.`,
@@ -67,6 +129,7 @@ const manageSavingsProduct = async (req, res) => {
 
     // Withdrawal charge interval validation
     if (withdrawalchargeinterval && !validateCode(withdrawalchargeinterval)) {
+        console.log("Invalid withdrawalchargeinterval detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Invalid 'withdrawalchargeinterval' value.",
@@ -76,6 +139,7 @@ const manageSavingsProduct = async (req, res) => {
 
     // Withdrawal limit type validation
     if (withdrawallimittype && !validChargeTypes.includes(withdrawallimittype)) {
+        console.log("Invalid withdrawallimittype detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: `Invalid 'withdrawallimittype': ${withdrawallimittype}. Allowed values: ${validChargeTypes.join(", ")}.`,
@@ -85,6 +149,7 @@ const manageSavingsProduct = async (req, res) => {
 
     // Deposit charge type validation
     if (!validChargeTypes.includes(depositechargetype)) {
+        console.log("Invalid depositechargetype detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: `Invalid 'depositechargetype': ${depositechargetype}. Allowed values: ${validChargeTypes.join(", ")}.`,
@@ -95,6 +160,7 @@ const manageSavingsProduct = async (req, res) => {
     // Compulsory deposit type validation
     const validCompulsoryDepositTypes = ["FIXED", "MINIMUM"];
     if (compulsorydeposittype && !validCompulsoryDepositTypes.includes(compulsorydeposittype)) {
+        console.log("Invalid compulsorydeposittype detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: `Invalid 'compulsorydeposittype': ${compulsorydeposittype}. Allowed values: ${validCompulsoryDepositTypes.join(", ")}.`,
@@ -104,6 +170,7 @@ const manageSavingsProduct = async (req, res) => {
 
     // Compulsory deposit frequency validation
     if (compulsorydepositfrequency && !validateCode(compulsorydepositfrequency)) {
+        console.log("Invalid compulsorydepositfrequency detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Invalid 'compulsorydepositfrequency' value.",
@@ -113,6 +180,7 @@ const manageSavingsProduct = async (req, res) => {
 
     // Compulsory deposit penalty type validation
     if (compulsorydepositpenaltytype && !validChargeTypes.includes(compulsorydepositpenaltytype)) {
+        console.log("Invalid compulsorydepositpenaltytype detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: `Invalid 'compulsorydepositpenaltytype': ${compulsorydepositpenaltytype}. Allowed values: ${validChargeTypes.join(", ")}.`,
@@ -122,6 +190,7 @@ const manageSavingsProduct = async (req, res) => {
 
     // Check penalty and deficit consistency
     if ((compulsorydepositdeficit === true || compulsorydepositdeficit === "true") && compulsorydepositpenalty !== 0) {
+        console.log("Inconsistent penalty and deficit detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "The 'compulsorydepositpenalty' must be zero when 'compulsorydepositdeficit' is true.",
@@ -131,6 +200,7 @@ const manageSavingsProduct = async (req, res) => {
 
     // Ensure compulsory deposit frequency amount is provided if compulsorydeposit is true
     if ((compulsorydeposit === true || compulsorydeposit === "true") && !compulsorydepositfrequencyamount) {
+        console.log("Missing compulsorydepositfrequencyamount detected");
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "The 'compulsorydepositfrequencyamount' is required when 'compulsorydeposit' is true.",
@@ -140,12 +210,14 @@ const manageSavingsProduct = async (req, res) => {
 
     // Membership validation
     if (membership) {
+        console.log("Validating membership IDs");
         // Split membership by '|' to handle multiple memberships
-        const membershipIds = membership.split('|').map(id => id.trim());
+        const membershipIds = membership.split('||').map(id => id.trim());
 
         // Check if all membershipIds are valid numbers
         const invalidIds = membershipIds.filter(id => !/^\d+$/.test(id));
         if (invalidIds.length > 0) {
+            console.log("Invalid membership ID(s) detected");
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: `Invalid membership ID(s): ${invalidIds.join(", ")}. Membership IDs must be numeric.`,
@@ -164,6 +236,7 @@ const manageSavingsProduct = async (req, res) => {
         const nonExistentIds = numericMembershipIds.filter(id => !existingIds.includes(id));
 
         if (nonExistentIds.length > 0) {
+            console.log("Non-existent membership ID(s) detected");
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: `Membership ID(s) not found: ${nonExistentIds.join(", ")}.`,
@@ -175,63 +248,77 @@ const manageSavingsProduct = async (req, res) => {
     // Process interests and deductions arrays
     const interests = [];
     const deductions = [];
+    console.log("Processing interests and deductions");
 
     // Process interests
     for (let i = 1; i <= interestrowsize; i++) {
+        console.log(`Processing interest ${i}`);
         const interest = {
             interestname: body[`interestname${i}`],
             interestmethod: body[`interestmethod${i}`],
-            eligibilityaccountage: parseInt(body[`eligibilityaccountage${i}`], 10),
-            eligibilitybalance: parseFloat(body[`eligibilitybalance${i}`]),
+            interesteligibilityaccountage: parseInt(body[`interesteligibilityaccountage${i}`] || 0, 10),
+            interesteligibilitybalance: parseFloat(body[`interesteligibilitybalance${i}`] || 0),
             interestamount: parseFloat(body[`interestamount${i}`]),
             interesttype: body[`interesttype${i}`],
             interestfrequency: body[`interestfrequency${i}`],
             interestfrequencynumber: parseInt(body[`interestfrequencynumber${i}`] || 0, 10),
             interestfrequencyskip: parseInt(body[`interestfrequencyskip${i}`] || 0, 10),
-            goforapproval: body[`goforapproval${i}`] === "true"
+            interestgoforapproval: body[`interestgoforapproval${i}`] ? true : false,
+            status: body[`intereststatus${i}`] || "ACTIVE"
         };
+
+        console.log(`Interest details: ${JSON.stringify(interest)}`);
 
         // Validate interesttype
         const validInterestTypes = ["PERCENTAGE", "AMOUNT"];
         if (!validInterestTypes.includes(interest.interesttype)) {
+            console.log(`Invalid interesttype detected: ${interest.interesttype}`, res);
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: `Invalid 'interesttype': ${interest.interesttype}. Allowed values: ${validInterestTypes.join(", ")}.`,
                 errors: ["Invalid interesttype"]
             });
-        }
-
+        } 
+        console.log(interest.interestfrequency);
+        console.log(validateCode(interest.interestfrequency));
         // Validate interestfrequency
         if (!validateCode(interest.interestfrequency)) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
+            console.log(`Invalid interestfrequency detected: ${interest.interestfrequency}`);
+            return res.status(StatusCodes.BAD_REQUEST).json({ 
                 status: false,
                 message: "Invalid 'interestfrequency' value.",
-                errors: ["Invalid interestfrequency"]
+                errors: ["Invalid interestfrequency"]  
             });
+        } else {
+            console.log(`Valid interestfrequency: ${interest.interestfrequency}`);
         }
 
         interests.push(interest);
+        console.log(`Interest ${i} added to the list`);
     }
 
     // Process deductions
     for (let i = 1; i <= deductionrowsize; i++) {
+        console.log(`Processing deduction ${i}`);
         const deduction = {
-            deductionname: body[`deductionname${i}`],
-            eligibilityaccountage: parseInt(body[`eligibilityaccountage${i}`], 10),
-            eligibilitybalance: parseFloat(body[`eligibilitybalance${i}`]),
+            deductionname: body[`deductionname${i}`],        
+            deductioneligibilityaccountage: parseInt(body[`deductioneligibilityaccountage${i}`] || 0, 10),
+            deductioneligibilitybalance: parseFloat(body[`deductioneligibilitybalance${i}`] || 0),
             deductionamount: parseFloat(body[`deductionamount${i}`]),
             deductiontype: body[`deductiontype${i}`],
             deductionmethod: body[`deductionmethod${i}`],
             deductionfrequency: body[`deductionfrequency${i}`],
             deductionfrequencynumber: parseInt(body[`deductionfrequencynumber${i}`] || 0, 10),
             deductionfrequencyskip: parseInt(body[`deductionfrequencyskip${i}`] || 0, 10),
-            goforapproval: body[`goforapproval${i}`] === "true"
+            deductiongoforapproval: body[`deductiongoforapproval${i}`] ? true : false,
+            status: body[`deductionstatus${i}`] || "ACTIVE"
         };
 
-        // Validate deductiontype
+        // Validate deductiontype 
         const validDeductionTypes = ["PERCENTAGE", "AMOUNT"];
         if (!validDeductionTypes.includes(deduction.deductiontype)) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
+            console.log("Invalid deductiontype detected");
+            return res.status(StatusCodes.BAD_REQUEST).json({ 
                 status: false,
                 message: `Invalid 'deductiontype': ${deduction.deductiontype}. Allowed values: ${validDeductionTypes.join(", ")}.`,
                 errors: ["Invalid deductiontype"]
@@ -241,6 +328,7 @@ const manageSavingsProduct = async (req, res) => {
         // Validate deductionmethod
         const validDeductionMethods = ["LATEST BALANCE", "PRO RATA BASIS"];
         if (!validDeductionMethods.includes(deduction.deductionmethod)) {
+            console.log("Invalid deductionmethod detected");
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: `Invalid 'deductionmethod': ${deduction.deductionmethod}. Allowed values: ${validDeductionMethods.join(", ")}.`,
@@ -250,6 +338,7 @@ const manageSavingsProduct = async (req, res) => {
 
         // Validate deductionfrequency
         if (!validateCode(deduction.deductionfrequency)) {
+            console.log("Invalid deductionfrequency detected", deduction.deductionfrequency);
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "Invalid 'deductionfrequency' value.",
@@ -258,15 +347,18 @@ const manageSavingsProduct = async (req, res) => {
         }
 
         deductions.push(deduction);
-    }
+    } 
 
     try {
+        console.log("Starting database transaction");
         await pg.query("BEGIN"); // Start transaction
 
         if (id) {
+            console.log("Updating existing product");
             // Update existing product
             const { rows: existingProductById } = await pg.query(`SELECT * FROM divine."savingsproduct" WHERE id = $1`, [id]);
             if (existingProductById.length === 0) {
+                console.log("Product with provided ID does not exist");
                 await pg.query("ROLLBACK");
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
@@ -308,8 +400,22 @@ const manageSavingsProduct = async (req, res) => {
                     compulsorydepositdeficit = $27,
                     membership = $28,
                     status = $29,
+                    withdrawalcontrol = $30,
+                    withdrawalcontrolamount = $31,
+                    withdrawalcontrolsize = $32,
+                    withdrawalcontroltype = $33,
+                    withdrawalcontrolwindow = $34,
+                    eligibilityaccountage = $35,
+                    eligibilityminbalance = $36,
+                    eligibilitymincredit = $37,
+                    eligibilitymindebit = $38,
+                    eligibilityminimumclosedaccounts = $39,
+                    eligibilityminimumloan = $40,
+                    eligibilityproduct = $41,
+                    eligibilityproductcategory = $42,
+                    useraccount = $43,
                     updatedat = NOW()
-                WHERE id = $30`,
+                WHERE id = $44`,
                 [
                     productname,
                     currency,
@@ -340,14 +446,30 @@ const manageSavingsProduct = async (req, res) => {
                     compulsorydepositdeficit,
                     membership,
                     status,
+                    withdrawalcontrol,
+                    withdrawalcontrolamount,
+                    withdrawalcontrolsize,
+                    withdrawalcontroltype,
+                    withdrawalcontrolwindow,
+                    eligibilityaccountage,
+                    eligibilityminbalance,
+                    eligibilitymincredit,
+                    eligibilitymindebit,
+                    eligibilityminimumclosedaccounts,
+                    eligibilityminimumloan,
+                    eligibilityproduct,
+                    eligibilityproductcategory,
+                    useraccount,
                     id
                 ]
             );
 
+            console.log("Deleted existing interests and deductions");
             // Delete existing interests and deductions
             await pg.query(`DELETE FROM divine."Interest" WHERE savingsproductid = $1`, [id]);
             await pg.query(`DELETE FROM divine."Deduction" WHERE savingsproductid = $1`, [id]);
 
+            console.log("Inserting new interests");
             // Insert new interests
             for (const interest of interests) {
                 await pg.query(
@@ -355,69 +477,74 @@ const manageSavingsProduct = async (req, res) => {
                         savingsproductid,
                         interestname,
                         interestmethod,
-                        eligibilityaccountage,
-                        eligibilitybalance,
+                        interesteligibilityaccountage,
+                        interesteligibilitybalance,
                         interestamount,
                         interesttype,
                         interestfrequency,
                         interestfrequencynumber,
                         interestfrequencyskip,
-                        goforapproval,
+                        interestgoforapproval,
                         status
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'ACTIVE')`,
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                     [
-                        id,
+                        id, 
                         interest.interestname,
                         interest.interestmethod,
-                        interest.eligibilityaccountage,
-                        interest.eligibilitybalance,
+                        interest.interesteligibilityaccountage,
+                        interest.interesteligibilitybalance,
                         interest.interestamount,
                         interest.interesttype,
                         interest.interestfrequency,
                         interest.interestfrequencynumber,
                         interest.interestfrequencyskip,
-                        interest.goforapproval
+                        interest.interestgoforapproval,
+                        interest.status
                     ]
                 );
             }
 
+            console.log("Inserting new deductions");
             // Insert new deductions
             for (const deduction of deductions) {
                 await pg.query(
                     `INSERT INTO divine."Deduction" (
                         savingsproductid,
                         deductionname,
-                        eligibilityaccountage,
-                        eligibilitybalance,
+                        deductioneligibilityaccountage,
+                        deductioneligibilitybalance,
                         deductionamount,
                         deductiontype,
                         deductionmethod,
                         deductionfrequency,
                         deductionfrequencynumber,
                         deductionfrequencyskip,
-                        goforapproval,
+                        deductiongoforapproval,
                         status
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'ACTIVE')`,
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                     [
                         id,
                         deduction.deductionname,
-                        deduction.eligibilityaccountage,
-                        deduction.eligibilitybalance,
+                        deduction.deductioneligibilityaccountage,
+                        deduction.deductioneligibilitybalance,
                         deduction.deductionamount,
                         deduction.deductiontype,
                         deduction.deductionmethod,
                         deduction.deductionfrequency,
                         deduction.deductionfrequencynumber,
                         deduction.deductionfrequencyskip,
-                        deduction.goforapproval
+                        deduction.deductiongoforapproval,
+                        deduction.status
                     ]
                 );
             }
 
             await pg.query('COMMIT'); // Commit transaction
+            console.log("Transaction committed for product update");
 
             // Record the activity
             await activityMiddleware(res, user.id, `${productname} Product updated`, 'PRODUCT');
+            console.log("Activity recorded for product update");
 
             return res.status(StatusCodes.OK).json({
                 status: true,
@@ -426,16 +553,18 @@ const manageSavingsProduct = async (req, res) => {
                 errors: []
             });
         } else {
+            console.log("Creating new product");
             // Create new product
             const { rows: existingProduct } = await pg.query(`SELECT * FROM divine."savingsproduct" WHERE productname = $1`, [productname]);
             if (existingProduct.length > 0) {
+                console.log("Product already exists");
                 await pg.query("ROLLBACK");
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
                     message: "Product already exists",
                     errors: ["Product already exists"]
                 });
-            }
+            };
 
             const adjustedCompulsoryDepositPenalty = compulsorydepositdeficit ? 0 : compulsorydepositpenalty;
 
@@ -470,6 +599,20 @@ const manageSavingsProduct = async (req, res) => {
                     compulsorydepositdeficit,
                     membership,
                     status,
+                    withdrawalcontrol,
+                    withdrawalcontrolamount,
+                    withdrawalcontrolsize,
+                    withdrawalcontroltype,
+                    withdrawalcontrolwindow,
+                    eligibilityaccountage,
+                    eligibilityminbalance,
+                    eligibilitymincredit,
+                    eligibilitymindebit,
+                    eligibilityminimumclosedaccounts,
+                    eligibilityminimumloan,
+                    eligibilityproduct,
+                    eligibilityproductcategory,
+                    useraccount,
                     dateadded
                 ) VALUES (
                     $1, $2, $3, $4, $5,
@@ -477,7 +620,10 @@ const manageSavingsProduct = async (req, res) => {
                     $11, $12, $13, $14, $15,
                     $16, $17, $18, $19, $20,
                     $21, $22, $23, $24, $25,
-                    $26, $27, $28, $29, NOW()
+                    $26, $27, $28, $29, $30,
+                    $31, $32, $33, $34, $35,
+                    $36, $37, $38, $39, $40,
+                    $41, $42, $43, NOW()
                 ) RETURNING id`;
 
             const values = [
@@ -494,7 +640,7 @@ const manageSavingsProduct = async (req, res) => {
                 depositechargetype,
                 withdrawallimittype,
                 chargehere,
-                activationfee,
+                activationfee, 
                 minimumaccountbalance,
                 allowoverdrawn,
                 compulsorydeposit,
@@ -509,11 +655,26 @@ const manageSavingsProduct = async (req, res) => {
                 compulsorydepositpenaltyfallbackfrom,
                 compulsorydepositdeficit,
                 membership,
-                status
+                status,
+                withdrawalcontrol,
+                withdrawalcontrolamount,
+                withdrawalcontrolsize,
+                withdrawalcontroltype,
+                withdrawalcontrolwindow,
+                eligibilityaccountage,
+                eligibilityminbalance,
+                eligibilitymincredit,
+                eligibilitymindebit,
+                eligibilityminimumclosedaccounts,
+                eligibilityminimumloan,
+                eligibilityproduct,
+                eligibilityproductcategory,
+                useraccount
             ];
 
             const { rows } = await pg.query(insertProductQuery, values);
             const newId = rows[0].id;
+            console.log(`New product created with ID: ${newId}`);
 
             // Insert interests
             for (const interest of interests) {
@@ -522,31 +683,33 @@ const manageSavingsProduct = async (req, res) => {
                         savingsproductid,
                         interestname,
                         interestmethod,
-                        eligibilityaccountage,
-                        eligibilitybalance,
+                        interesteligibilityaccountage,
+                        interesteligibilitybalance,
                         interestamount,
                         interesttype,
                         interestfrequency,
                         interestfrequencynumber,
-                        interestfrequencyskip,
-                        goforapproval,
+                        interestfrequencyskip, 
+                        interestgoforapproval,
                         status
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'ACTIVE')`,
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                     [
                         newId,
                         interest.interestname,
                         interest.interestmethod,
-                        interest.eligibilityaccountage,
-                        interest.eligibilitybalance,
-                        interest.interestamount,
+                        interest.interesteligibilityaccountage,
+                        interest.interesteligibilitybalance,
+                        interest.interestamount, 
                         interest.interesttype,
                         interest.interestfrequency,
-                        interest.interestfrequencynumber,
+                        interest.interestfrequencynumber,  
                         interest.interestfrequencyskip,
-                        interest.goforapproval
+                        interest.interestgoforapproval,
+                        interest.status
                     ]
                 );
             }
+            console.log("Interests inserted for new product");
 
             // Insert deductions
             for (const deduction of deductions) {
@@ -554,37 +717,41 @@ const manageSavingsProduct = async (req, res) => {
                     `INSERT INTO divine."Deduction" (
                         savingsproductid,
                         deductionname,
-                        eligibilityaccountage,
-                        eligibilitybalance,
+                        deductioneligibilityaccountage,
+                        deductioneligibilitybalance,
                         deductionamount,
                         deductiontype,
                         deductionmethod,
                         deductionfrequency,
                         deductionfrequencynumber,
                         deductionfrequencyskip,
-                        goforapproval,
+                        deductiongoforapproval,
                         status
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'ACTIVE')`,
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                     [
                         newId,
                         deduction.deductionname,
-                        deduction.eligibilityaccountage,
-                        deduction.eligibilitybalance,
+                        deduction.deductioneligibilityaccountage,
+                        deduction.deductioneligibilitybalance,
                         deduction.deductionamount,
                         deduction.deductiontype,
                         deduction.deductionmethod,
                         deduction.deductionfrequency,
                         deduction.deductionfrequencynumber,
                         deduction.deductionfrequencyskip,
-                        deduction.goforapproval
+                        deduction.deductiongoforapproval,
+                        deduction.status
                     ]
                 );
             }
+            console.log("Deductions inserted for new product");
 
             await pg.query('COMMIT'); // Commit transaction
+            console.log("Transaction committed for new product creation");
 
             // Record the activity
             await activityMiddleware(res, user.id, `${productname} Product created`, 'PRODUCT');
+            console.log("Activity recorded for new product creation");
 
             return res.status(StatusCodes.CREATED).json({
                 status: true,
@@ -595,7 +762,7 @@ const manageSavingsProduct = async (req, res) => {
         }
     } catch (error) {
         await pg.query('ROLLBACK'); // Rollback transaction on error
-        console.error(error); // Log the error for debugging
+        console.error("Error occurred:", error); // Log the error for debugging
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
             message: "Internal Server Error",
@@ -604,7 +771,7 @@ const manageSavingsProduct = async (req, res) => {
         });
     }
 };
-
+    
 module.exports = {
     manageSavingsProduct
 };

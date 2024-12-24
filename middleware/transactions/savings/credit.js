@@ -40,23 +40,23 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
             return next();
         }
 
-         // 7. Savings Product Rules - Allow Deposit
-         if (credit > 0 && !savingsProduct.allowdeposit) {
-            console.log("Deposits not allowed on this product, redirecting transaction.");
-            transactionStatus = 'REDIRECTED';
-            reasonForRejection = 'Deposits not allowed on this product';
-            // Handle redirection to excess account logic
-            await handleCreditRedirectToPersonnalAccount(client, req, res, accountuser, await generateNewReference(client, accountnumber, req, res), reasonForRejection, whichaccount);
-            await client.query('COMMIT'); // Commit the transaction
-            await activityMiddleware(req, req.user.id, 'Transaction committed after deposit not allowed', 'TRANSACTION');
-            req.transactionError = {
-                status: StatusCodes.MISDIRECTED_REQUEST,
-                message: 'Transaction has been redirected to the personal account because the savings account is restricted from taking deposits.',
-                errors: ['Deposits not allowed on this product. Transaction redirected to personal account.']
-            };
-            req.body.transactiondesc += 'Deposits not allowed on this product.|';
-            return next();
-        }
+        //  // 7. Savings Product Rules - Allow Deposit
+        //  if (credit > 0 && !savingsProduct.allowdeposit) {
+        //     console.log("Deposits not allowed on this product, redirecting transaction.");
+        //     transactionStatus = 'REDIRECTED';
+        //     reasonForRejection = 'Deposits not allowed on this product';
+        //     // Handle redirection to excess account logic
+        //     await handleCreditRedirectToPersonnalAccount(client, req, res, accountuser, await generateNewReference(client, accountnumber, req, res), reasonForRejection, whichaccount);
+        //     await client.query('COMMIT'); // Commit the transaction
+        //     await activityMiddleware(req, req.user.id, 'Transaction committed after deposit not allowed', 'TRANSACTION');
+        //     req.transactionError = {
+        //         status: StatusCodes.MISDIRECTED_REQUEST,
+        //         message: 'Transaction has been redirected to the personal account because the savings account is restricted from taking deposits.',
+        //         errors: ['Deposits not allowed on this product. Transaction redirected to personal account.']
+        //     };
+        //     req.body.transactiondesc += 'Deposits not allowed on this product.|';
+        //     return next();
+        // }
 
         // **9. Check Max Balance Limit (Added this block)**
         if (credit > 0 && savingsProduct.maxbalance) {
@@ -111,11 +111,11 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                 console.log("Credit amount is less than compulsory deposit amount.");
                 transactionStatus = 'FAILED';
                 reasonForRejection = 'Credit amount is less than compulsory deposit amount';
-                await handleCreditRedirectToPersonnalAccount(
+                 await handleCreditRedirectToPersonnalAccount(
                     client,
                     req,
                     res,
-                    accountuser,
+                    accountuser, 
                     generateNewReference(client, accountnumber, req, res),
                     reasonForRejection,
                     whichaccount

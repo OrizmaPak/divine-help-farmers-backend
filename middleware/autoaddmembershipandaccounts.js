@@ -1,0 +1,36 @@
+const pg = require("../db/pg");
+
+const autoAddMembershipAndAccounts = async (req, res) => {
+    try {
+        const userId = req.newuser.id;
+
+        // Fetch all DefineMember rows with addmember set to 'YES'
+        const { rows: defineMembers } = await pg.query(`SELECT id FROM divine."DefineMember" WHERE addmember = 'YES'`);
+
+        // Iterate over each DefineMember and create a Membership entry if it doesn't exist
+        for (const defineMember of defineMembers) {
+            const memberId = defineMember.id;
+
+            // Check if a membership already exists for this user and member
+            const { rows: existingMembership } = await pg.query(
+                `SELECT id FROM divine."Membership" WHERE userid = $1 AND member = $2`,
+                [userId, memberId]
+            );
+
+            // If no existing membership, create a new one
+            if (existingMembership.length === 0) {
+                await pg.query(
+                    `INSERT INTO divine."Membership" (member, userid, createdby) VALUES ($1, $2, $3)`,
+                    [memberId, userId, req.user.id]
+                );
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error in autoAddMembershipAndAccounts middleware:', error);
+        return false
+    }
+};
+
+module.exports = {autoAddMembershipAndAccounts};

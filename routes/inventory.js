@@ -25,6 +25,7 @@ const { viewinrequisition } = require('../controllers/inventory/requisition/view
 const { updateRequisitionStatus } = require('../controllers/inventory/requisition/approvedeclinerequisition');
 const { updateLogQty } = require('../controllers/inventory/Issuesandreturn/updatelog');
 const { updateReturnItem } = require('../controllers/inventory/Issuesandreturn/returnitem');
+const { getAllUniqueItemIds } = require('../controllers/inventory/getallitems/getallitems');
 const router = express.Router();
 
 
@@ -54,6 +55,8 @@ router.route('/update/images')
 router.route('/delete')
     .post(deleteinventory)
     // .post(harddeleteinventory)
+router.route('/getallitems')
+    .get(getAllUniqueItemIds)
 
 // REQUISITION 
 router.route('/requisition')

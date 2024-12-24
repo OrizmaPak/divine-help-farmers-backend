@@ -1,30 +1,44 @@
 const { StatusCodes } = require("http-status-codes");
 const bcrypt = require("bcryptjs");
-const {isValidEmail}  = require("../../../utils/isValidEmail");
+const { isValidEmail } = require("../../../utils/isValidEmail");
 const pg = require("../../../db/pg");
 const { sendEmail } = require("../../../utils/sendEmail");
-
+const { uploadToGoogleDrive } = require("../../../utils/uploadToGoogleDrive");
+const { autoAddMembershipAndAccounts } = require("../../../middleware/autoaddmembershipandaccounts");
 
 const registeruser = async (req, res) => {
-    const { firstname, lastname, email, phone, othernames = '', verify = false, device = 'registered by staff', country = '', state = '', image = '', emailverified = null, address = '', role = 'USER', permissions = null, officeaddress = '', image2 = '', gender = '', occupation = '', lga = '', town = '', maritalstatus = '', spousename = '', stateofresidence = '', lgaofresidence = '', nextofkinfullname = '', nextofkinphone = '', nextofkinrelationship = '', nextofkinaddress = '', nextofkinofficeaddress = '', nextofkinoccupation = '', dateofbirth = null, branch = 1, registrationpoint = 0, dateadded = new Date(), lastupdated = null, status = 'ACTIVE', createdby = 0, id = null } = req.body;
+    if (req.files) {
+        await uploadToGoogleDrive(req, res);
+    }
+    const user = req.user; 
+    const { firstname, lastname, email, phone, othernames = '', verify = false, device = 'registered by staff', country = '', state = '', image = '', emailverified = null, address = '', role = 'USER', permissions = null, officeaddress = '', image2 = '', gender = '', occupation = '', lga = '', town = '', maritalstatus = '', spousename = '', stateofresidence = '', lgaofresidence = '', nextofkinfullname = '', nextofkinphone = '', nextofkinrelationship = '', nextofkinaddress = '', nextofkinofficeaddress = '', nextofkinoccupation = '', dateofbirth = null, branch = 1, registrationpoint = 0, dateadded = new Date(), lastupdated = null, status = 'ACTIVE', createdby = user.id??0, id = null } = req.body;
     console.log({ firstname, lastname, email, othernames, ema: isValidEmail(email) });
-    
-    const user = req.user
+
+
+    if (user.registrationpoint == 0 || user.role == 'MEMBER') {
+        return res.status(StatusCodes.FORBIDDEN).json({
+            status: false,
+            message: "You are not permitted to register or update a user. You must be registered to a registration point as a staff member.",
+            statuscode: StatusCodes.FORBIDDEN,
+            data: null,
+            errors: []
+        });
+    } 
 
     // Basic validation
-    if (!firstname || !lastname || !email || !isValidEmail(email)) {
+    if (!firstname || !lastname || !email || !isValidEmail(email)) { 
         let errors = [];
         if (!firstname) {
             errors.push({
                 field: 'First Name',
-                message: 'First name not found' 
-            }); 
+                message: 'First name not found'
+            });
         }
         if (!lastname) {
             errors.push({
                 field: 'Last Name',
                 message: 'Last name not found'
-            }); 
+            });
         }
         if (!email) {
             errors.push({
@@ -70,7 +84,7 @@ const registeruser = async (req, res) => {
         }
 
         // WHEN THE ACCOUNT IS ALREADY IN USE
-        if (theuser.length > 0) {
+        if (theuser.length > 0 && !id) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "Email already in use",
@@ -91,15 +105,36 @@ const registeruser = async (req, res) => {
                 errors: []
             });
         }
-
+ 
         // Hash the password
         const hashedPassword = await bcrypt.hash(phone, 10);
 
         // If id is provided, update the user
         if (id) {
+            // Check if the user exists and the phone matches
+            const { rows: existingUser } = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [id]);
+            if (existingUser.length === 0) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: `User with id ${id} not found`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+            if (existingUser[0].phone !== phone) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: `Phone number does not match the existing record for user with id ${id}`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+
             const { rows: updatedUser } = await pg.query(`UPDATE divine."User" SET 
-            firstname = $1, lastname = $2, othernames = $3, email = $4, password = $5, role = $6, permissions = $7, country = $8, state = $9, phone = $10, emailverified = $11, address = $12, officeaddress = $13, image = $14, image2 = $15, gender = $16, occupation = $17, lga = $18, town = $19, maritalstatus = $20, spousename = $21, stateofresidence = $22, lgaofresidence = $23, nextofkinfullname = $24, nextofkinphone = $25, nextofkinrelationship = $26, nextofkinaddress = $27, nextofkinofficeaddress = $28, nextofkinoccupation = $29, dateofbirth = $30, branch = $31, registrationpoint = $32, dateadded = $33, lastupdated = $34, status = $35, createdby = $36 WHERE id = $37 RETURNING *`, 
-            [firstname, lastname, othernames, email, hashedPassword, role, permissions, country, state, phone, emailverified, address, officeaddress, image, image2, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, branch, registrationpoint, dateadded, lastupdated, "PENDING", createdby, id]);
+            firstname = COALESCE($1, firstname), lastname = COALESCE($2, lastname), othernames = COALESCE($3, othernames), email = COALESCE($4, email), password = COALESCE($5, password), role = COALESCE($6, role), permissions = COALESCE($7, permissions), country = COALESCE($8, country), state = COALESCE($9, state), phone = COALESCE($10, phone), emailverified = COALESCE($11, emailverified), address = COALESCE($12, address), officeaddress = COALESCE($13, officeaddress), image = COALESCE(NULLIF($14, ''), image), image2 = COALESCE(NULLIF($15, ''), image2), gender = COALESCE($16, gender), occupation = COALESCE($17, occupation), lga = COALESCE($18, lga), town = COALESCE($19, town), maritalstatus = COALESCE($20, maritalstatus), spousename = COALESCE($21, spousename), stateofresidence = COALESCE($22, stateofresidence), lgaofresidence = COALESCE($23, lgaofresidence), nextofkinfullname = COALESCE($24, nextofkinfullname), nextofkinphone = COALESCE($25, nextofkinphone), nextofkinrelationship = COALESCE($26, nextofkinrelationship), nextofkinaddress = COALESCE($27, nextofkinaddress), nextofkinofficeaddress = COALESCE($28, nextofkinofficeaddress), nextofkinoccupation = COALESCE($29, nextofkinoccupation), dateofbirth = COALESCE($30, dateofbirth), branch = COALESCE($31, branch), registrationpoint = COALESCE($32, registrationpoint), dateadded = COALESCE($33, dateadded), lastupdated = COALESCE($34, lastupdated), status = COALESCE($35, status), createdby = COALESCE($36, createdby) WHERE id = $37 RETURNING *`, 
+            [firstname, lastname, othernames, email, hashedPassword, role, permissions, country, state, phone, emailverified, address, officeaddress, image, image2, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, branch, registrationpoint, dateadded, lastupdated, "ACTIVE", createdby, id]);
             if (updatedUser.length > 0) {
                 return res.status(StatusCodes.OK).json({
                     status: true,
@@ -123,8 +158,10 @@ const registeruser = async (req, res) => {
             (firstname, lastname, othernames, email, password, role, permissions, country, state, phone, emailverified, address, officeaddress, image, image2, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, branch, registrationpoint, dateadded, lastupdated, status, createdby) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36) RETURNING id`, [firstname, lastname, othernames, email, hashedPassword, role, permissions, country, state, phone, null, address, officeaddress, image, image2, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, branch, registrationpoint, dateadded, lastupdated, status, createdby]);
             const userId = saveuser.id;
-            console.log(saveuser)
+            console.log(saveuser);
             const user = saveuser;
+                req.newuser = saveuser
+            let accountaction = await autoAddMembershipAndAccounts(req, res)
 
             // send welcome email
             sendEmail({
@@ -169,26 +206,26 @@ const registeruser = async (req, res) => {
                   </body>
                   </html>
                 `
-              });
-            
+            });
+
             const responseData = {
-                status: true,
-                message: `Congratulations!! you have successfully registered ${firstname} ${lastname} under you`,
-                statuscode: StatusCodes.OK,
+                status: accountaction,
+                message: accountaction ? `Congratulations!! you have successfully registered ${firstname} ${lastname} under you` : 'Something went wrong with creating memberships and other accounts, please contact support',
+                statuscode: accountaction ? StatusCodes.OK : StatusCodes.BAD_REQUEST,
                 data: null,
-                errors: []
+                errors: accountaction ? [] : ['Membership and account creation failed']
             };
 
-            if(saveuser > 0){
+            if (saveuser > 0) {
                 return res.status(StatusCodes.OK).json(responseData);
-            }else{
+            } else {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
                     message: `Something went wrong!! User not registered cross check the information and save again`,
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: []
-                })
+                });
             }
         }
     } catch (err) {

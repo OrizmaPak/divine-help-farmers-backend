@@ -29,16 +29,14 @@ const getStockValuation = async (req, res) => {
         // }
 
         // Fetch all inventories for the given date
-        const query = `SELECT * FROM divine."Inventory" WHERE transactiondate = $1 AND status = 'ACTIVE'`;
+        let query = `SELECT * FROM divine."Inventory" WHERE transactiondate <= $1 AND status = 'ACTIVE'`;
         const params = [date];
-        if (branch && department) {
-            query += ` AND branch = $2 AND department = $3`;
-            params.push(branch, department);
-        } else if (branch) {
-            query += ` AND branch = $2`;
+        if (branch) {
+            query += ` AND branch = $${params.length + 1}`;
             params.push(branch);
-        } else if (department) {
-            query += ` AND department = $2`;
+        }
+        if (department) {
+            query += ` AND department = $${params.length + 1}`;
             params.push(department);
         }
         const { rows: inventories } = await pg.query(query, params);
@@ -66,14 +64,15 @@ const getStockValuation = async (req, res) => {
 
         // Calculate total qty and total balance
         const totalQty = result.reduce((acc, current) => acc + current.qty, 0);
+        const totalCost = result.reduce((acc, current) => acc + current.cost, 0);
         const totalBalance = result.reduce((acc, current) => acc + current.balance, 0);
 
-        // Return success response
+         // Return success response
         return res.status(StatusCodes.OK).json({
             status: true,
             message: "Stock valuation fetched successfully",
             statuscode: StatusCodes.OK,
-            data: { items: result, totalQty, totalBalance },
+            data: { items: result, totalQty, totalBalance, date, totalCost },
             errors: []
         });
     } catch (error) {
@@ -81,7 +80,7 @@ const getStockValuation = async (req, res) => {
         console.error(error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
-            message: "Internal Server Error",
+            message: "Internal Server Error", 
             statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
             data: null,
             errors: []

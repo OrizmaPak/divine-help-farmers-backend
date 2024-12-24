@@ -8,6 +8,7 @@ const { sendEmail } = require("../../utils/sendEmail");
 const { calculateExpiryDate } = require("../../utils/expiredate");
 const { activityMiddleware } = require("../../middleware/activity"); // Added tracker middleware
 const { uploadToGoogleDrive } = require("../../utils/uploadToGoogleDrive");
+const { autoAddMembershipAndAccounts } = require("../../middleware/autoaddmembershipandaccounts");
 
 const signup = async (req, res) => {
     const { firstname, lastname, branch, email, password, phone, othernames = '', verify = false, device = '', country = '', state = '' } = req.body;
@@ -244,13 +245,14 @@ const signup = async (req, res) => {
 
             messagestatus = true
         }
-
+        req.newuser = saveuser
+        let accountaction = await autoAddMembershipAndAccounts(req, res)
 
         const responseData = {
-            status: true,
-            message: `Welcome ${details.firstname}`,
-            statuscode: StatusCodes.OK,
-            data: {
+            status: accountaction,
+            message: accountaction ? `Welcome ${details.firstname}` : 'Something went wrong with creating memberships and other accounts, please contact support',
+            statuscode: accountaction ? StatusCodes.OK : StatusCodes.INTERNAL_SERVER_ERROR,
+            data: accountaction ? {
                 user: {
                     ...details,
                     password: undefined
@@ -258,8 +260,8 @@ const signup = async (req, res) => {
                 token,
                 expires: calculateExpiryDate(process.env.SESSION_EXPIRATION_HOUR),
                 verificationmail: messagestatus ? 'Email sent' : '',
-            },
-            errors: []
+            } : null,
+            errors: accountaction ? [] : ['Membership and account creation failed']
         };
 
         return res.status(StatusCodes.OK).json(responseData);

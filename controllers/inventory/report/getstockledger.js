@@ -22,6 +22,33 @@ const getStockLedger = async (req, res) => {
         // Fetch inventory based on the filters
         const { rows: inventory } = await pg.query(`SELECT * FROM divine."Inventory" WHERE itemid = $1 AND transactiondate >= $2 AND transactiondate <= $3 AND status = 'ACTIVE' AND qty != 0 ${branch ? `AND branch = '${branch}'` : ''} ${department ? `AND department = '${department}'` : ''}`, [itemid, startdate, enddate]);
 
+        // Fetch branch names for the inventory items
+        const branchIds = inventory.map(item => item.branch);
+        const { rows: branchNames } = await pg.query(`SELECT id, branch FROM divine."Branch" WHERE id = ANY($1::int[])`, [branchIds]);
+
+        // Create a map of branch IDs to branch names
+        const branchNameMap = branchNames.reduce((map, branch) => {
+            map[branch.id] = branch.branch;
+            return map;
+        }, {});
+
+        // Fetch department names for the inventory items
+        const departmentIds = inventory.map(item => item.department);
+        const { rows: departmentNames } = await pg.query(`SELECT id, department FROM divine."Department" WHERE id = ANY($1::int[])`, [departmentIds]);
+
+        // Create a map of department IDs to department names
+        const departmentNameMap = departmentNames.reduce((map, department) => {
+            map[department.id] = department.department;
+            return map;
+        }, {});
+
+        // Add branchname and departmentname to each inventory item
+        const inventoryWithNames = inventory.map(item => ({
+            ...item,
+            branchname: branchNameMap[item.branch] || 'Unknown',
+            departmentname: departmentNameMap[item.department] || 'Unknown'
+        }));
+
         // Compressed query to calculate balance brought in, out, forward, and forward cost
         const compressedQuery = `SELECT 
                                    SUM(CASE WHEN qty > 0 THEN qty ELSE 0 END) AS balanceBroughtIn,
@@ -33,10 +60,10 @@ const getStockLedger = async (req, res) => {
         const balances = await pg.query(compressedQuery, [itemid, startdate]);
 
         // Extract values from the compressed query result
-        const balanceBroughtIn = balances.rows[0].balancebroughtin??0;
-        const balanceBroughtOut = balances.rows[0].balancebroughtout??0;
-        const balanceBroughtForward = balances.rows[0].balancebroughtforward??0;
-        const balanceBroughtForwardCost = balances.rows[0].balancebroughtforwardcost??0;
+        const balanceBroughtIn = balances.rows[0].balancebroughtin ?? 0;
+        const balanceBroughtOut = balances.rows[0].balancebroughtout ?? 0;
+        const balanceBroughtForward = balances.rows[0].balancebroughtforward ?? 0;
+        const balanceBroughtForwardCost = balances.rows[0].balancebroughtforwardcost ?? 0;
 
         // Add balance brought in, out, forward, and forward cost to the result
         const result = {
@@ -44,7 +71,7 @@ const getStockLedger = async (req, res) => {
             balanceBroughtOut,
             balanceBroughtForward,
             balanceBroughtForwardCost,
-            items: inventory
+            items: inventoryWithNames
         };
 
         // Log activity
@@ -74,4 +101,3 @@ const getStockLedger = async (req, res) => {
 
 // Export the getStockLedger function
 module.exports = { getStockLedger };
-

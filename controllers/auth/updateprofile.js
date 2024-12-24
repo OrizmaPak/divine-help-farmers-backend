@@ -62,7 +62,7 @@ async function updateuser(req, res) {
 
     console.log('req.body', req.body);
 
-    try {
+    try {  
         if (status) {
             await pg.query(`UPDATE divine."User" 
                              SET status = $1, 

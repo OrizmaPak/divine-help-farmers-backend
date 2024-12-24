@@ -64,7 +64,7 @@ app.use('/api/v1/members', authMiddleware, memberRouter);
 app.use('/api/v1/savings', authMiddleware, savingsRouter);
 app.use('/api/v1/loan', authMiddleware, loanRouter);
 app.use('/api/v1/payment', authMiddleware, transactionMiddleware, paymentRouter);
-app.use('/api/v1/transactions', authMiddleware, transactionsRouter);
+app.use('/api/v1/transactions', authMiddleware, transactionsRouter); 
 app.use('/api/v1/incomings', incomingsRouter);
 app.use('/api/v1/ai', aiRouter);
 

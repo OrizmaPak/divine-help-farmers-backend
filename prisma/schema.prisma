@@ -121,6 +121,7 @@ model DefineMember {
   dateadded     DateTime  @default(now())
   status        String    @default("ACTIVE")
   lastupdated   DateTime?
+  addmember     String    @default("YES")    
   createdby     Int       @default(0)
 }
 
@@ -131,6 +132,7 @@ model Membership {
   createdby     Int      @default(0)
   dateadded     DateTime @default(now())
   lastupdated   DateTime?
+  status        String    @default("ACTIVE")
 }
 
 model Position {
@@ -142,6 +144,7 @@ model Position {
   createdby     Int       @default(0)
   dateadded     DateTime  @default(now())
   lastupdated   DateTime?
+  status        String    @default("ACTIVE")
 }
 
 model Activity {
@@ -150,6 +153,7 @@ model Activity {
   activity  String
   date      DateTime
   module    String    @default("AUTH")
+  status    String    @default("ACTIVE")
 
   user      User          @relation(fields: [userid], references: [id])
 }
@@ -160,6 +164,7 @@ model Session {
   userid       Int
   expires      DateTime
   device       String?
+  status       String    @default("ACTIVE")
   
   user User @relation(fields: [userid], references: [id])
 }
@@ -168,6 +173,7 @@ model VerificationToken {
   identifier String
   token      String       @unique
   expires    DateTime 
+  status     String       @default("ACTIVE")
 
   @@unique([identifier, token])
 }
@@ -262,6 +268,7 @@ model Organisationsettings {
   default_equity_account                      Float?
   default_tax_account                         Float?
   default_excess_account                      Float?
+  status                                      String @default("ACTIVE")
 }
 
 
@@ -306,6 +313,7 @@ model Subtask {
   taskstatus         String @default("NOT STARTED")
   createdby          String
   assignedto         String
+  status             String @default("ACTIVE")
 }
 
 model Cashierlimit {
@@ -322,6 +330,7 @@ model Lastseen {
   id                 Int       @id @default(sequence())
   userid             Int
   date               DateTime
+  status             String    @default("ACTIVE")
 }
 
 model Inventory {
@@ -386,64 +395,54 @@ model Supplier {
 }
 
 model savingsproduct {
-  id                                Int      @id @default(sequence())
-  productname                       String
-  currency                          String   // "NGN" or "USD"
-  maxbalance                        Float?
-  allowdeposit                      Boolean
-  allowwithdrawal                   Boolean
-  withdrawalcharges                 Float?
-  withdrawalchargetype              String?   // "PERCENTAGE" or "AMOUNT"
-  withdrawalchargeinterval          String?   // "D1", "W1", "M1"
-  allowoverdrawn                    Boolean
-  withdrawalcontrol                 Boolean?  @default(false)
-  withdrawalcontrolwindow           String?   // "D1", "W1", "M1" the one with plus
-  withdrawalcontrolamount           Float?    @default(0)
-  withdrawalcontroltype             String?   // "PERCENTAGE" or "AMOUNT"
-  withdrawalcontrolsize             String?   // "FIXED" or "MINIMUM"
-  depositcharge                     Float?
-  depositechargetype                String?   @default("PERCENTAGE")  // "PERCENTAGE" or "AMOUNT"
-  withdrawallimit                   Float?
-  withdrawallimittype               String?   // "PERCENTAGE" or "AMOUNT"
-  chargehere                        Boolean   @default(false)
   activationfee                     Float?
-  minimumaccountbalance             Float?
+  allowdeposit                      Boolean
+  allowoverdrawn                    Boolean
+  allowwithdrawal                   Boolean
+  chargehere                        Boolean   @default(false)
   compulsorydeposit                 Boolean
-  compulsorydepositfrequencyamount  Float?
-  compulsorydeposittype             String?   // "FIXED" or "MINIMUM"
-  compulsorydepositspillover        Boolean
   compulsorydepositdeficit          Boolean  @default(false) // if this is true compulsorydepositpenalty will be ignored
   compulsorydepositfrequency        String?   // "D1", "W1", "M1"
+  compulsorydepositfrequencyamount  Float?
   compulsorydepositfrequencyskip    Int?
   compulsorydepositpenalty          Float?
-  compulsorydepositpenaltytype      String?   // "AMOUNT" or "PERCENTAGE"
-  compulsorydepositpenaltyfrom      String?   // Reference to another product ID
   compulsorydepositpenaltyfallbackfrom String?  // Reference to fallback product ID
-
-  useraccount                      Int? @default(1) // number of maximum account a user can open for this product... note that this is yet to be implemented in the code base
-  eligibilityproductcategory       String? // "LOAN" or "SAVINGS" 
-  eligibilityproduct               Int? @default(0)  // the product that the user must have account in
-
-  eligibilityaccountage    Int?    // in months for SAVINGS
-  eligibilityminbalance    Float?
-  eligibilitymincredit    Float?
-  eligibilitymindebit    Float?
-  
-  eligibilityminimumloan           Float? // for LOAN
-  eligibilityminimumclosedaccounts Int?
-
-  status                          String @default("ACTIVE")
-  membership                      String? @default("")
-
-
-  // Interest
-  interests                         Interest[]
-
-  // Deductions
-  deductions                        Deduction[]
-
+  compulsorydepositpenaltyfrom      String?   // Reference to another product ID
+  compulsorydepositpenaltytype      String?   // "AMOUNT" or "PERCENTAGE"
+  compulsorydepositspillover        Boolean
+  compulsorydeposittype             String?   // "FIXED" or "MINIMUM"
+  currency                          String   // "NGN" or "USD"
   dateadded                         DateTime @default(now())
+  deductions                        Deduction[]
+  depositcharge                     Float?
+  depositechargetype                String?   @default("PERCENTAGE")  // "PERCENTAGE" or "AMOUNT"
+  eligibilityaccountage             Int?    // in months for SAVINGS
+  eligibilityminbalance             Float?
+  eligibilitymincredit              Float?
+  eligibilitymindebit               Float?
+  eligibilityminimumclosedaccounts  Int?
+  eligibilityminimumloan            Float? // for LOAN
+  eligibilityproduct                Int? @default(0)  // the product that the user must have account in
+  eligibilityproductcategory        String? // "LOAN" or "SAVINGS" 
+  id                                Int      @id @default(sequence())
+  interests                         Interest[]
+  maxbalance                        Float?
+  membership                        String? @default("")
+  minimumaccountbalance             Float?
+  productname                       String
+  status                            String @default("ACTIVE")
   updatedat                         DateTime?
+  useraccount                       Int? @default(1) // number of maximum account a user can open for this product... note that this is yet to be implemented in the code base
+  withdrawalcharges                 Float?
+  withdrawalchargeinterval          String?   // "D1", "W1", "M1"
+  withdrawalchargetype              String?   // "PERCENTAGE" or "AMOUNT"
+  withdrawalcontrol                 Boolean?  @default(false)
+  withdrawalcontrolamount           Float?    @default(0)
+  withdrawalcontrolsize             String?   // "FIXED" or "MINIMUM"
+  withdrawalcontroltype             String?   // "PERCENTAGE" or "AMOUNT"
+  withdrawalcontrolwindow           String?   // "D1", "W1", "M1" the one with plus
+  withdrawallimit                   Float?
+  withdrawallimittype               String?   // "PERCENTAGE" or "AMOUNT"
 }
 
 model Interest {
@@ -451,33 +450,41 @@ model Interest {
   savingsproductid          Int
   interestname              String
   interestmethod            String   // "LAST BALANCE" or "PRO RATA BASIS"
-  eligibilityaccountage     Int      // in months
-  eligibilitybalance        Float
+  interesteligibilityaccountage     Int    @default(0)  // in months
+  interesteligibilitybalance        Float   @default(0) 
   interestamount            Float
   interesttype              String   // "PERCENTAGE" or "AMOUNT"
   interestfrequency         String   // "D1", "W1", "M1"
   interestfrequencynumber   Int?
   interestfrequencyskip     Int?
-  goforapproval             Boolean
-    status             String @default("ACTIVE")
+  interestgoforapproval             Boolean   @default(false) 
+  status             String @default("ACTIVE")
 
 
   savingsproduct            savingsproduct @relation(fields: [savingsproductid], references: [id])
 }
 
+model frequencyoverride {
+  id                        Int      @id @default(sequence())
+  savingsproductid          Int 
+  compulsorydepositfrequency String   // "D1", "W1", "M1"
+  branch                  Int
+  status             String @default("ACTIVE")
+}
+    
 model Deduction {
   id                        Int      @id @default(sequence())
-  savingsproductid          Int
+  savingsproductid          Int 
   deductionname             String
-  eligibilityaccountage     Int      // in months
-  eligibilitybalance        Float
+  deductioneligibilityaccountage     Int   @default(0)    // in months
+  deductioneligibilitybalance        Float @default(0) 
   deductionamount           Float
   deductiontype             String   // "PERCENTAGE" or "AMOUNT"
   deductionmethod           String   // "LATEST BALANCE" or "PRO RATA BASIS"
   deductionfrequency        String   // "D1", "W1", "M1"
   deductionfrequencynumber  Int?
   deductionfrequencyskip    Int?
-  goforapproval             Boolean
+  deductiongoforapproval             Boolean @default(false) 
     status             String @default("ACTIVE")
 
 
@@ -592,6 +599,7 @@ model loanproduct {
       eligibilitytype          String? // "PERCENTAGE" or "AMOUNT"
       maximumloan              Float?
       minimumloan              Float?
+      membership                      String? @default("")
 
       currency                 String? // "NGN" or "USD"
       excludebranch            String? // "1,2,3"
@@ -666,5 +674,5 @@ model collateral {
   file5              String?
   dateadded          DateTime @default(now())
   createdby          Int 
+  status             String   @default("ACTIVE")
 }
-

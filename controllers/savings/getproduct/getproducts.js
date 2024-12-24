@@ -7,42 +7,51 @@ const getSavingsProducts = async (req, res) => {
 
     let userid;
 
-    // Extract user from request
-    const user = req.user
+    // Extract user from request  
+    const user = req.user 
 
     try {
-        const { rows: savingsproducts } = await pg.query(`SELECT * FROM divine."savingsproduct" WHERE "status" = 'ACTIVE'`); // Fetch all savings products
-        if(savingsproducts.length > 0) {
-            // Fetch deductions for each savings product
-            const deductionsPromises = savingsproducts.map(async (product) => {
-                const { rows: deductions } = await pg.query(`SELECT * FROM divine."Deduction" WHERE "savingsproductid" = $1 AND "status" = 'ACTIVE'`, [product.id]);
-                return { ...product, deductions };
-            });
-            const deductionsResults = await Promise.all(deductionsPromises);
-
-            // Fetch interest for each savings product
-            const interestPromises = savingsproducts.map(async (product) => {
-                const { rows: interests } = await pg.query(`SELECT * FROM divine."Interest" WHERE "savingsproductid" = $1 AND "status" = 'ACTIVE'`, [product.id]);
-                return { ...product, interests };
-            });
-            const interestResults = await Promise.all(interestPromises);
-
-            // Combine results with deductions and interest
-            const combinedResults = interestResults.map((interestResult, index) => ({
-                ...interestResult,
-                ...deductionsResults[index]
-            }));
-
+        const query = `
+            SELECT 
+                sp.*,  
+                COALESCE(json_agg(DISTINCT d) FILTER (WHERE d.id IS NOT NULL), '[]') AS deductions,
+                COALESCE(json_agg(DISTINCT i) FILTER (WHERE i.id IS NOT NULL), '[]') AS interests,
+                CASE 
+                    WHEN sp.membership IS NOT NULL THEN
+                        CASE 
+                            WHEN sp.membership ~ '^[0-9]+$' THEN
+                                (SELECT dm.member FROM divine."DefineMember" dm WHERE dm.id = sp.membership::int)
+                            ELSE
+                                (SELECT string_agg(dm.member, '||') 
+                                 FROM divine."DefineMember" dm 
+                                 WHERE dm.id = ANY(string_to_array(sp.membership, '||')::int[]))
+                        END
+                    ELSE NULL
+                END AS membervalues
+            FROM 
+                divine."savingsproduct" sp
+            LEFT JOIN 
+                divine."Deduction" d ON sp.id = d.savingsproductid AND d.status = 'ACTIVE' 
+            LEFT JOIN 
+                divine."Interest" i ON sp.id = i.savingsproductid AND i.status = 'ACTIVE'
+            WHERE 
+                sp.status = 'ACTIVE'
+            GROUP BY 
+                sp.id
+        `;
+ 
+        const { rows: savingsproducts } = await pg.query(query);
+ 
+        if (savingsproducts.length > 0) {
             await activityMiddleware(req, user.id, 'Savings products, deductions, and interest fetched successfully', 'SAVINGSPRODUCT'); // Tracker middleware
-            return res.status(StatusCodes.OK).json({
+            return res.status(StatusCodes.OK).json({  
                 status: true,
-                message: "Savings products, deductions, and interest fetched successfully",
-                statuscode: StatusCodes.OK,
-                data: combinedResults,
+                message: "Savings products, deductions, and interest fetched successfully", 
+                statuscode: StatusCodes.OK, 
+                data: savingsproducts, 
                 errors: []
-            });
-        }
-        if(savingsproducts.length == 0) {
+            });  
+        } else { 
             await activityMiddleware(req, user.id, 'No savings products found', 'SAVINGSPRODUCT'); // Tracker middleware
             return res.status(StatusCodes.OK).json({
                 status: true,
