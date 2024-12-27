@@ -1,5 +1,5 @@
 const { StatusCodes } = require("http-status-codes");
-const pg = require("../../db/pg");
+const pg = require("../../../db/pg");
 
 async function addCollateral(req, res) {
     if (req.files) {
@@ -21,7 +21,7 @@ async function addCollateral(req, res) {
             field: 'accountnumber',
             message: 'Account number must be a number'
         });
-    }
+    } 
 
     // Validate document title
     if (!documenttitle) {

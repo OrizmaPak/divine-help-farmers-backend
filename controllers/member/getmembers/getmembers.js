@@ -1,4 +1,3 @@
-    // Start of Selection
     const { StatusCodes } = require("http-status-codes");
     const { activityMiddleware } = require("../../../middleware/activity");
     const pg = require("../../../db/pg");
@@ -69,6 +68,23 @@
                 const { password, ...userWithoutPassword } = user;
                 return userWithoutPassword;
             });
+
+            // Fetch membership details for each user
+            for (let user of users) {
+                try {
+                    const membershipQuery = `
+                        SELECT m.*, dm.member AS membername
+                        FROM divine."Membership" m
+                        LEFT JOIN divine."DefineMember" dm ON m.member = dm.id
+                        WHERE m.userid = $1
+                    `;
+                    const { rows: membershipRows } = await pg.query(membershipQuery, [user.id]);
+                    user.membership = membershipRows.length > 0 ? membershipRows : null;
+                } catch (error) {
+                    console.error('Error fetching membership details:', error);
+                    user.membership = null;
+                }
+            }
     
             // Get total count for pagination
             const countQuery = {

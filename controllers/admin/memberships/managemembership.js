@@ -3,7 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
 const manageMembership = async (req, res) => {
-    const { id = "", member, userid } = req.body;
+    const { id = "", member, userid, status="ACTIVE" } = req.body;
     const user = req.user;
 
     // Basic validation
@@ -17,7 +17,7 @@ const manageMembership = async (req, res) => {
         }
         if (!userid) {
             errors.push({
-                field: 'User ID',
+                field: 'User ID', 
                 message: 'User ID is required'
             });
         }
@@ -62,7 +62,7 @@ const manageMembership = async (req, res) => {
             [member, userid]
         );
 
-        if (existingMembership.length > 0) {
+        if (!id && existingMembership.length > 0) {
             return res.status(StatusCodes.CONFLICT).json({
                 status: false,
                 message: "User already belongs to the membership",
@@ -77,14 +77,15 @@ const manageMembership = async (req, res) => {
 
         if (id) {
             query = await pg.query(`UPDATE divine."Membership" SET 
-                member = $1, 
-                userid = $2, 
-                lastupdated = $3
-                WHERE id = $4`, [member, userid, new Date(), id]);
+                member = COALESCE($1, member), 
+                userid = COALESCE($2, userid), 
+                status = COALESCE($3, status),
+                lastupdated = COALESCE($4, lastupdated)
+                WHERE id = $5`, [member, userid, status, new Date(), id]);
         } else {
             query = await pg.query(`INSERT INTO divine."Membership" 
-                (member, userid, createdby) 
-                VALUES ($1, $2, $3)`, [member, userid, user.id]);
+                (member, userid, status, createdby) 
+                VALUES ($1, $2, $3, $4)`, [member, userid, status, user.id]);
         }
 
         // NOW SAVE THE MEMBERSHIP

@@ -1,2 +1,0 @@
--- AlterSequence
-ALTER SEQUENCE "DefineMember_id_seq" MAXVALUE 9223372036854775807;

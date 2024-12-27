@@ -15,15 +15,15 @@ const registeruser = async (req, res) => {
     console.log({ firstname, lastname, email, othernames, ema: isValidEmail(email) });
 
 
-    if (user.registrationpoint == 0 || user.role == 'MEMBER') {
-        return res.status(StatusCodes.FORBIDDEN).json({
-            status: false,
-            message: "You are not permitted to register or update a user. You must be registered to a registration point as a staff member.",
-            statuscode: StatusCodes.FORBIDDEN,
-            data: null,
-            errors: []
-        });
-    } 
+    // if (user.registrationpoint == 0 || user.role == 'MEMBER') {
+    //     return res.status(StatusCodes.FORBIDDEN).json({
+    //         status: false,
+    //         message: "You are not permitted to register or update a user. You must be registered to a registration point as a staff member.",
+    //         statuscode: StatusCodes.FORBIDDEN,
+    //         data: null,
+    //         errors: []
+    //     });
+    // } 
 
     // Basic validation
     if (!firstname || !lastname || !email || !isValidEmail(email)) { 
@@ -164,7 +164,7 @@ const registeruser = async (req, res) => {
             let accountaction = await autoAddMembershipAndAccounts(req, res)
 
             // send welcome email
-            sendEmail({
+            await sendEmail({
                 to: email,
                 subject: 'Welcome to divine Help Farmers! 🎉',
                 text: 'Your journey to financial freedom begins now.',

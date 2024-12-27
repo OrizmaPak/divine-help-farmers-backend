@@ -4,7 +4,8 @@ const pg = require("../../../db/pg");
 const getLoanFees = async (req, res) => {
     try {
         let query = {
-            text: `SELECT * FROM divine."loanfee"`,
+            text: `SELECT lf.*, CONCAT(acc.groupname, ' - ', acc.accounttype) AS glaccountname FROM divine."loanfee" lf
+                   LEFT JOIN divine."Accounts" acc ON lf.glaccount = acc.accountnumber`,
             values: []
         };
 
@@ -18,7 +19,7 @@ const getLoanFees = async (req, res) => {
                 } else {
                     whereClause += ` WHERE `;
                 }
-                whereClause += `"${key}" = $${valueIndex}`;
+                whereClause += `lf."${key}" = $${valueIndex}`;
                 query.values.push(req.query[key]);
                 valueIndex++;
             }
@@ -36,7 +37,7 @@ const getLoanFees = async (req, res) => {
             const cols = columns.map(row => row.column_name);
 
             // Generate the dynamic SQL query
-            const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
+            const searchConditions = cols.map(col => `lf.${col}::text ILIKE $${valueIndex}`).join(' OR ');
             if (whereClause) {
                 whereClause += ` AND (${searchConditions})`;
             } else {
@@ -62,7 +63,7 @@ const getLoanFees = async (req, res) => {
 
         // Get total count for pagination
         const countQuery = {
-            text: `SELECT COUNT(*) FROM divine."loanfee" ${whereClause}`,
+            text: `SELECT COUNT(*) FROM divine."loanfee" lf ${whereClause}`,
             values: query.values.slice(0, -2) // Exclude limit and offset
         };
         const { rows: [{ count: total }] } = await pg.query(countQuery);

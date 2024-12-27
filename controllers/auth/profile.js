@@ -24,7 +24,7 @@ async function profile(req, res) {
 
             if (rows.length > 0) {
                 user = rows[0];
-                console.log(user    )
+                console.log(user)
             } else {
                 return res.status(StatusCodes.NOT_FOUND).json({
                     status: false,
@@ -50,6 +50,29 @@ async function profile(req, res) {
     }
 
     if (user) {
+        try {
+            // Fetch membership details for the user
+            const membershipQuery = `
+                SELECT m.*, dm.member AS membername
+                FROM divine."Membership" m
+                LEFT JOIN divine."DefineMember" dm ON m.member = dm.id
+                WHERE m.userid = $1
+            `;
+            const { rows: membershipRows } = await pg.query(membershipQuery, [user.id]);
+
+            // Add membership details to the user object
+            user.membership = membershipRows.length > 0 ? membershipRows : null;
+        } catch (error) {
+            console.error(error);
+            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                status: false,
+                message: "Internal Server Error",
+                statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                data: null,
+                errors: ["An error occurred while fetching the membership details."]
+            });
+        }
+
         return res.status(StatusCodes.OK).json({
             status: true, 
             message: "Profile fetched successfully.",

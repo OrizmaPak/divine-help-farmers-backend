@@ -55,13 +55,10 @@ const manageSavingsProduct = async (req, res) => {
         eligibilityproduct = 0,
         eligibilityproductcategory,
         useraccount = 1,
+        addmember = "NO",
         ...body
     } = req.body;
     console.log("Extracted request body and user1");
-    // return res.status(StatusCodes.OK).json({
-    //     status: false,
-    //     message: allowdeposit,
-    // });
     
     // Override default values with those from the body if they exist
     try {            
@@ -91,6 +88,7 @@ const manageSavingsProduct = async (req, res) => {
         eligibilityminimumloan = req.body.eligibilityminimumloan != null && req.body.eligibilityminimumloan.length ? req.body.eligibilityminimumloan : 0;
         eligibilityproduct = req.body.eligibilityproduct != null && req.body.eligibilityproduct.length ? req.body.eligibilityproduct : 0;
         useraccount = req.body.useraccount ?? 1;
+        addmember = req.body.addmember || "NO";
     } catch (error) {
         console.error("Error processing request body:", error);
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -99,7 +97,6 @@ const manageSavingsProduct = async (req, res) => {
             errors: [error.message]
         });
     }
-
 
     console.log("Extracted request body and user2");
     const user = req.user;
@@ -229,7 +226,7 @@ const manageSavingsProduct = async (req, res) => {
         const numericMembershipIds = membershipIds.map(id => parseInt(id, 10));
 
         // Query to check existence of all membership IDs
-        const queryText = `SELECT id FROM divine."Membership" WHERE id = ANY($1::int[])`;
+        const queryText = `SELECT id FROM divine."DefineMember" WHERE id = ANY($1::int[])`;
         const { rows: existingMemberships } = await pg.query(queryText, [numericMembershipIds]);
 
         const existingIds = existingMemberships.map(row => row.id);
@@ -414,8 +411,9 @@ const manageSavingsProduct = async (req, res) => {
                     eligibilityproduct = $41,
                     eligibilityproductcategory = $42,
                     useraccount = $43,
+                    addmember = $44,
                     updatedat = NOW()
-                WHERE id = $44`,
+                WHERE id = $45`,
                 [
                     productname,
                     currency,
@@ -460,6 +458,7 @@ const manageSavingsProduct = async (req, res) => {
                     eligibilityproduct,
                     eligibilityproductcategory,
                     useraccount,
+                    addmember,
                     id
                 ]
             );
@@ -613,6 +612,7 @@ const manageSavingsProduct = async (req, res) => {
                     eligibilityproduct,
                     eligibilityproductcategory,
                     useraccount,
+                    addmember,
                     dateadded
                 ) VALUES (
                     $1, $2, $3, $4, $5,
@@ -623,7 +623,7 @@ const manageSavingsProduct = async (req, res) => {
                     $26, $27, $28, $29, $30,
                     $31, $32, $33, $34, $35,
                     $36, $37, $38, $39, $40,
-                    $41, $42, $43, NOW()
+                    $41, $42, $43, $44, NOW()
                 ) RETURNING id`;
 
             const values = [
@@ -669,7 +669,8 @@ const manageSavingsProduct = async (req, res) => {
                 eligibilityminimumloan,
                 eligibilityproduct,
                 eligibilityproductcategory,
-                useraccount
+                useraccount,
+                addmember
             ];
 
             const { rows } = await pg.query(insertProductQuery, values);

@@ -1,0 +1,14 @@
+-- AlterSequence
+ALTER SEQUENCE "Branch_id_seq" MAXVALUE 9223372036854775807;
+
+-- AlterSequence
+ALTER SEQUENCE "Inventory_id_seq" MAXVALUE 9223372036854775807;
+
+-- AlterSequence
+ALTER SEQUENCE "savings_id_seq" MAXVALUE 9223372036854775807;
+
+-- AlterSequence
+ALTER SEQUENCE "transaction_id_seq" MAXVALUE 9223372036854775807;
+
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "role" SET DEFAULT 'MEMBER';

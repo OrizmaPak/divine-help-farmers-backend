@@ -64,7 +64,7 @@ model User {
   state         String?
   emailverified DateTime?
   address       String?
-  role          String    @default("USER")
+  role          String    @default("MEMBER")
   permissions   String?
   userpermissions   String? @default("")
   password      String
@@ -400,6 +400,7 @@ model savingsproduct {
   allowoverdrawn                    Boolean
   allowwithdrawal                   Boolean
   chargehere                        Boolean   @default(false)
+  addmember                         String    @default("NO")
   compulsorydeposit                 Boolean
   compulsorydepositdeficit          Boolean  @default(false) // if this is true compulsorydepositpenalty will be ignored
   compulsorydepositfrequency        String?   // "D1", "W1", "M1"
@@ -497,6 +498,7 @@ model savings {
   accountnumber             Int
   userid                    Int
   amount                    Float
+  member                    Int? @default(0)
   branch                    Int
   registrationpoint         Int?
   registrationcharge        Float
@@ -515,6 +517,7 @@ model savings {
   status                    String @default("ACTIVE")
   dateadded                 DateTime
   createdby                 Int
+  reason                    String? @default("")
 }
 
 model transaction {
@@ -560,7 +563,8 @@ model loanfee {
   feename                  String    @unique
   feemethod                String    // "FORM FEE" or "PROCESSING FEE" or "INSURANCE FEE" or "DEDUCTION FEE" or "PENALTY"
   chargesbasedon           String    // "PRINCIPAL AMOUNT ONLY" or "PRINCIPAL AND INTEREST"
-  chargerage               Float?    
+  chargeamount               Float?    
+  chargetype                String?    // "PERCENTAGE" or "AMOUNT"
   glaccount                String
   status                   String @default("ACTIVE")
   dateadded                DateTime
@@ -597,7 +601,7 @@ model loanproduct {
       eligibilityminimumclosedaccounts Int?
 
       eligibilitytype          String? // "PERCENTAGE" or "AMOUNT"
-      maximumloan              Float?
+      maximumloan              Float? 
       minimumloan              Float?
       membership                      String? @default("")
 

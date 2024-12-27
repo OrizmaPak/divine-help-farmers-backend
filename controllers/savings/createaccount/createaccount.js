@@ -3,16 +3,17 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
 const manageSavingsAccount = async (req, res) => {
-    const { savingsproductid, userid, amount = 0, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, sms, whatsapp, email, createdby, accountnumber } = req.body;
-
-
-
+    const user = req.user;
+    let { savingsproductid, userid=user.id, amount = 0, branch=user.branch, registrationpoint=user.registrationpoint, registrationcharge=0, registrationdesc='', bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer=0, sms, whatsapp, email, createdby, accountnumber, member, registrationdate, reason, status} = req.body;
 
     try {
-        // Type validation based on the model
+        sms = sms ? true : false;
+        whatsapp = whatsapp ? true : false;
+        email = email ? true : false;
+        //   Type validation based on the model
         let typeErrors = [];
 
-        if (isNaN(parseInt(savingsproductid))) typeErrors.push('savingsproductid must be a number.');
+        if (savingsproductid&&isNaN(parseInt(savingsproductid))) typeErrors.push('savingsproductid must be a number.');
         if (isNaN(parseInt(userid))) typeErrors.push('userid must be a number.');
         if (isNaN(parseInt(amount))) typeErrors.push('amount must be a number.');
         if (isNaN(parseInt(branch))) typeErrors.push('branch must be a number.');
@@ -25,22 +26,24 @@ const manageSavingsAccount = async (req, res) => {
         if (bankname2 !== undefined && bankname2 !== '' && typeof bankname2 !== 'string') typeErrors.push('bankname2 must be a string.');
         if (bankaccountname2 !== undefined && bankaccountname2 !== '' && typeof bankaccountname2 !== 'string') typeErrors.push('bankaccountname2 must be a string.');
         if (bankaccountnumber2 !== undefined && bankaccountnumber2 !== '' && isNaN(parseInt(bankaccountnumber2))) typeErrors.push('bankaccountnumber2 must be a number.');
-        if (accountofficer !== undefined && accountofficer !== '' && typeof accountofficer !== 'string') typeErrors.push('accountofficer must be a string.');
-        if (sms !== undefined && sms !== '') {
-            if (sms.toLowerCase() !== 'true' && sms.toLowerCase() !== 'false') {
-                typeErrors.push('sms must be a boolean.');
-            }
-        }
-        if (whatsapp !== undefined && whatsapp !== '') {
-            if (whatsapp.toLowerCase() !== 'true' && whatsapp.toLowerCase() !== 'false') {
-                typeErrors.push('whatsapp must be a boolean.');
-            }
-        }
-        if (email !== undefined && email !== '') {
-            if (email.toLowerCase() !== 'true' && email.toLowerCase() !== 'false') {
-                typeErrors.push('email must be a boolean.');
-            }
-        }
+        if (accountofficer !== 0 && accountofficer !== undefined && accountofficer !== '' && typeof accountofficer !== 'string') typeErrors.push('accountofficer must be a string.');
+        // if (sms !== undefined && sms !== '') {
+        //     if (sms.toLowerCase() !== 'true' && sms.toLowerCase() !== 'false') {
+        //         typeErrors.push('sms must be a boolean.');
+        //     }
+        // }
+        // if (whatsapp !== undefined && whatsapp !== '') {
+        //     if (whatsapp.toLowerCase() !== 'true' && whatsapp.toLowerCase() !== 'false') {
+        //         typeErrors.push('whatsapp must be a boolean.');
+        //     }
+        // }
+        // if (email !== undefined && email !== '') {
+        //     if (email.toLowerCase() !== 'true' && email.toLowerCase() !== 'false') {
+        //         typeErrors.push('email must be a boolean.');
+        //     }
+        // }
+        if (registrationdate !== undefined && registrationdate !== '' && isNaN(Date.parse(registrationdate))) typeErrors.push('registrationdate must be a valid date.');
+
         if (accountnumber !== undefined && accountnumber !== '' && isNaN(parseInt(accountnumber))) typeErrors.push('accountnumber must be a number.');
 
         // If any type errors are found, return an error response
@@ -59,12 +62,15 @@ const manageSavingsAccount = async (req, res) => {
 
         // Check if all required fields are provided
         let missingFields = [];
-        if (!savingsproductid) missingFields.push('savingsproductid');
-        if (!userid) missingFields.push('userid');
-        if (!amount) missingFields.push('amount');
-        if (!branch) missingFields.push('branch');
-        if (!registrationcharge) missingFields.push('registrationcharge');
-        // if (!createdby) missingFields.push('createdby');
+        if(!accountnumber){
+            if (!savingsproductid) missingFields.push('savingsproductid');
+            if (!userid) missingFields.push('userid');
+            if (!amount) missingFields.push('amount');
+            if (!branch) missingFields.push('branch');
+            if (!member) missingFields.push('member');
+            if (!registrationcharge) missingFields.push('registrationcharge');
+            // if (!createdby) missingFields.push('createdby');
+            }
 
         if (missingFields.length > 0) {
             return res.status(StatusCodes.BAD_REQUEST).json({
@@ -77,10 +83,10 @@ const manageSavingsAccount = async (req, res) => {
         }
 
         // Check if the savings product exists
-        const productQuery = `SELECT * FROM divine."savingsproduct" WHERE id = $1`;
+        const productQuery = `SELECT * FROM divine."savingsproduct" WHERE id = $1 AND status = 'ACTIVE'`;
         const productResult = await pg.query(productQuery, [savingsproductid]);
 
-        if (productResult.rowCount === 0) {
+        if (productResult.rowCount === 0 && !accountnumber) {
             await activityMiddleware(req, createdby, 'Attempt to create a savings account with a non-existent product', 'ACCOUNT');
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -93,7 +99,7 @@ const manageSavingsAccount = async (req, res) => {
 
         // Check if the account officer exists and is a user
         if (accountofficer) {
-            const officerQuery = `SELECT * FROM divine."User" WHERE id = $1`;
+            const officerQuery = `SELECT * FROM divine."User" WHERE id = $1 AND status = 'ACTIVE'`;
             const officerResult = await pg.query(officerQuery, [accountofficer]);
 
             if (officerResult.rowCount === 0) {
@@ -110,8 +116,8 @@ const manageSavingsAccount = async (req, res) => {
 
         // Check if the user already has the savings product
     if (!accountnumber) {
-        const existingAccountQuery = `SELECT COUNT(*) FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2`;
-        const existingAccountResult = await pg.query(existingAccountQuery, [userid, savingsproductid]);
+        const existingAccountQuery = `SELECT COUNT(*) FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2 AND member = $3 AND status = 'ACTIVE'`;
+        const existingAccountResult = await pg.query(existingAccountQuery, [userid, savingsproductid, member]);
         const accountCount = parseInt(existingAccountResult.rows[0].count);
 
         // Fetch the savings product details to get the useraccount limit
@@ -134,9 +140,10 @@ const manageSavingsAccount = async (req, res) => {
         // Fetch savings account number
         const accountNumberQuery = {
             text: `
-                SELECT accountnumber, dateadded 
-                FROM divine."savings" 
-                WHERE userid = $1 AND savingsproductid = $2
+                    SELECT accountnumber, dateadded 
+                    FROM divine."savings" 
+                    WHERE userid = $1 AND savingsproductid = $2 AND status = 'ACTIVE'
+                    ORDER BY id DESC
             `,
             values: [user.id, productResult.eligibilityproduct]
         };
@@ -161,7 +168,7 @@ const manageSavingsAccount = async (req, res) => {
                 text: `
                     SELECT SUM(credit) - SUM(debit) AS balance 
                     FROM divine."transaction" 
-                    WHERE accountnumber = $1
+                    WHERE accountnumber = $1 AND status = 'ACTIVE'
                 `,
                 values: [accountnumber]
             };
@@ -198,7 +205,7 @@ const manageSavingsAccount = async (req, res) => {
                         text: `
                             SELECT SUM(credit) AS totalCredit 
                             FROM divine."transaction" 
-                            WHERE accountnumber = $1
+                            WHERE accountnumber = $1 AND status = 'ACTIVE'
                         `,
                         values: [accountnumber]
                     };
@@ -219,7 +226,7 @@ const manageSavingsAccount = async (req, res) => {
                     text: `
                         SELECT SUM(debit) AS totalDebit 
                         FROM divine."transaction" 
-                        WHERE accountnumber = $1
+                        WHERE accountnumber = $1 AND status = 'ACTIVE'
                     `,
                     values: [accountnumber]
                 };
@@ -240,7 +247,7 @@ const manageSavingsAccount = async (req, res) => {
     if (productResult.eligibilityproductcategory === 'LOAN') {
         // Fetch loan account details
         const loanAccountQuery = {
-            text: 'SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2',
+            text: `SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2 AND status = 'ACTIVE' ORDER BY id DESC`,
             values: [userid, productResult.eligibilityproduct]
         };
         const { rows: loanAccountRows } = await pg.query(loanAccountQuery);
@@ -263,7 +270,7 @@ const manageSavingsAccount = async (req, res) => {
                             COALESCE(SUM(closeamount), 0) AS totalClosedAmount,
                             COUNT(*) FILTER (WHERE closeamount > 0) AS closedAccountsCount
                         FROM divine."loanaccounts"
-                        WHERE userid = $1 AND loanproduct = $2
+                        WHERE userid = $1 AND loanproduct = $2 AND status = 'ACTIVE'
                     `,
                     values: [user.id, productResult.eligibilityproduct]
                 };
@@ -309,7 +316,7 @@ const manageSavingsAccount = async (req, res) => {
     }
 
         // Fetch the organisation settings
-        const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" LIMIT 1`;
+        const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" WHERE status = 'ACTIVE' LIMIT 1`;
         const orgSettingsResult = await pg.query(orgSettingsQuery);
 
         if (orgSettingsResult.rowCount === 0) {
@@ -337,7 +344,7 @@ const manageSavingsAccount = async (req, res) => {
             });
         }
 
-        const accountRowsQuery = `SELECT accountnumber FROM divine."savings" WHERE accountnumber::text LIKE $1 ORDER BY accountnumber DESC LIMIT 1`;
+        const accountRowsQuery = `SELECT accountnumber FROM divine."savings" WHERE accountnumber::text LIKE $1 AND status = 'ACTIVE' ORDER BY accountnumber DESC LIMIT 1`;
         const { rows: accountRows } = await pg.query(accountRowsQuery, [`${accountNumberPrefix}%`]);
 
         let generatedAccountNumber;
@@ -380,7 +387,7 @@ const manageSavingsAccount = async (req, res) => {
 
             // Check if the branch exists in the branch table if branch is sent
             if (branch) {
-                const branchExistsQuery = `SELECT * FROM divine."Branch" WHERE id = $1`;
+                 const branchExistsQuery = `SELECT * FROM divine."Branch" WHERE id = $1 AND status = 'ACTIVE'`;
                 const branchExistsResult = await pg.query(branchExistsQuery, [branch]);
 
                 if (branchExistsResult.rowCount === 0) {
@@ -413,15 +420,20 @@ const manageSavingsAccount = async (req, res) => {
                     sms = COALESCE($13, sms), 
                     whatsapp = COALESCE($14, whatsapp), 
                     email = COALESCE($15, email), 
-                    status = COALESCE($16, 'ACTIVE')
-                WHERE accountnumber = $17
-                RETURNING id
+                    status = COALESCE($16, status),
+                    member = COALESCE($17, member),
+                    registrationdate = COALESCE($18, registrationdate),
+                    reason = COALESCE($19, reason)
+                WHERE accountnumber = $20
+                RETURNING id, status
             `;
             const updateAccountResult = await pg.query(updateAccountQuery, [
-                branch, amount, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, sms, whatsapp, email, 'ACTIVE', accountnumber
+                branch, amount, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1??0, bankname2, bankaccountname2, bankaccountnumber2??0, accountofficer, sms, whatsapp, email, status, member, registrationdate, reason, accountnumber
             ]);
 
             const updatedAccountId = updateAccountResult.rows[0].id;
+
+            console.log('status', status, updateAccountResult.rows[0].status)
 
             // Record the activity
             await activityMiddleware(req, createdby, `Savings account updated with ID: ${updatedAccountId}`, 'ACCOUNT');
@@ -435,7 +447,7 @@ const manageSavingsAccount = async (req, res) => {
             });
         } else {
             // Check if the userid exists in the user table
-            const userExistsQuery = `SELECT * FROM divine."User" WHERE id = $1`;
+            const userExistsQuery = `SELECT * FROM divine."User" WHERE id = $1 AND status = 'ACTIVE'`;
             const userExistsResult = await pg.query(userExistsQuery, [userid]);
 
             if (userExistsResult.rowCount === 0) {
@@ -450,7 +462,7 @@ const manageSavingsAccount = async (req, res) => {
             }
 
             // Check if the branch exists in the branch table
-            const branchExistsQuery = `SELECT * FROM divine."Branch" WHERE id = $1`;
+            const branchExistsQuery = `SELECT * FROM divine."Branch" WHERE id = $1 AND status = 'ACTIVE'`;
             const branchExistsResult = await pg.query(branchExistsQuery, [branch]);
 
             if (branchExistsResult.rowCount === 0) {
@@ -466,12 +478,12 @@ const manageSavingsAccount = async (req, res) => {
             // Save the new savings account
             const insertAccountQuery = `
                 INSERT INTO divine."savings" 
-                (savingsproductid, accountnumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdate, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, sms, whatsapp, email, status, dateadded, createdby)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 'ACTIVE', NOW(), $19)
+                (savingsproductid, accountnumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdate, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, sms, whatsapp, email, status, dateadded, createdby, member)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
                 RETURNING id, accountnumber
             `;
             const insertAccountResult = await pg.query(insertAccountQuery, [
-                savingsproductid, generatedAccountNumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, sms, whatsapp, email, user.id
+                savingsproductid, generatedAccountNumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdate, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1 =="" ? 0 :bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2 == "" ? 0 : bankaccountnumber2, accountofficer, sms ?? false, whatsapp ?? false, email ?? false, 'ACTIVE', new Date(), user.id, member
             ]);
 
             const newAccountId = insertAccountResult.rows[0].id;

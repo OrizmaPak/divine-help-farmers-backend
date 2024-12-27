@@ -1,14 +1,19 @@
 const pg = require("../db/pg");
 
-const autoAddMembershipAndAccounts = async (req, res) => {
+const autoAddMembershipAndAccounts = async (req, res, user=0) => {
     try {
         const userId = req.newuser.id;
+        // if (!req.user) {
+        //     req.user.id = 0
+        //     // console.error('User information is missing in the request.');
+        //     // return false;
+        // }
 
         // Fetch all DefineMember rows with addmember set to 'YES'
         const { rows: defineMembers } = await pg.query(`SELECT id FROM divine."DefineMember" WHERE addmember = 'YES'`);
-
+ 
         // Iterate over each DefineMember and create a Membership entry if it doesn't exist
-        for (const defineMember of defineMembers) {
+        for (const defineMember of defineMembers) { 
             const memberId = defineMember.id;
 
             // Check if a membership already exists for this user and member
@@ -20,8 +25,8 @@ const autoAddMembershipAndAccounts = async (req, res) => {
             // If no existing membership, create a new one
             if (existingMembership.length === 0) {
                 await pg.query(
-                    `INSERT INTO divine."Membership" (member, userid, createdby) VALUES ($1, $2, $3)`,
-                    [memberId, userId, req.user.id]
+                    `INSERT INTO divine."Membership" (member, userid, createdby, status) VALUES ($1, $2, $3, 'ACTIVE')`,
+                    [memberId, userId, user]
                 );
             }
         }

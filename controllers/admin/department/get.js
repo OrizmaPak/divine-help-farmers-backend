@@ -15,6 +15,7 @@ const getDepartment = async (req, res) => {
         const sort = searchParams.get('sort') || 'id'; // Sorting field
         const order = searchParams.get('order') || 'DESC'; // Sorting order
         const id = searchParams.get('id'); // Filter by id
+        const userid = searchParams.get('userid'); // Filter by userid
         const offset = (page - 1) * limit; // Calculate offset for pagination
 
         let queryString = `
@@ -66,6 +67,12 @@ const getDepartment = async (req, res) => {
                 params.push(status);
             }
 
+            if (userid) {
+                // Add condition for userid filter
+                queryString += ` AND d."userid" = $${params.length + 1}`;
+                params.push(userid);
+            }
+
             // Define valid sort fields and map them to their qualified names
             const validSortFields = {
                 'id': 'd."id"',
@@ -103,6 +110,10 @@ const getDepartment = async (req, res) => {
         if (status) {
             countQuery += ` AND d."status" = $${countParams.length + 1}`;
             countParams.push(status);
+        }
+        if (userid) {
+            countQuery += ` AND d."userid" = $${countParams.length + 1}`;
+            countParams.push(userid);
         }
 
         const { rows: [{ count: total }] } = await pg.query(countQuery, countParams);

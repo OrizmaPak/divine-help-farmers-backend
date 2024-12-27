@@ -8,7 +8,7 @@ const definemembership = async (req, res) => {
     const user = req.user
 
     // Basic validation
-    if (!member ) {
+    if (!member && !id) {
         let errors = [];
         if (!member) {
             errors.push({

@@ -2,7 +2,7 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 
 const manageLoanFee = async (req, res) => {
-    const { id, feename, feemethod, chargesbasedon, glaccount, status = 'ACTIVE' } = req.body;
+    const { id, feename, feemethod, chargesbasedon, chargeamount, chargetype, glaccount, status = 'ACTIVE' } = req.body;
     const user = req.user;
 
     // Basic validation
@@ -41,6 +41,20 @@ const manageLoanFee = async (req, res) => {
         errors.push({
             field: 'chargesbasedon',
             message: 'Charges based on must be one of "PRINCIPAL AMOUNT ONLY" or "PRINCIPAL AND INTEREST"'
+        });
+    }
+
+    if (chargeamount !== undefined && isNaN(parseInt(chargeamount))) {
+        errors.push({
+            field: 'chargeamount',
+            message: 'Charge amount must be a number'
+        });
+    }
+
+    if (chargetype && typeof chargetype !== 'string') {
+        errors.push({
+            field: 'chargetype',
+            message: 'Charge type must be a string'
         });
     }
 
@@ -92,10 +106,12 @@ const manageLoanFee = async (req, res) => {
                         feename = COALESCE($1, feename), 
                         feemethod = COALESCE($2, feemethod), 
                         chargesbasedon = COALESCE($3, chargesbasedon), 
-                        glaccount = COALESCE($4, glaccount), 
-                        status = COALESCE($5, status)
-                       WHERE id = $6 RETURNING *`,
-                values: [feename, feemethod, chargesbasedon, glaccount, status, id]
+                        chargeamount = COALESCE($4, chargeamount), 
+                        chargetype = COALESCE($5, chargetype), 
+                        glaccount = COALESCE($6, glaccount), 
+                        status = COALESCE($7, status)
+                       WHERE id = $8 RETURNING *`,
+                values: [feename, feemethod, chargesbasedon, chargeamount, chargetype, glaccount, status, id]
             };
             const { rows: updatedLoanFeeRows } = await pg.query(updateLoanFeeQuery);
             loanFee = updatedLoanFeeRows[0];
@@ -118,8 +134,8 @@ const manageLoanFee = async (req, res) => {
             }
             // Create new loan fee
             const createLoanFeeQuery = {
-                text: `INSERT INTO divine."loanfee" (feename, feemethod, chargesbasedon, glaccount, status, dateadded, createdby) VALUES ($1, $2, $3, $4, $5, NOW(), $6) RETURNING *`,
-                values: [feename, feemethod, chargesbasedon, glaccount, status, user.id]
+                text: `INSERT INTO divine."loanfee" (feename, feemethod, chargesbasedon, chargeamount, chargetype, glaccount, status, dateadded, createdby) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8) RETURNING *`,
+                values: [feename, feemethod, chargesbasedon, chargeamount, chargetype, glaccount, status, user.id]
             };
             const { rows: createdLoanFeeRows } = await pg.query(createLoanFeeQuery);
             loanFee = createdLoanFeeRows[0];

@@ -246,7 +246,7 @@ const signup = async (req, res) => {
             messagestatus = true
         }
         req.newuser = saveuser
-        let accountaction = await autoAddMembershipAndAccounts(req, res)
+        let accountaction = await autoAddMembershipAndAccounts(req, res, 0)
 
         const responseData = {
             status: accountaction,

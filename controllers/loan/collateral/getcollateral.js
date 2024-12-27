@@ -1,21 +1,10 @@
-
 const { StatusCodes } = require("http-status-codes");
-const { activityMiddleware } = require("../../../middleware/activity");
 const pg = require("../../../db/pg");
-const { divideAndRoundUp } = require("../../../utils/pageCalculator");
 
-const getFrequencyOverrides = async (req, res) => {
-    const user = req.user;
-
+const getCollateral = async (req, res) => {
     try {
-        // Fetch all branches
-        const branchQuery = `SELECT id, branch FROM divine."Branch"`;
-        const branchResult = await pg.query(branchQuery);
-        const branches = branchResult.rows;
-
-        // Fetch frequency overrides
         let query = {
-            text: `SELECT * FROM divine."frequencyoverride"`,
+            text: `SELECT * FROM divine."collateral"`,
             values: []
         };
 
@@ -37,12 +26,17 @@ const getFrequencyOverrides = async (req, res) => {
 
         // Add search query if provided
         if (req.query.q) {
-            const searchConditions = `
-                savingsproductid::text ILIKE $${valueIndex} OR 
-                compulsorydepositfrequency ILIKE $${valueIndex} OR 
-                branch::text ILIKE $${valueIndex} OR 
-                status ILIKE $${valueIndex}
-            `;
+            // Fetch column names from the 'collateral' table
+            const { rows: columns } = await pg.query(`
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'collateral'
+            `);
+
+            const cols = columns.map(row => row.column_name);
+
+            // Generate the dynamic SQL query
+            const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
             if (whereClause) {
                 whereClause += ` AND (${searchConditions})`;
             } else {
@@ -64,46 +58,31 @@ const getFrequencyOverrides = async (req, res) => {
         query.values.push(limit, offset);
 
         const result = await pg.query(query);
-        const frequencyOverrides = result.rows;
-
-        // Create a template with all branches and their frequency overrides
-        const frequencyOverridesTemplate = branches.map(branch => {
-            const override = frequencyOverrides.find(fo => fo.branch === branch.id);
-            return {
-                branchid: branch.id, // Add branchid to the result
-                branch: branch.branch,
-                savingsproductid: override ? override.savingsproductid : null,
-                compulsorydepositfrequency: override ? override.compulsorydepositfrequency : null,
-                status: override ? override.status : 'ACTIVE'
-            };
-        });
+        const collaterals = result.rows;
 
         // Get total count for pagination
         const countQuery = {
-            text: `SELECT COUNT(*) FROM divine."frequencyoverride" ${whereClause}`,
+            text: `SELECT COUNT(*) FROM divine."collateral" ${whereClause}`,
             values: query.values.slice(0, -2) // Exclude limit and offset
         };
         const { rows: [{ count: total }] } = await pg.query(countQuery);
-        const pages = divideAndRoundUp(total, limit);
-
-        await activityMiddleware(req, user.id, 'Frequency overrides fetched successfully', 'FREQUENCY_OVERRIDE');
+        const pages = Math.ceil(total / limit);
 
         return res.status(StatusCodes.OK).json({
             status: true,
-            message: "Frequency overrides fetched successfully",
+            message: "Collaterals fetched successfully",
             statuscode: StatusCodes.OK,
-            data: frequencyOverridesTemplate,
+            data: collaterals,
             pagination: {
                 total: Number(total),
                 pages,
-                page, 
+                page,
                 limit
             },
             errors: []
         });
     } catch (error) {
         console.error('Unexpected Error:', error);
-        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching frequency overrides', 'FREQUENCY_OVERRIDE');
 
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
@@ -115,4 +94,4 @@ const getFrequencyOverrides = async (req, res) => {
     }
 };
 
-module.exports = { getFrequencyOverrides };
+module.exports = { getCollateral };

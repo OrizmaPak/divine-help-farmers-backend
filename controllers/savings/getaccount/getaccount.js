@@ -8,25 +8,37 @@ const getAccounts = async (req, res) => {
 
     try {
         let query = {
-            text: `SELECT * FROM divine."savings"`,
+            text: `SELECT s.*, 
+                          CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS useridname,
+                          b.branch AS branchname,
+                          rp.registrationpoint AS registrationpointname,
+                          CONCAT(ao.firstname, ' ', ao.lastname, ' ', COALESCE(ao.othernames, '')) AS accountofficername,
+                          sp.productname AS savingsproduct,
+                          dm.member AS membername
+                   FROM divine."savings" s 
+                   JOIN divine."User" u ON s.userid = u.id
+                   JOIN divine."Branch" b ON s.branch = b.id
+                   LEFT JOIN divine."Registrationpoint" rp ON s.registrationpoint = rp.id
+                   LEFT JOIN divine."User" ao ON CAST(s.accountofficer AS INTEGER) = ao.id
+                   LEFT JOIN divine."savingsproduct" sp ON s.savingsproductid = sp.id
+                   LEFT JOIN divine."DefineMember" dm ON s.member = dm.id`,
             values: []
         };
 
         // Dynamically build the WHERE clause based on query parameters
-        let whereClause = '';
+        let whereClause = [];
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
-            if (key !== 'q') {
-                if (whereClause) {
-                    whereClause += ` AND `;
-                } else {
-                    whereClause += ` WHERE `;
-                }
-                whereClause += `"${key}" = $${valueIndex}`;
+            if (key !== 'q' && key !== 'page' && key !== 'limit') {
+                whereClause.push(`s."${key}" = $${valueIndex}`);
                 query.values.push(req.query[key]);
                 valueIndex++;
             }
         });
+
+        if (whereClause.length > 0) {
+            query.text += ` WHERE ` + whereClause.join(' AND ');
+        }
 
         // Add search query if provided
         if (req.query.q) {
@@ -40,17 +52,15 @@ const getAccounts = async (req, res) => {
             const cols = columns.map(row => row.column_name);
 
             // Generate the dynamic SQL query
-            const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
-            if (whereClause) {
-                whereClause += ` AND (${searchConditions})`;
+            const searchConditions = cols.map(col => `s.${col}::text ILIKE $${valueIndex}`).join(' OR ');
+            if (whereClause.length > 0) {
+                query.text += ` AND (${searchConditions})`;
             } else {
-                whereClause += ` WHERE (${searchConditions})`;
+                query.text += ` WHERE (${searchConditions})`;
             }
             query.values.push(`%${req.query.q}%`);
             valueIndex++;
         }
-
-        query.text += whereClause;
 
         // Add pagination
         const searchParams = new URLSearchParams(req.query);
@@ -66,7 +76,7 @@ const getAccounts = async (req, res) => {
 
         // Get total count for pagination
         const countQuery = {
-            text: `SELECT COUNT(*) FROM divine."savings" ${whereClause}`,
+            text: `SELECT COUNT(*) FROM divine."savings" s ${whereClause.length > 0 ? 'WHERE ' + whereClause.join(' AND ') : ''}`,
             values: query.values.slice(0, -2) // Exclude limit and offset
         };
         const { rows: [{ count: total }] } = await pg.query(countQuery);
@@ -102,4 +112,4 @@ const getAccounts = async (req, res) => {
 };
 
 module.exports = { getAccounts };
-
+   

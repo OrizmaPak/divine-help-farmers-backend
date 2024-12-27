@@ -83,7 +83,7 @@ async function updateuser(req, res) {
                                  officeaddress = COALESCE($11, officeaddress),
                                  branch = COALESCE($12, branch),
                                  permissions = COALESCE($13, permissions),
-                                 userpermissions = COALESCE($14, userpermissions),
+                                 userpermissions = COALESCE($14, userpermissions), 
                                  gender = COALESCE($15, gender),
                                  occupation = COALESCE($16, occupation),
                                  lga = COALESCE($17, lga),
