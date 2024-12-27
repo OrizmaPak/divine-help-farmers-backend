@@ -26,7 +26,7 @@ const autoAddMembershipAndAccounts = async (req, res, user=0) => {
             if (existingMembership.length === 0) {
                 await pg.query(
                     `INSERT INTO divine."Membership" (member, userid, createdby, status) VALUES ($1, $2, $3, 'ACTIVE')`,
-                    [memberId, userId, user]
+                    [memberId, userId, userId]
                 );
             }
         }
