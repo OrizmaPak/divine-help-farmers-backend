@@ -2,16 +2,11 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 const { generateNextDates, validateCode } = require("../../../utils/datecode");
-const { generateRepaymentSchedule, calculateInterest } = require("../../../utils/loancalculator");
-
+const { generateRepaymentSchedule, calculateInterest, generateRefinedRepaymentSchedule } = require("../../../utils/loancalculator");
 
 const manageLoanAccount = async (req, res) => {
-    let { id, accountnumber, userid, registrationpoint, registrationcharge=0, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, seperateinterest='false', interestrate, defaultpenaltyid, loanamount } = req.body;
-    if(seperateinterest == 'true'){
-        seperateinterest = true;
-    }else{
-        seperateinterest = false;
-    }
+    let { id, accountnumber, userid, registrationpoint, registrationcharge=0, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, seperateinterest, interestrate, defaultpenaltyid, loanamount, member, status, interestratetype } = req.body;
+    seperateinterest = seperateinterest ? true : false;
     const user = req.user;
     let generatedAccountNumber;
 
@@ -172,6 +167,14 @@ const manageLoanAccount = async (req, res) => {
         });
     }
 
+    // Validate interest rate type
+    if (interestratetype !== undefined && interestratetype !== '' && !['INSTALLMENT', 'PRINCIPAL'].includes(interestratetype)) {
+        errors.push({
+            field: 'interestratetype',
+            message: 'Interest rate type must be either "INSTALLMENT" or "PRINCIPAL"'
+        });
+    }
+
     // Validate default penalty ID
     if (defaultpenaltyid !== undefined && defaultpenaltyid !== '' && isNaN(parseInt(defaultpenaltyid))) {
         errors.push({
@@ -190,9 +193,10 @@ const manageLoanAccount = async (req, res) => {
 
     // If there are validation errors, return a bad request response
     if (errors.length > 0) {
+        const errorMessages = errors.map(error => error.message).join(', ');
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Validation Errors",
+            message: `Validation Errors: ${errorMessages}`,
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: errors
@@ -220,8 +224,8 @@ const manageLoanAccount = async (req, res) => {
 
         // Check if the loan product exists
         const loanProductQuery = {
-            text: 'SELECT * FROM divine."loanproduct" WHERE id = $1',
-            values: [loanproduct]
+            text: 'SELECT * FROM divine."loanproduct" WHERE id = $1 AND ($2::text = ANY(string_to_array(membership, \'||\')) OR membership = $2::text)',
+            values: [loanproduct, member]
         };
         const { rows: loanProductRows } = await pg.query(loanProductQuery);
         if (loanProductRows.length === 0) {
@@ -233,7 +237,8 @@ const manageLoanAccount = async (req, res) => {
                 errors: []
             });
         }
-        
+
+      
         // Check if the branch exists
         const branchQuery = {
             text: 'SELECT * FROM divine."Branch" WHERE id = $1',
@@ -264,6 +269,27 @@ const manageLoanAccount = async (req, res) => {
                 });
             }
         }
+
+        if(!accountnumber){
+            // Check if the user already has an account for this loan product
+            const userAccountsQuery = {
+                text: 'SELECT COUNT(*) FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2 AND member = $3',
+                values: [userid, loanproduct, member]
+            };
+            const { rows: userAccountsRows } = await pg.query(userAccountsQuery);
+            const userAccountCount = parseInt(userAccountsRows[0].count, 10);
+    
+            // Check if opening another account will exceed the allowed number of accounts
+            if (loanProduct.useraccount && userAccountCount >= loanProduct.useraccount) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: 'User has reached the maximum number of accounts allowed for this loan product',
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+            }
 
         // Check if the account officer exists
         if (accountofficer) {
@@ -350,10 +376,10 @@ const manageLoanAccount = async (req, res) => {
                         field: 'repaymentfrequency',
                         message: 'Repayment frequency not found'
                     });
-                } else if (typeof repaymentfrequency !== 'string' || !['D1', 'W1', 'M1'].includes(repaymentfrequency)) {
+                } else if (!validateCode(repaymentfrequency)) {
                     errors.push({
                         field: 'repaymentfrequency',
-                        message: 'Repayment frequency must be one of "D1", "W1", or "M1"'
+                        message: 'Repayment frequency is invalid'
                     });
                 }
 
@@ -369,29 +395,29 @@ const manageLoanAccount = async (req, res) => {
                     });
                 }
 
-                if (!duration) {
-                    errors.push({
-                        field: 'duration',
-                        message: 'Duration not found'
-                    });
-                } else if (isNaN(parseInt(duration, 10)) || parseInt(duration, 10) <= 0) {
-                    errors.push({
-                        field: 'duration',
-                        message: 'Duration must be a positive number'
-                    });
-                }
+                // if (!duration) {
+                //     errors.push({
+                //         field: 'duration',
+                //         message: 'Duration not found'
+                //     });
+                // } else if (isNaN(parseInt(duration, 10)) || parseInt(duration, 10) <= 0) {
+                //     errors.push({
+                //         field: 'duration',
+                //         message: 'Duration must be a positive number'
+                //     });
+                // }
 
-                if (!durationcategory) {
-                    errors.push({
-                        field: 'durationcategory',
-                        message: 'Duration category not found'
-                    });
-                } else if (typeof durationcategory !== 'string' || !['DAY', 'WEEK', 'MONTH', 'YEAR'].includes(durationcategory)) {
-                    errors.push({
-                        field: 'durationcategory',
-                        message: 'Duration category must be one of "DAY", "WEEK", "MONTH", or "YEAR"'
-                    });
-                }
+                // if (!durationcategory) {
+                //     errors.push({
+                //         field: 'durationcategory',
+                //         message: 'Duration category not found'
+                //     });
+                // } else if (typeof durationcategory !== 'string' || !['DAY', 'WEEK', 'MONTH', 'YEAR'].includes(durationcategory)) {
+                //     errors.push({
+                //         field: 'durationcategory',
+                //         message: 'Duration category must be one of "DAY", "WEEK", "MONTH", or "YEAR"'
+                //     });
+                // }
 
                 if (!interestmethod) {
                     errors.push({
@@ -468,9 +494,9 @@ const manageLoanAccount = async (req, res) => {
                     text: `
                         SELECT accountnumber, dateadded 
                         FROM divine."savings" 
-                        WHERE userid = $1 AND savingsproductid = $2
+                        WHERE userid = $1 AND savingsproductid = $2 AND member = $3
                     `,
-                    values: [userid, loanProduct.eligibilityproduct]
+                    values: [userid, loanProduct.eligibilityproduct, member]
                 };
                 const { rows: accountRows } = await pg.query(accountNumberQuery);
 
@@ -595,8 +621,8 @@ const manageLoanAccount = async (req, res) => {
             if (loanProduct.eligibilityproductcategory === 'LOAN') {
                 // Fetch loan account details
                 const loanAccountQuery = {
-                    text: 'SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2',
-                    values: [userid, loanProduct.eligibilityproduct]
+                    text: 'SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2 AND member = $3',
+                    values: [userid, loanProduct.eligibilityproduct, member]
                 };
                 const { rows: loanAccountRows } = await pg.query(loanAccountQuery);
     
@@ -665,9 +691,10 @@ const manageLoanAccount = async (req, res) => {
 
             // If there are validation errors, return a bad request response
             if (errors.length > 0) {
+                const errorMessages = errors.map(error => error.message).join(', ');
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: "Validation Errors",
+                    message: `Validation Errors: ${errorMessages}`,
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: errors
@@ -691,25 +718,29 @@ const manageLoanAccount = async (req, res) => {
             // Generate repayment dates
             const repaymentDates = generateNextDates(repaymentfrequency, numberofrepayments);
 
+            // return console.log('repaymentDates:', repaymentDates, 'repaymentfrequency:', repaymentfrequency, 'numberofrepayments:', numberofrepayments);
+
             // Calculate interest based on interest method
             let interest = 0;
-            try {
-                interest = calculateInterest(loanamount, interestrate, numberofrepayments, interestmethod.replace(' ', '_'));
-                // if (loanProduct.interestmethod === 'INTEREST ONLY') {
-                //     numberofrepayments = 1;
-                // }
-            } catch (error) {
-                errors.push({
-                    field: 'interestmethod',
-                    message: error.message
-                });
-            }
+            // try {
+            //     interest = calculateInterest(loanamount, interestrate, numberofrepayments, interestmethod.replace(' ', '_'));
+            //     console.log('Interest ran:', interest);
+            //     // if (loanProduct.interestmethod === 'INTEREST ONLY') {
+            //     //     numberofrepayments = 1;
+            //     // }
+            // } catch (error) {
+            //     errors.push({
+            //         field: 'interestmethod',
+            //         message: error.message
+            //     });
+            // }
 
             // If there are validation errors, return a bad request response
             if (errors.length > 0) {
+                const errorMessages = errors.map(error => error.message).join(', ');
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: "Validation Errors",
+                    message: `Validation Errors: ${errorMessages}`,
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: errors
@@ -718,21 +749,20 @@ const manageLoanAccount = async (req, res) => {
 
             console.log('seperateInterest before:', seperateinterest);
 
-
             // Calculate repayment amounts
-            const repaymentSchedule = generateRepaymentSchedule(
+            const repaymentSchedule = generateRefinedRepaymentSchedule(
                 loanamount,
                 interestrate,
                 numberofrepayments,
                 interestmethod.replace(' ', '_'),
                 new Date(),
                 seperateinterest,
+                interestratetype,
                 repaymentDates,
-                interest
+                res
             ).map((schedule, index) => ({
                 accountnumber: generatedAccountNumber,
                 scheduledpaymentdate: repaymentDates[index],
-                // Start of Selection
                 scheduleamount: parseFloat(schedule.principalAmount.toFixed(2)),
                 interestamount: parseFloat(schedule.interestAmount.toFixed(2)),
                 status: 'PENDING',
@@ -769,20 +799,21 @@ const manageLoanAccount = async (req, res) => {
 
             // Calculate interest based on loan product's interest method
             let interest = 0;
-            try {
-                interest = calculateInterest(productLoanAmount, productInterestRate, productNumberOfRepayments, productInterestMethod);
-            } catch (error) {
-                errors.push({
-                    field: 'interestmethod',
-                    message: error.message
-                });
-            }
+            // try {
+            //     interest = calculateInterest(productLoanAmount, productInterestRate, productNumberOfRepayments, productInterestMethod);
+            // } catch (error) {
+            //     errors.push({
+            //         field: 'interestmethod',
+            //         message: error.message
+            //     });
+            // }
 
             // If there are validation errors, return a bad request response
             if (errors.length > 0) {
+                const errorMessages = errors.map(error => error.message).join(', ');
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: "Validation Errors",
+                    message: `Validation Errors: ${errorMessages}`,
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: errors
@@ -792,15 +823,15 @@ const manageLoanAccount = async (req, res) => {
             console.log('seperateInterest before:', loanProduct.seperateinterest);
 
             // Calculate repayment amounts using loan product data
-            const repaymentSchedule = generateRepaymentSchedule(
+            const repaymentSchedule = generateRefinedRepaymentSchedule(
                 productLoanAmount,
                 productInterestRate,
                 productNumberOfRepayments,
                 productInterestMethod,
                 new Date(),
-                loanproduct.seperateinterest,
+                loanProduct.seperateinterest,
+                loanProduct.interestratetype,
                 repaymentDates,
-                interest
             ).map((schedule, index) => ({
                 accountnumber: generatedAccountNumber,
                 scheduledpaymentdate: repaymentDates[index],
@@ -854,7 +885,7 @@ const manageLoanAccount = async (req, res) => {
                     });
                 }
             }
-
+ 
             let loandata
 
             // Update existing loan account
@@ -887,21 +918,22 @@ const manageLoanAccount = async (req, res) => {
                         createdby = COALESCE($25, createdby),
                         dateclosed = COALESCE($26, dateclosed),
                         closeamount = COALESCE($27, closeamount),
-                        seperateinterest = COALESCE($28, seperateinterest)
-                       WHERE id = $29 RETURNING *`,
-                values: [accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, 'ACTIVE', new Date(), user.id, null, null, null, id]
+                        seperateinterest = COALESCE($28, seperateinterest),
+                        member = COALESCE($29, member),
+                        interestratetype = COALESCE($30, interestratetype)
+                       WHERE id = $31 RETURNING *`,
+                values: [accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, status, new Date(), user.id, null, null, null, member, interestratetype, id]
             };
             const { rows: updatedaccountnumberRows } = await pg.query(updateaccountnumberQuery);
             loandata = updatedaccountnumberRows[0];
         } else {
             // Create new loan account
-                // Start of Selection
-                const createaccountnumberQuery = {
-                    text: `INSERT INTO divine."loanaccounts" 
-                            (accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdate, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, status, dateadded, createdby, dateclosed, closeamount, seperateinterest) 
-                       VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28) RETURNING *`,
-                    values: [generatedAccountNumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, 'ACTIVE', new Date(), user.id, null, null, seperateinterest]
-                };
+            const createaccountnumberQuery = {
+                text: `INSERT INTO divine."loanaccounts" 
+                        (accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdate, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, status, dateadded, createdby, dateclosed, closeamount, seperateinterest, member, interestratetype) 
+                   VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30) RETURNING *`,
+                values: [generatedAccountNumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, 'PENDING APPROVAL', new Date(), user.id, null, null, seperateinterest, member, interestratetype]
+            };
             const { rows: newaccountnumberRows } = await pg.query(createaccountnumberQuery);
             loandata = newaccountnumberRows[0];
         }

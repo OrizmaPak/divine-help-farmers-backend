@@ -496,281 +496,309 @@ function validateCode(code) {
  */
 /* Start of Selection */
 function generateDates(code) {
-    // Helper function to get the nth occurrence of a weekday in a specific month and year
-    function getNthWeekday(year, month, weekday, n) {
-        const firstDay = new Date(year, month, 1);
-        let firstWeekday = firstDay.getDay(); // 0 (Sunday) to 6 (Saturday)
-
-        // Calculate the date of the first occurrence of the weekday
-        let day = 1 + ((weekday - firstWeekday + 7) % 7);
-        day += (n - 1) * 7;
-
-        const date = new Date(year, month, day);
-        // Check if the calculated date is still within the same month
-        if (date.getMonth() !== month) {
-            return null; // The nth occurrence does not exist in this month
-        }
-        return date;
+    // 1. Helper: nth weekday with fallback
+    //    If the exact nth weekday doesn't exist, we fallback to n-1, n-2, etc., until we find one.
+    function getNthWeekdayFallback(year, month, weekday, n) {
+      // Try n, n-1, n-2, ... until we find a valid occurrence or return null if none
+      for (let i = n; i >= 1; i--) {
+        const date = computeNthWeekday(year, month, weekday, i);
+        if (date) return date;
+      }
+      return null; // truly none found (rare)
     }
-
-    // Helper function to check if a specific day exists in a month
+  
+    // 2. Core logic to compute the nth weekday (without fallback)
+    //    Returns null if that nth weekday doesn’t exist in the month.
+    function computeNthWeekday(year, month, weekday, n) {
+      // weekday: 0=Sunday ... 6=Saturday
+      // n: 1..5
+      const firstDay = new Date(year, month, 1);
+      const firstWeekday = firstDay.getDay(); // 0..6
+      let offset = (weekday - firstWeekday + 7) % 7;
+      let day = 1 + offset + (n - 1) * 7;
+      const candidate = new Date(year, month, day);
+  
+      // Check if it's still in the same month
+      if (candidate.getMonth() !== month) {
+        return null; // nth weekday doesn't exist
+      }
+      return candidate;
+    }
+  
+    // 3. Helper to check if a day (e.g., 31) is valid in a given month/year
+    //    If not valid, we fallback to the last day of that month.
+    function clampDayToMonth(year, month, desiredDay) {
+      // e.g., desiredDay=31, but April has 30 days => pick 30
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      return desiredDay > daysInMonth ? daysInMonth : desiredDay;
+    }
+  
+    // 4. Helper to see if a date is valid (year/month/day) without fallback
     function isValidDate(year, month, day) {
-        const date = new Date(year, month, day);
-        return date.getMonth() === month && date.getDate() === day;
+      const test = new Date(year, month, day);
+      return (test.getFullYear() === year &&
+              test.getMonth() === month &&
+              test.getDate() === day);
     }
-
-    // Get the current date
+  
+    // 5. Current Date
     const now = new Date();
-
-    // Split the code into combinations separated by '+'
-    const combinations = code.split('+').map(combo => combo.trim());
-
-    // Arrays to store all calculated dates from combinations
+  
+    // 6. Split code into combinations
+    const combinations = code.split('+').map(c => c.trim());
+  
+    // 7. Prepare arrays
     const nextDates = [];
     const lastDates = [];
     const secondToLastDates = [];
-
-    // Loop through each combination
+  
+    // 8. Parse each combination and compute next/last/second-last
     for (let combination of combinations) {
-        const parts = combination.split(/\s+/);
-
-        // Initialize variables for each combination
-        let dayCode = null;
-        let weekOccurrence = null;
-        let monthInterval = 1; // Default to every month
-        let yearInterval = 1;  // Default to every year
-        let dayInterval = null;
-
-        // Parse each part of the combination
-        for (let part of parts) {
-            if (part.startsWith('DT') && /^DT\d+$/.test(part)) {
-                // Day Interval (e.g., DT10)
-                dayInterval = parseInt(part.substring(2), 10);
-            } else if (part.startsWith('Y') && /^Y\d+$/.test(part)) {
-                // Year Interval (e.g., Y2)
-                yearInterval = parseInt(part.substring(1), 10);
-            } else if (part.startsWith('M') && /^M\d+$/.test(part)) {
-                // Month Interval (e.g., M3)
-                monthInterval = parseInt(part.substring(1), 10);
-            } else if (part.startsWith('WO') && /^WO[1-5]$/.test(part)) {
-                // Week Occurrence (e.g., WO2)
-                weekOccurrence = parseInt(part.substring(2), 10);
-            } else if (part.startsWith('D') && part.endsWith('T') && /^D\d{1,2}T$/.test(part)) {
-                // Specific day of the month (e.g., D15T)
-                dayCode = part;
-            } else if (part.startsWith('D') && /^D[1-7]$/.test(part)) {
-                // Weekday (e.g., D2 for Monday)
-                dayCode = part;
-            } else {
-                // Invalid component
-                throw new Error(`Invalid code component: ${part}`);
-            }
+      const parts = combination.split(/\s+/);
+  
+      // Extract fields
+      let dayInterval    = null;  // e.g. DT10
+      let yearInterval   = 1;     // e.g. Y2
+      let monthInterval  = 1;     // e.g. M3
+      let dayCode        = null;  // e.g. D2, D31T
+      let weekOccurrence = null;  // e.g. WO2
+  
+      for (let part of parts) {
+        if (part.startsWith('DT') && /^DT\d+$/.test(part)) {
+          // Day Interval
+          dayInterval = parseInt(part.slice(2), 10);
+        } else if (part.startsWith('Y') && /^Y\d+$/.test(part)) {
+          // Year Interval
+          yearInterval = parseInt(part.slice(1), 10);
+        } else if (part.startsWith('M') && /^M\d+$/.test(part)) {
+          // Month Interval
+          monthInterval = parseInt(part.slice(1), 10);
+        } else if (part.startsWith('WO') && /^WO[1-5]$/.test(part)) {
+          // Week Occurrence
+          weekOccurrence = parseInt(part.slice(2), 10);
+        } else if (part.startsWith('D') && part.endsWith('T') && /^D\d{1,2}T$/.test(part)) {
+          // Specific day of the month, e.g. D15T
+          dayCode = part;
+        } else if (part.startsWith('D') && /^D[1-7]$/.test(part)) {
+          // Weekday D1..D7
+          dayCode = part;
+        } else {
+          throw new Error(`Invalid code component: ${part}`);
         }
-
-        // Calculate dates based on the combination
-        if (dayInterval !== null) {
-            // Handle Day Intervals (DT codes)
-            const nextDate = new Date(now);
-            nextDate.setDate(nextDate.getDate() + dayInterval * Math.ceil((1) / dayInterval));
-
-            const lastDate = new Date(now);
-            lastDate.setDate(now.getDate() - dayInterval * Math.floor(1 / dayInterval));
-
-            const secondToLastDate = new Date(lastDate);
-            secondToLastDate.setDate(lastDate.getDate() - dayInterval);
-
-            nextDates.push(nextDate);
-            lastDates.push(lastDate);
-            secondToLastDates.push(secondToLastDate);
-        } else if (dayCode !== null) {
-            if (dayCode.endsWith('T')) {
-                // Specific day of the month (D1T to D31T)
-                const dayOfMonth = parseInt(dayCode.substring(1, dayCode.length - 1), 10);
-                let targetMonth = now.getMonth();
-                let targetYear = now.getFullYear();
-
-                let targetDate = new Date(targetYear, targetMonth, dayOfMonth);
-                if (targetDate <= now) {
-                    // Move to the next interval
-                    targetMonth += monthInterval;
-                    targetYear += Math.floor(targetMonth / 12);
-                    targetMonth = targetMonth % 12;
-                    targetDate = new Date(targetYear, targetMonth, dayOfMonth);
-                }
-
-                // Validate the date
-                if (!isValidDate(targetDate.getFullYear(), targetDate.getMonth(), dayOfMonth)) {
-                    // If the day does not exist in the month, set to last day of the month
-                    targetDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
-                }
-
-                // Calculate last and second to last dates based on monthInterval and yearInterval
-                const lastDate = new Date(targetDate);
-                lastDate.setMonth(targetDate.getMonth() - monthInterval);
-                if (yearInterval > 1) {
-                    lastDate.setFullYear(lastDate.getFullYear() - yearInterval);
-                }
-
-                const secondToLastDate = new Date(lastDate);
-                secondToLastDate.setMonth(lastDate.getMonth() - monthInterval);
-                if (yearInterval > 1) {
-                    secondToLastDate.setFullYear(secondToLastDate.getFullYear() - yearInterval);
-                }
-
-                const nextDate = new Date(targetDate);
-                if (yearInterval > 1) {
-                    nextDate.setFullYear(nextDate.getFullYear() + yearInterval);
-                }
-
-                nextDates.push(nextDate);
-                lastDates.push(lastDate);
-                secondToLastDates.push(secondToLastDate);
-            } else {
-                // Weekday with optional Week Occurrence (e.g., D2 WO2)
-                if (weekOccurrence === null) {
-                    // If no week occurrence is specified, default to the first occurrence
-                    weekOccurrence = 1;
-                }
-
-                // Map D1-D7 to JavaScript's getDay() where 0=Sunday, 1=Monday, ..., 6=Saturday
-                const dayMapping = {
-                    'D1': 0, // Sunday
-                    'D2': 1, // Monday
-                    'D3': 2, // Tuesday
-                    'D4': 3, // Wednesday
-                    'D5': 4, // Thursday
-                    'D6': 5, // Friday
-                    'D7': 6  // Saturday
-                };
-                const weekday = dayMapping[dayCode];
-                if (weekday === undefined) {
-                    throw new Error(`Invalid weekday code: ${dayCode}`);
-                }
-
-                let targetMonth = now.getMonth();
-                let targetYear = now.getFullYear();
-
-                // Calculate the target date
-                let occurrenceDate = getNthWeekday(targetYear, targetMonth, weekday, weekOccurrence);
-                if (occurrenceDate === null || occurrenceDate <= now) {
-                    // Move to the next interval
-                    targetMonth += monthInterval;
-                    targetYear += Math.floor(targetMonth / 12);
-                    targetMonth = targetMonth % 12;
-                    occurrenceDate = getNthWeekday(targetYear, targetMonth, weekday, weekOccurrence);
-                    if (occurrenceDate === null) {
-                        // Find the last possible occurrence in the month
-                        for (let tempN = 5; tempN >= 1; tempN--) {
-                            let tempDate = getNthWeekday(targetYear, targetMonth, weekday, tempN);
-                            if (tempDate !== null) {
-                                occurrenceDate = tempDate;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (occurrenceDate !== null) {
-                    // Adjust for year interval
-                    if (yearInterval > 1) {
-                        occurrenceDate.setFullYear(occurrenceDate.getFullYear() + yearInterval);
-                    }
-
-                    // Calculate last and second to last dates
-                    let lastOccurrenceMonth = targetMonth - monthInterval;
-                    let lastOccurrenceYear = targetYear;
-                    if (lastOccurrenceMonth < 0) {
-                        lastOccurrenceYear -= 1;
-                        lastOccurrenceMonth += 12;
-                    }
-
-                    let lastOccurrenceDate = getNthWeekday(lastOccurrenceYear, lastOccurrenceMonth, weekday, weekOccurrence);
-                    if (lastOccurrenceDate === null) {
-                        // Find the last possible occurrence in the month
-                        for (let tempN = 5; tempN >= 1; tempN--) {
-                            let tempDate = getNthWeekday(lastOccurrenceYear, lastOccurrenceMonth, weekday, tempN);
-                            if (tempDate !== null) {
-                                lastOccurrenceDate = tempDate;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (lastOccurrenceDate !== null) {
-                        if (yearInterval > 1) {
-                            lastOccurrenceDate.setFullYear(lastOccurrenceDate.getFullYear() - yearInterval);
-                        }
-                        lastDates.push(lastOccurrenceDate);
-                    }
-
-                    let secondLastOccurrenceMonth = lastOccurrenceMonth - monthInterval;
-                    let secondLastOccurrenceYear = lastOccurrenceYear;
-                    if (secondLastOccurrenceMonth < 0) {
-                        secondLastOccurrenceYear -= 1;
-                        secondLastOccurrenceMonth += 12;
-                    }
-
-                    let secondLastOccurrenceDate = getNthWeekday(secondLastOccurrenceYear, secondLastOccurrenceMonth, weekday, weekOccurrence);
-                    if (secondLastOccurrenceDate === null) {
-                        // Find the last possible occurrence in the month
-                        for (let tempN = 5; tempN >= 1; tempN--) {
-                            let tempDate = getNthWeekday(secondLastOccurrenceYear, secondLastOccurrenceMonth, weekday, tempN);
-                            if (tempDate !== null) {
-                                secondLastOccurrenceDate = tempDate;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (secondLastOccurrenceDate !== null) {
-                        if (yearInterval > 1) {
-                            secondLastOccurrenceDate.setFullYear(secondLastOccurrenceDate.getFullYear() - yearInterval);
-                        }
-                        secondToLastDates.push(secondLastOccurrenceDate);
-                    }
-
-                    nextDates.push(occurrenceDate);
-                }
-            }
+      }
+  
+      // --- Now compute nextDate, lastDate, secondToLastDate for this combination ---
+      let nextDate    = null;
+      let lastDate    = null;
+      let secondToLastDate = null;
+  
+      // A) If dayInterval (DTx)
+      if (dayInterval !== null && !dayCode) {
+        // nextDate: now + dayInterval
+        nextDate = new Date(now);
+        nextDate.setDate(now.getDate() + dayInterval);
+  
+        // lastDate: now - dayInterval
+        lastDate = new Date(now);
+        lastDate.setDate(now.getDate() - dayInterval);
+  
+        // secondToLastDate: now - 2*dayInterval
+        secondToLastDate = new Date(lastDate);
+        secondToLastDate.setDate(secondToLastDate.getDate() - dayInterval);
+      }
+      // B) If we have a specific day, e.g. D31T
+      else if (dayCode && dayCode.endsWith('T')) {
+        // example: D15T => dayOfMonth=15
+        const dayOfMonth = parseInt(dayCode.slice(1, -1), 10);
+  
+        // 1) NEXT DATE:
+        let tYear  = now.getFullYear();
+        let tMonth = now.getMonth();
+  
+        // Build a date in the *current month*
+        let fallbackDay = clampDayToMonth(tYear, tMonth, dayOfMonth);
+        let candidate   = new Date(tYear, tMonth, fallbackDay);
+  
+        // If candidate <= now, move forward by monthInterval
+        if (candidate <= now) {
+          tMonth += monthInterval;
+          tYear  += Math.floor(tMonth / 12);
+          tMonth  = tMonth % 12;
+  
+          fallbackDay = clampDayToMonth(tYear, tMonth, dayOfMonth);
+          candidate   = new Date(tYear, tMonth, fallbackDay);
         }
-
-        // Determine the earliest next date
-        const nextDate = nextDates.reduce((earliest, current) => {
-            return (!earliest || current < earliest) ? current : earliest;
-        }, null);
-
-        // Determine the latest last date
-        const lastDate = lastDates.reduce((latest, current) => {
-            return (!latest || current > latest) ? current : latest;
-        }, null);
-
-        // Determine the latest second to last date
-        const secondToLastDate = secondToLastDates.reduce((latest, current) => {
-            return (!latest || current > latest) ? current : latest;
-        }, null);
-
-        // Function to format dates to YYYY-MM-DD
-        function formatDate(date) {
-            if (!(date instanceof Date) || isNaN(date)) return null;
-            const year = date.getFullYear();
-            const month = (`0${date.getMonth() + 1}`).slice(-2);
-            const day = (`0${date.getDate()}`).slice(-2);
-            return `${year}-${month}-${day}`;
+  
+        // Now apply year interval => the interpretation:
+        //   "Y2" might mean skip 2 entire years, or you might do + (yearInterval - 1).
+        //   For simplicity, let's do candidate.setFullYear( candidate.getFullYear() + (yearInterval - 1) );
+        //   But if your logic says "Y2" => from this occurrence +2, do that.
+        candidate.setFullYear(candidate.getFullYear() + (yearInterval - 1));
+        nextDate = candidate;
+  
+        // 2) LAST DATE:
+        //    "Last date" we interpret as the same rule but going backwards.
+        let lYear  = tYear;
+        let lMonth = tMonth;
+        // step back by monthInterval
+        lMonth -= monthInterval;
+        while (lMonth < 0) {
+          lYear -= 1;
+          lMonth += 12;
         }
-
-        // Format the dates
-        const formattedSecondToLastDate = secondToLastDate ? formatDate(secondToLastDate) : null;
-        const formattedLastDate = lastDate ? formatDate(lastDate) : null;
-        const formattedNextDate = nextDate ? formatDate(nextDate) : null;
-
-        // Return the dates in ISO format (YYYY-MM-DD)
-        return {
-            secondToLastDate: formattedSecondToLastDate,
-            lastDate: formattedLastDate,
-            nextDate: formattedNextDate,
+  
+        let lastFallbackDay = clampDayToMonth(lYear, lMonth, dayOfMonth);
+        let lastCandidate   = new Date(lYear, lMonth, lastFallbackDay);
+  
+        // Also apply yearInterval backward if you want consistent logic:
+        // if (yearInterval > 1) lastCandidate.setFullYear(lastCandidate.getFullYear() - (yearInterval - 1));
+        // or skip entire yearInterval:
+        lYear   = lastCandidate.getFullYear() - (yearInterval - 1);
+        lastCandidate.setFullYear(lYear);
+        lastDate = lastCandidate;
+  
+        // 3) SECOND-TO-LAST DATE:
+        let sYear  = lastCandidate.getFullYear();
+        let sMonth = lastCandidate.getMonth();
+        // step back again
+        sMonth -= monthInterval;
+        while (sMonth < 0) {
+          sYear -= 1;
+          sMonth += 12;
+        }
+        let sFallbackDay = clampDayToMonth(sYear, sMonth, dayOfMonth);
+        let secondCandidate = new Date(sYear, sMonth, sFallbackDay);
+        // yearInterval backward again
+        sYear   = secondCandidate.getFullYear() - (yearInterval - 1);
+        secondCandidate.setFullYear(sYear);
+        secondToLastDate = secondCandidate;
+      }
+      // C) If we have a weekday, e.g. D2 => Monday, with or without WOx
+      else if (dayCode && /^D[1-7]$/.test(dayCode)) {
+        // Map D1..D7 => JS weekday 0..6
+        const map = {
+          D1: 0, // Sunday
+          D2: 1, // Monday
+          D3: 2, // Tuesday
+          D4: 3, // Wednesday
+          D5: 4, // Thursday
+          D6: 5, // Friday
+          D7: 6  // Saturday
         };
+        const weekday = map[dayCode];
+  
+        // If no weekOccurrence => default to 1
+        if (!weekOccurrence) {
+          weekOccurrence = 1;
+        }
+  
+        // 1) NEXT DATE:
+        let y = now.getFullYear();
+        let m = now.getMonth();
+  
+        // Attempt the nth weekday in the current month (with fallback)
+        let candidate = getNthWeekdayFallback(y, m, weekday, weekOccurrence);
+  
+        // If candidate is null or <= now => jump forward by monthInterval
+        if (!candidate || candidate <= now) {
+          m += monthInterval;
+          y += Math.floor(m / 12);
+          m = m % 12;
+  
+          candidate = getNthWeekdayFallback(y, m, weekday, weekOccurrence);
+          // If STILL null, keep going in increments of monthInterval (rare)
+          while (!candidate) {
+            m += monthInterval;
+            y += Math.floor(m / 12);
+            m = m % 12;
+            candidate = getNthWeekdayFallback(y, m, weekday, weekOccurrence);
+          }
+        }
+  
+        // Apply year interval forward
+        candidate.setFullYear(candidate.getFullYear() + (yearInterval - 1));
+        nextDate = candidate;
+  
+        // 2) LAST DATE: basically the prior interval
+        let lYear  = y;
+        let lMonth = m - monthInterval;
+        while (lMonth < 0) {
+          lYear -= 1;
+          lMonth += 12;
+        }
+        let lastCandidate = getNthWeekdayFallback(lYear, lMonth, weekday, weekOccurrence);
+        // If it's truly null, we do further fallback (rare)
+        while (!lastCandidate) {
+          lMonth -= monthInterval;
+          while (lMonth < 0) {
+            lYear -= 1;
+            lMonth += 12;
+          }
+          lastCandidate = getNthWeekdayFallback(lYear, lMonth, weekday, weekOccurrence);
+        }
+        // Apply year interval backward
+        lastCandidate.setFullYear(lastCandidate.getFullYear() - (yearInterval - 1));
+        lastDate = lastCandidate;
+  
+        // 3) SECOND-TO-LAST DATE
+        let sYear  = lastCandidate.getFullYear();
+        let sMonth = lastCandidate.getMonth() - monthInterval;
+        while (sMonth < 0) {
+          sYear -= 1;
+          sMonth += 12;
+        }
+        let secondCandidate = getNthWeekdayFallback(sYear, sMonth, weekday, weekOccurrence);
+        while (!secondCandidate) {
+          sMonth -= monthInterval;
+          while (sMonth < 0) {
+            sYear -= 1;
+            sMonth += 12;
+          }
+          secondCandidate = getNthWeekdayFallback(sYear, sMonth, weekday, weekOccurrence);
+        }
+        // year interval backward
+        secondCandidate.setFullYear(secondCandidate.getFullYear() - (yearInterval - 1));
+        secondToLastDate = secondCandidate;
+      }
+  
+      // Now push nextDate, lastDate, secondToLastDate into the master arrays
+      if (nextDate)         nextDates.push(nextDate);
+      if (lastDate)         lastDates.push(lastDate);
+      if (secondToLastDate) secondToLastDates.push(secondToLastDate);
     }
+  
+    // 9. Determine the earliest “next date” across combos
+    const earliestNext = nextDates.length
+      ? nextDates.reduce((earliest, current) => (current < earliest ? current : earliest))
+      : null;
+  
+    // 10. Determine the latest “last date”
+    const latestLast = lastDates.length
+      ? lastDates.reduce((latest, current) => (current > latest ? current : latest))
+      : null;
+  
+    // 11. Determine the latest “second-to-last date”
+    const latestSecondLast = secondToLastDates.length
+      ? secondToLastDates.reduce((latest, current) => (current > latest ? current : latest))
+      : null;
+  
+    // 12. Format helper (YYYY-MM-DD)
+    function formatDate(date) {
+      if (!date || isNaN(date)) return null;
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
+  
+    // 13. Return results
+    return {
+      secondToLastDate: formatDate(latestSecondLast),
+      lastDate:         formatDate(latestLast),
+      nextDate:         formatDate(earliestNext)
+    };
+  }
+  
 /* End of Selection */
 
 
@@ -781,216 +809,262 @@ function generateDates(code) {
  * @param {Date} [currentDate=new Date()] - The starting date.
  * @returns {string[]} - An array of dates in ISO format.
  */
-function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
-    // Ensure currentDate is a Date object
-    let currentDate;
-    if (currentDateInput instanceof Date) {
-        currentDate = new Date(currentDateInput);
-    } else {
-        currentDate = new Date(currentDateInput);
-        if (isNaN(currentDate)) {
-            throw new Error('Invalid currentDate provided. Please provide a valid date.');
-        }
+function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {    
+    // 1. Validate the currentDate
+    const currentDate = new Date(currentDateInput);
+    if (isNaN(currentDate)) {
+        throw new Error('Invalid currentDate provided. Please provide a valid date.');
     }
 
-    console.log("Code:", code, "Number of Dates:", numberOfDates, "Current Date:", currentDate.toISOString().split('T')[0]);
-
-    // Initialize an empty array to hold the generated dates
-    const dates = [];
-
-    // Helper function to find the nth occurrence of a weekday in a given month and year
-    function getNthWeekdayOfMonth(year, month, weekday, n) {
-        const firstDay = new Date(year, month, 1);
-        let firstWeekday = firstDay.getDay(); // 0 (Sunday) to 6 (Saturday)
-        // Calculate the date of the first occurrence of the weekday
-        let day = 1 + ((7 + weekday - firstWeekday) % 7) + (n - 1) * 7;
-        // Check if the day exists in the month
-        if (day > new Date(year, month + 1, 0).getDate()) {
-            return null; // The nth weekday does not exist in this month
-        }
-        return new Date(year, month, day);
-    }
-
-    // Helper function to find the last occurrence of a weekday in a given month and year
-    function getLastWeekdayOfMonth(year, month, weekday) {
-        const lastDayOfMonth = new Date(year, month + 1, 0); // Last day of the month
-        let lastWeekday = lastDayOfMonth.getDay();
-        let day = lastDayOfMonth.getDate() - ((lastWeekday - weekday + 7) % 7);
-        return new Date(year, month, day);
-    }
-
-    // Parse the code into separate combinations
+    // 2. Split code into combinations
     const combinations = code.split('+').map(combo => combo.trim());
 
-    // Function to generate the next date for a single combination
-    function getNextDateForCombination(combination, fromDate) {
-        const parts = combination.split(/\s+/);
-        let tempDate = new Date(fromDate);
+    // 3. For each combination, parse the parts and create a "getNextDate" function
+    const nextDateFunctions = combinations.map(combo => {
+        const parts = combo.split(/\s+/);
 
-        let dayCode = null;
-        let weekOccurrence = null;
-        let monthInterval = 1; // Default is every month
-        let yearInterval = 1;  // Default is every year
+        let dayCode    = null; // { type: 'specific' | 'weekday', day: number }
+        let weekOccur  = null; // integer 1..5
+        let monthInt   = 1;    // Mx
+        let yearInt    = 1;    // Yx
+        let dayInt     = null; // DTx
 
-        // Parse each part of the combination
         for (const part of parts) {
             if (part.startsWith('DT')) {
-                // Handle day intervals
-                const dayInterval = parseInt(part.substring(2), 10);
-                if (isNaN(dayInterval) || dayInterval < 1) {
-                    throw new Error(`Invalid day interval in part "${part}"`);
+                // e.g. DT10
+                const n = parseInt(part.slice(2), 10);
+                if (isNaN(n) || n < 1) {
+                    throw new Error(`Invalid day interval: ${part}`);
                 }
-                tempDate.setDate(tempDate.getDate() + dayInterval);
+                dayInt = n;
             } else if (part.startsWith('D')) {
-                // Handle day codes
-                const isT = part.endsWith('T');
-                let dayNumber;
-                if (isT) {
-                    dayNumber = parseInt(part.substring(1, part.length - 1), 10);
-                    if (isNaN(dayNumber) || dayNumber < 1 || dayNumber > 31) {
-                        throw new Error(`Invalid specific day in part "${part}"`);
+                // e.g. D31T, D7, etc.
+                if (part.endsWith('T')) {
+                    // DxxT => specific day of the month
+                    const d = parseInt(part.slice(1, -1), 10);
+                    if (isNaN(d) || d < 1 || d > 31) {
+                        throw new Error(`Invalid specific day code: ${part}`);
                     }
-                    dayCode = { type: 'specific', day: dayNumber };
+                    dayCode = { type: 'specific', day: d };
                 } else {
-                    dayNumber = parseInt(part.substring(1), 10);
-                    if (isNaN(dayNumber) || dayNumber < 1 || dayNumber > 7) {
-                        throw new Error(`Invalid weekday in part "${part}"`);
+                    // D1..D7 => weekday (1=Sunday ... 7=Saturday)
+                    const d = parseInt(part.slice(1), 10);
+                    if (isNaN(d) || d < 1 || d > 7) {
+                        throw new Error(`Invalid weekday code: ${part}`);
                     }
-                    const targetDay = dayNumber - 1; // D1=0 (Sunday) to D7=6 (Saturday)
-                    dayCode = { type: 'weekday', day: targetDay };
+                    // Convert to 0..6 => Sunday..Saturday
+                    dayCode = { type: 'weekday', day: d - 1 };
                 }
             } else if (part.startsWith('WO')) {
-                // Handle week occurrences
-                const weekNum = parseInt(part.substring(2), 10);
-                if (isNaN(weekNum) || weekNum < 1 || weekNum > 5) {
-                    throw new Error(`Invalid week occurrence in part "${part}"`);
+                // e.g. WO1..WO5 => nth occurrence
+                const w = parseInt(part.slice(2), 10);
+                if (isNaN(w) || w < 1 || w > 5) {
+                    throw new Error(`Invalid week occurrence code: ${part}`);
                 }
-                weekOccurrence = weekNum;
+                weekOccur = w;
             } else if (part.startsWith('M')) {
-                // Handle month intervals
-                const mInterval = parseInt(part.substring(1), 10);
-                if (isNaN(mInterval) || mInterval < 1) {
-                    throw new Error(`Invalid month interval in part "${part}"`);
+                // e.g. M2 => every 2 months
+                const m = parseInt(part.slice(1), 10);
+                if (isNaN(m) || m < 1) {
+                    throw new Error(`Invalid month interval: ${part}`);
                 }
-                monthInterval = mInterval;
+                monthInt = m;
             } else if (part.startsWith('Y')) {
-                // Handle year intervals
-                const yInterval = parseInt(part.substring(1), 10);
-                if (isNaN(yInterval) || yInterval < 1) {
-                    throw new Error(`Invalid year interval in part "${part}"`);
+                // e.g. Y2 => every 2 years
+                const y = parseInt(part.slice(1), 10);
+                if (isNaN(y) || y < 1) {
+                    throw new Error(`Invalid year interval: ${part}`);
                 }
-                yearInterval = yInterval;
+                yearInt = y;
             } else {
-                throw new Error(`Unknown code part "${part}"`);
+                throw new Error(`Unknown code part: ${part}`);
             }
         }
 
-        // Now, determine the next date based on the parsed components
-        if (dayCode) {
-            if (dayCode.type === 'specific') {
-                // Specific day of the month
-                let nextMonth = tempDate.getMonth();
-                let nextYear = tempDate.getFullYear();
+        // --- Helper Functions ---
 
-                // If the specific day has already passed this month, move to the next interval
-                if (tempDate.getDate() > dayCode.day) {
-                    nextMonth += monthInterval;
-                    if (nextMonth > 11) {
-                        nextYear += Math.floor(nextMonth / 12);
-                        nextMonth = nextMonth % 12;
-                    }
+        // A) If we have DT, it’s just day-based intervals:
+        function getNextForDayInterval(fromDate) {
+            const next = new Date(fromDate);
+            next.setDate(next.getDate() + dayInt);
+            return next;
+        }
+
+        // B) If we have a specific day (DxxT)
+        //    Clamps to the last day if day > #daysInMonth,
+        //    fallback if it's in the past, tries the same month (no skip).
+        function getNextForSpecificDay(fromDate) {
+            let year  = fromDate.getFullYear();
+            let month = fromDate.getMonth();
+
+            // Build a date in the *current* month first
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const desiredDay  = (dayCode.day > daysInMonth) ? daysInMonth : dayCode.day;
+
+            let target = new Date(year, month, desiredDay);
+
+            // If that date is <= 'fromDate', we look at the next month
+            // BUT let's see if we want "no skip" meaning if dayCode.day=31 but fromDate=the 30th => we can still do 31 if it exists
+            // Actually we only skip forward if it's truly less (or equal).
+            if (target <= fromDate) {
+                // move ahead by monthInt
+                // but in small increments if monthInt>1, we do that many months
+                month += monthInt;
+
+                // normalize year/month
+                while (month > 11) {
+                    year  += 1;
+                    month -= 12;
                 }
 
-                // Calculate the target date
-                const targetDate = new Date(nextYear, nextMonth, dayCode.day);
+                const daysNewMonth = new Date(year, month + 1, 0).getDate();
+                const dDay         = (dayCode.day > daysNewMonth) ? daysNewMonth : dayCode.day;
+                target = new Date(year, month, dDay);
+            }
 
-                // Handle invalid dates (e.g., February 30)
-                if (targetDate.getMonth() !== nextMonth) {
-                    throw new Error(`Invalid date: ${targetDate.toISOString().split('T')[0]}`);
+            // now apply year interval (Y2 => +1 year to get the “next” if that’s how you interpret it, or Y2 => skip 2 years, etc.)
+            // Typically Y2 means “every 2 years” so from the first occurrence, we’d add + (2 -1) = +1? 
+            // If you want to jump 2 full years from now, do +2. 
+            // We'll do the standard approach: + (yearInt - 1)
+            target.setFullYear(target.getFullYear() + (yearInt - 1));
+
+            return target;
+        }
+
+        // C) If we have a weekday w/o WO => next occurrence of that weekday in the future
+        function getNextForPlainWeekday(fromDate) {
+            const next = new Date(fromDate);
+            let diff = dayCode.day - next.getDay();
+            if (diff <= 0) diff += 7;
+            next.setDate(next.getDate() + diff);
+            return next;
+        }
+
+        // D) If we have a weekday + WO => pick nth occurrence
+        //    If the nth occurrence doesn’t exist, fallback to (n-1), (n-2), etc.
+        //    If absolutely none exist, *then* move to the next interval.
+        function getNextForNthWeekday(fromDate) {
+            let year  = fromDate.getFullYear();
+            let month = fromDate.getMonth();
+
+            // 1) Try current month for the nth occurrence
+            let candidate = findNthOrFallback(year, month, dayCode.day, weekOccur);
+
+            // 2) If the candidate is null or <= fromDate, we move forward by monthInt
+            if (!candidate || candidate <= fromDate) {
+                month += monthInt;
+                // normalize
+                while (month > 11) {
+                    year  += 1;
+                    month -= 12;
                 }
 
-                // Apply year interval
-                targetDate.setFullYear(targetDate.getFullYear() + (yearInterval - 1));
+                candidate = findNthOrFallback(year, month, dayCode.day, weekOccur);
 
-                return targetDate;
-            } else if (dayCode.type === 'weekday') {
-                // Weekday with week occurrence
-                if (!weekOccurrence) {
-                    // If no week occurrence is specified, find the next occurrence of the weekday
-                    let diff = dayCode.day - tempDate.getDay();
-                    if (diff <= 0) {
-                        diff += 7;
+                // if still null, we keep going in increments of monthInt (rare)
+                while (!candidate) {
+                    month += monthInt;
+                    while (month > 11) {
+                        year  += 1;
+                        month -= 12;
                     }
-                    tempDate.setDate(tempDate.getDate() + diff);
-                    return tempDate;
-                } else {
-                    // Find the nth occurrence of the weekday
-                    const year = tempDate.getFullYear();
-                    const month = tempDate.getMonth();
-
-                    let targetDate = getNthWeekdayOfMonth(year, month, dayCode.day, weekOccurrence);
-
-                    if (!targetDate || targetDate <= tempDate) {
-                        // Move to the next interval
-                        let nextMonth = month + monthInterval;
-                        let nextYear = year;
-                        if (nextMonth > 11) {
-                            nextYear += Math.floor(nextMonth / 12);
-                            nextMonth = nextMonth % 12;
-                        }
-
-                        // Apply year interval
-                        nextYear += Math.floor(nextMonth / 12) * yearInterval;
-                        nextMonth = nextMonth % 12;
-
-                        // Recalculate targetDate
-                        targetDate = getNthWeekdayOfMonth(nextYear, nextMonth, dayCode.day, weekOccurrence);
-
-                        if (!targetDate) {
-                            throw new Error(`The ${weekOccurrence} occurrence of weekday ${dayCode.day} does not exist in month ${nextMonth + 1}, ${nextYear}.`);
-                        }
-                    }
-
-                    return targetDate;
+                    candidate = findNthOrFallback(year, month, dayCode.day, weekOccur);
                 }
+            }
+
+            // now apply year interval
+            candidate.setFullYear(candidate.getFullYear() + (yearInt - 1));
+            return candidate;
+        }
+
+        // --- Core Logic for "getNextDate" ---
+        function getNextDate(fromDate) {
+            // 1) Day Interval only? => DT
+            if (dayInt && !dayCode) {
+                return getNextForDayInterval(fromDate);
+            }
+            // 2) Specific day => DxxT
+            if (dayCode && dayCode.type === 'specific') {
+                return getNextForSpecificDay(fromDate);
+            }
+            // 3) Weekday => D1..D7
+            if (dayCode && dayCode.type === 'weekday') {
+                // 3a) No WO => plain weekday
+                if (!weekOccur) {
+                    return getNextForPlainWeekday(fromDate);
+                }
+                // 3b) Have WO => nth occurrence
+                return getNextForNthWeekday(fromDate);
+            }
+            throw new Error(`Incomplete combination: "${combo}"`);
+        }
+
+        // Helper used by getNextForNthWeekday:
+        // Attempt the nth occurrence. If it doesn't exist, fallback to n-1, etc.
+        function findNthOrFallback(year, month, weekday, nth) {
+            // e.g. weekday=2 => Tuesday, nth=5 => 5th Tuesday
+            // If 5th doesn’t exist, try 4th, 3rd, etc.
+
+            // We'll build from the largest fallback down
+            for (let tryN = nth; tryN >= 1; tryN--) {
+                const candidate = computeNthWeekday(year, month, weekday, tryN);
+                if (candidate) {
+                    return candidate;
+                }
+            }
+            // If none exist, return null => triggers next month
+            return null;
+        }
+
+        function computeNthWeekday(year, month, weekday, n) {
+            const firstDay     = new Date(year, month, 1);
+            const firstWeekday = firstDay.getDay(); // 0..6
+            const offset       = (weekday - firstWeekday + 7) % 7;
+            const dateNum      = 1 + offset + (n - 1) * 7;
+            const lastDay      = new Date(year, month + 1, 0).getDate();
+            if (dateNum > lastDay) return null;
+            return new Date(year, month, dateNum);
+        }
+
+        return getNextDate;
+    });
+
+    // 4. Iteratively pick the earliest next date among all combinations
+    const results = [];
+    let fromDate  = new Date(currentDate);
+
+    while (results.length < numberOfDates) {
+        // For each combination, figure out the next date from 'fromDate'
+        const candidates = nextDateFunctions.map(fn => fn(fromDate));
+
+        // Find the earliest among them (strictly > fromDate)
+        let earliest  = null;
+        let earliestI = -1;
+
+        for (let i = 0; i < candidates.length; i++) {
+            const c = candidates[i];
+            if (!earliest || c < earliest) {
+                earliest  = c;
+                earliestI = i;
             }
         }
 
-        // If only month and year intervals are specified without day codes
-        // (Though according to the rules, this should be invalid)
-        throw new Error(`Incomplete combination: "${combination}". Day component is missing.`);
-    }
+        // If earliest is valid and strictly > fromDate, keep it
+        if (earliest && earliest > fromDate) {
+            const yyyy = earliest.getFullYear();
+            const mm   = String(earliest.getMonth() + 1).padStart(2, '0');
+            const dd   = String(earliest.getDate()).padStart(2, '0');
+            results.push(`${yyyy}-${mm}-${dd}`);
 
-    // Initialize an array to keep track of the next dates for each combination
-    const nextDatesPerCombination = combinations.map(combo => getNextDateForCombination(combo, currentDate));
-
-    while (dates.length < numberOfDates) {
-        // Find the earliest next date among all combinations
-        let earliestDate = null;
-        let earliestIndex = -1;
-
-        for (let i = 0; i < nextDatesPerCombination.length; i++) {
-            const date = nextDatesPerCombination[i];
-            if (!earliestDate || date < earliestDate) {
-                earliestDate = date;
-                earliestIndex = i;
-            }
-        }
-
-        if (earliestDate && earliestDate > currentDate) {
-            dates.push(earliestDate.toISOString().split('T')[0]);
-
-            // Update the next date for this combination
-            const combo = combinations[earliestIndex];
-            nextDatesPerCombination[earliestIndex] = getNextDateForCombination(combo, earliestDate);
-            currentDate = new Date(earliestDate);
+            // Advance fromDate so next iteration picks strictly after
+            fromDate = earliest;
         } else {
-            // If no valid next date is found, break to prevent infinite loop
+            // If we can't find anything strictly greater, break to avoid infinite loop
             break;
         }
     }
 
-    return dates;
+    return results;
 }
 
 
@@ -1002,92 +1076,213 @@ function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
  */
 function getTransactionPeriod(code, date) {
     console.log(code, date);
-    
-    // Parse the reference date
+  
+    // 1. Parse the reference date
     const referenceDate = new Date(date);
-    const combinations = code.split('+');
-
-    // Initialize startDate based on referenceDate
+    if (isNaN(referenceDate)) {
+      throw new Error("Invalid reference date provided.");
+    }
+  
+    // 2. Split the code into combinations separated by '+'
+    const combinations = code.split('+').map(c => c.trim());
+  
+    // We'll interpret the code sequentially to determine:
+    //  - startDate: the first valid date matching code(s),
+    //  - intervals: sum of M / Y / DT parts for endDate calculation.
+  
+    // 3. Initialize startDate based on referenceDate
     let startDate = new Date(referenceDate);
-    
-    // Initialize interval variables
-    let monthInterval = 0;
-    let yearInterval = 0;
-    let dayInterval = 0;
-
-    // Process each combination to set startDate and collect intervals
-    for (const combination of combinations) {
-        const parts = combination.trim().split(/\s+/);
-
-        // Process each part of the combination
-        for (const part of parts) {
-            if (part.startsWith('D')) {
-                // Handle day codes (day of the week)
-                const isT = part.endsWith('T');
-                const dayNumber = parseInt(part.substring(1, part.length - (isT ? 1 : 0)), 10);
-
-                if (isT) {
-                    // Specific day of the month
-                    startDate.setDate(dayNumber);
-                } else {
-                    // Day of the week
-                    const targetDay = dayNumber === 7 ? 0 : dayNumber; // Adjust for Sunday
-                    let diff = targetDay - startDate.getDay();
-                    if (diff <= 0) {
-                        diff += 7;
-                    }
-                    startDate.setDate(startDate.getDate() + diff);
-                }
-            } else if (part.startsWith('W')) {
-                // Handle week codes
-                let weekNumber = parseInt(part.substring(1), 10);
-                const year = startDate.getFullYear();
-                const month = startDate.getMonth();
-
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-                // Adjust week number if W5 does not exist
-                if (weekNumber === 5 && daysInMonth < 29) {
-                    weekNumber = 4;
-                } else if (weekNumber === 1 && daysInMonth < 7) {
-                    weekNumber = 2;
-                }
-
-                // Calculate the date corresponding to the start of the week
-                const weekStartDate = new Date(year, month, (weekNumber - 1) * 7 + 1);
-
-                startDate = new Date(weekStartDate);
-            } else if (part.startsWith('M')) {
-                // Collect month intervals
-                monthInterval += parseInt(part.substring(1), 10);
-            } else if (part.startsWith('Y')) {
-                // Collect year intervals
-                yearInterval += parseInt(part.substring(1), 10);
-            } else if (part.startsWith('DT')) {
-                // Collect day intervals
-                dayInterval += parseInt(part.substring(2), 10);
-            }
+  
+    // 4. Initialize interval accumulators
+    let totalMonthInterval = 0;
+    let totalYearInterval  = 0;
+    let totalDayInterval   = 0;
+  
+    // 5. Helper: clampDayToMonth => if e.g. day=31 in April => 30
+    function clampDayToMonth(year, month, desiredDay) {
+      const daysInMonth = new Date(year, month + 1, 0).getDate(); // last day in {year, month}
+      return (desiredDay > daysInMonth) ? daysInMonth : desiredDay;
+    }
+  
+    // 6. Helper: getFallbackWeek => if W5 doesn’t exist, try W4, W3, ...
+    function getFallbackWeek(originalWeek, daysInMonth) {
+      // e.g. if user says W5 but it doesn't exist, we fallback to W4, W3, ...
+      // if user says W1 but there's no full week? We'll just clamp to at least W1 => picks earliest part of month
+      let w = originalWeek;
+      while (w > 1) {
+        // Check if this w is at least feasible
+        // e.g. W5 means days 29..35 in a 31-day month => that might exist, but if it's 28-day month it won't
+        // A quick approach is:
+        //   The first day of W5 is day (4 * 7) + 1 = 29 (counting from W1=1..7)
+        //   If 29 > daysInMonth, fallback to W4 => day(3 * 7 +1=22) => check if 22>daysInMonth => fallback etc.
+        const firstDayOfWeek = (w - 1) * 7 + 1; // e.g. W5 => 29, W4 => 22, etc.
+        if (firstDayOfWeek <= daysInMonth) {
+          return w; // found a feasible week
         }
+        w--;
+      }
+      // If nothing else, fallback to W1
+      return 1;
     }
-
-    // Calculate endDate based on collected intervals
-    let endDate = new Date(startDate);
-    if (yearInterval !== 0) {
-        endDate.setFullYear(endDate.getFullYear() + yearInterval);
+  
+    // 7. Process each combination to set or adjust startDate and collect intervals
+    for (const combination of combinations) {
+      const parts = combination.split(/\s+/);
+  
+      // Each combination can contain multiple parts like: D2 W2 M3 or DT10 or M2 Y1, etc.
+      for (const part of parts) {
+        if (part.startsWith('D')) {
+          // -----------------------------
+          // Handle day codes
+          // -----------------------------
+          const isT = part.endsWith('T');
+  
+          // Extract dayNumber (accounting for trailing 'T' if present)
+          const dayStr = isT 
+            ? part.substring(1, part.length - 1)  // e.g. "D31T" => "31"
+            : part.substring(1);                 // e.g. "D2"   => "2"
+          const dayNumber = parseInt(dayStr, 10);
+          if (isNaN(dayNumber) || dayNumber < 1) {
+            throw new Error(`Invalid day code: ${part}`);
+          }
+  
+          if (isT) {
+            // e.g. D31T => specific day of the month
+            // clamp if dayNumber doesn't exist
+            const year  = startDate.getFullYear();
+            const month = startDate.getMonth();
+  
+            let clampedDay = clampDayToMonth(year, month, dayNumber);
+            startDate.setDate(clampedDay);
+  
+            // If after clamping, we ended up in the past relative to referenceDate,
+            // you might choose to jump to the next month. But "no skip" means we keep it if it's valid.
+            // If you do want to skip, you'd do something like:
+            /*
+               if (startDate < referenceDate) {
+                 const newMonth = month + 1;
+                 const newYear = year + Math.floor(newMonth / 12);
+                 const nextMonth = newMonth % 12;
+                 clampedDay = clampDayToMonth(newYear, nextMonth, dayNumber);
+                 startDate = new Date(newYear, nextMonth, clampedDay);
+               }
+            */
+          } else {
+            // e.g. D2 => day of the week
+            // Map D7 => Sunday(0), otherwise dayNumber => dayNumber
+            // But the original code used dayNumber===7 => 0, else dayNumber => let diff = target - startDate.getDay()
+            let targetDay = (dayNumber === 7) ? 0 : dayNumber; 
+            let diff = targetDay - startDate.getDay();
+            if (diff <= 0) diff += 7;
+            startDate.setDate(startDate.getDate() + diff);
+          }
+        }
+        else if (part.startsWith('W')) {
+          // -----------------------------
+          // Handle week codes (W1..W5)
+          // -----------------------------
+          let weekNumber = parseInt(part.substring(1), 10);
+          if (isNaN(weekNumber) || weekNumber < 1 || weekNumber > 5) {
+            throw new Error(`Invalid week code: ${part}`);
+          }
+  
+          const year  = startDate.getFullYear();
+          const month = startDate.getMonth();
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+          // Fallback logic: if W5 doesn’t exist, fallback to W4, etc.
+          const finalWeek = getFallbackWeek(weekNumber, daysInMonth);
+  
+          // The first day of that "finalWeek"
+          // e.g. W1 => day(0*7+1)=1, W2=>8, W3=>15, W4=>22, W5=>29
+          const computedDay = (finalWeek - 1) * 7 + 1;
+          
+          // Set startDate to that day
+          startDate = new Date(year, month, computedDay);
+  
+        }
+        else if (part.startsWith('M')) {
+          // -----------------------------
+          // Collect month intervals
+          // -----------------------------
+          const mVal = parseInt(part.substring(1), 10);
+          if (isNaN(mVal) || mVal < 1) {
+            throw new Error(`Invalid month interval: ${part}`);
+          }
+          totalMonthInterval += mVal;
+        }
+        else if (part.startsWith('Y')) {
+          // -----------------------------
+          // Collect year intervals
+          // -----------------------------
+          const yVal = parseInt(part.substring(1), 10);
+          if (isNaN(yVal) || yVal < 1) {
+            throw new Error(`Invalid year interval: ${part}`);
+          }
+          totalYearInterval += yVal;
+        }
+        else if (part.startsWith('DT')) {
+          // -----------------------------
+          // Collect day intervals
+          // -----------------------------
+          const dVal = parseInt(part.substring(2), 10);
+          if (isNaN(dVal) || dVal < 1) {
+            throw new Error(`Invalid day interval: ${part}`);
+          }
+          totalDayInterval += dVal;
+        }
+        else {
+          // Unknown code part
+          throw new Error(`Unknown code component: ${part}`);
+        }
+      }
     }
-    if (monthInterval !== 0) {
-        endDate.setMonth(endDate.getMonth() + monthInterval);
+  
+    // 8. Calculate endDate based on collected intervals
+    //    We interpret these intervals as “from startDate plus these intervals”
+    const endDate = new Date(startDate);
+  
+    // Year interval
+    if (totalYearInterval !== 0) {
+      endDate.setFullYear(endDate.getFullYear() + totalYearInterval);
     }
-    if (dayInterval !== 0) {
-        endDate.setDate(endDate.getDate() + dayInterval);
+    // Month interval
+    if (totalMonthInterval !== 0) {
+      // If the day is 31 and the next month doesn't have 31, set it to the last valid day
+      const currentDay = endDate.getDate();
+      const currentMonth = endDate.getMonth();
+      const currentYear  = endDate.getFullYear();
+  
+      let newMonth = currentMonth + totalMonthInterval;
+      let newYear  = currentYear + Math.floor(newMonth / 12);
+      newMonth     = newMonth % 12;
+  
+      // clamp day
+      const clampedDay = clampDayToMonth(newYear, newMonth, currentDay);
+  
+      endDate.setFullYear(newYear);
+      endDate.setMonth(newMonth);
+      endDate.setDate(clampedDay);
     }
-
-    // Return the transaction period in ISO format
+    // Day interval
+    if (totalDayInterval !== 0) {
+      endDate.setDate(endDate.getDate() + totalDayInterval);
+    }
+  
+    // 9. Return the transaction period in ISO (YYYY-MM-DD)
+    function formatISO(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+  
     return {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
+      startDate: formatISO(startDate),
+      endDate:   formatISO(endDate),
     };
-}
+  }
+  
 
 // Export the functions for use in other modules
 module.exports = {

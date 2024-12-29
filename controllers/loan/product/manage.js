@@ -5,25 +5,28 @@ const { validateCode } = require("../../../utils/datecode");
 // Function to manage loan product creation and update
 const manageLoanProduct = async (req, res) => {
     // Destructure request body to get loan product details
-    const { id, productname, description, interestmethod, interestrate, repaymentsettings, repaymentfrequency, numberofrepayments, duration, durationcategory, currency, excludebranch, productofficer, defaultpenaltyid, registrationcharge, status = 'ACTIVE', dateadded = new Date(), eligibilityproductcategory, eligibilityproduct, eligibilityaccountage, eligibilityminbalance, eligibilitytype, maximumloan, minimumloan, eligibilityminimumloan, eligibilityminimumclosedaccounts } = req.body;
-
+    let { id, productname, description, interestmethod, interestrate=0, interestratetype, repaymentsettings, repaymentfrequency, numberofrepayments, duration, durationcategory, currency, excludebranch, productofficer, defaultpenaltyid, registrationcharge, status = 'ACTIVE', dateadded = new Date(), eligibilityproductcategory, eligibilityproduct, eligibilityaccountage, eligibilityminbalance, eligibilitytype, maximumloan, minimumloan, eligibilityminimumloan, eligibilityminimumclosedaccounts, membership, seperateinterest } = req.body;
+    
     // Get user information from request
     const user = req.user;
     
+    seperateinterest = seperateinterest ? true : false;
+    console.log('entered controller') 
+    
     // Initialize an array to store validation errors
     const errors = [];
-    
+     
     // Validate product name
     if (!productname) {
         errors.push({
             field: 'productname',  
-            message: 'Product name not found'
+            message: 'Product name not found'  
         });
     } else if (typeof productname !== 'string' || productname.trim() === '') {
         errors.push({
             field: 'productname',
             message: 'Product name must be a non-empty string'
-        });
+        });  
     }
     
     // Validate interest method
@@ -40,15 +43,18 @@ const manageLoanProduct = async (req, res) => {
     }
     
     // Validate interest rate
-    if (!interestrate) {
+    if (!interestrate && interestmethod !== 'NO INTEREST') {
         errors.push({
             field: 'interestrate',
             message: 'Interest rate not found'
         });
-    } else if (isNaN(parseInt(interestrate, 10)) || parseInt(interestrate, 10) <= 0) {
+    } 
+    
+    // Validate interest rate type
+    if (interestratetype && !['INSTALLMENT', 'PRINCIPAL'].includes(interestratetype)) {
         errors.push({
-            field: 'interestrate',
-            message: 'Interest rate must be a positive number'
+            field: 'interestratetype',
+            message: 'Interest rate type must be one of "INSTALLMENT" or "PRINCIPAL"'
         });
     }
     
@@ -83,28 +89,28 @@ const manageLoanProduct = async (req, res) => {
     console.log('entered controller')
     
     // Validate number of repayments if provided
-    if (!numberofrepayments) {
-        errors.push({
-            field: 'numberofrepayments',
-            message: 'Number of repayments not found'
-        });
-    } else if (isNaN(parseInt(numberofrepayments, 10)) || parseInt(numberofrepayments, 10) <= 0) {
-        errors.push({
-            field: 'numberofrepayments',
-            message: 'Number of repayments must be a positive number'
-        });
-    }
+    // if (numberofrepayments !== undefined && numberofrepayments == '') {
+    //     errors.push({
+    //         field: 'numberofrepayments',
+    //         message: 'Number of repayments not found'
+    //     });
+    // } else if (numberofrepayments && isNaN(parseInt(numberofrepayments, 10)) || parseInt(numberofrepayments, 10) <= 0) {
+    //     errors.push({
+    //         field: 'numberofrepayments',
+    //         message: 'Number of repayments must be a positive number'
+    //     });
+    // }
     
     // Validate duration if provided
-    if (duration !== undefined) {
-        const parsedDuration = parseInt(duration, 10);
-        if (isNaN(parsedDuration) || parsedDuration <= 0) {
-            errors.push({
-                field: 'duration',
-                message: 'Duration must be a positive number'
-            });
-        }
-    }
+    // if (duration !== undefined && duration !== '') {
+    //     const parsedDuration = parseInt(duration, 10);
+    //     if (isNaN(parsedDuration) || parsedDuration <= 0) {
+    //         errors.push({
+    //             field: 'duration',
+    //             message: 'Duration must be a positive number'
+    //         });
+    //     }
+    // }
 
     // Validate excludebranch if provided
     if (excludebranch !== undefined && excludebranch !== '') {
@@ -217,6 +223,16 @@ const manageLoanProduct = async (req, res) => {
         }
     }
 
+    // Validate membership if provided
+    if (membership !== undefined && membership !== '') {
+        if (typeof membership !== 'string') {
+            errors.push({
+                field: 'membership',
+                message: 'Membership must be a string'
+            });
+        }
+    }
+
     // If there are validation errors, return a bad request response
     if (errors.length > 0) {
         console.log('Validation errors:', errors);
@@ -323,73 +339,44 @@ const manageLoanProduct = async (req, res) => {
                         description = COALESCE($2, description), 
                         interestmethod = COALESCE($3, interestmethod), 
                         interestrate = COALESCE($4, interestrate), 
-                        repaymentsettings = COALESCE($5, repaymentsettings), 
-                        repaymentfrequency = COALESCE($6, repaymentfrequency), 
-                        numberofrepayments = COALESCE($7, numberofrepayments), 
-                        duration = COALESCE($8, duration), 
-                        durationcategory = COALESCE($9, durationcategory), 
-                        currency = COALESCE($10, currency), 
-                        excludebranch = COALESCE($11, excludebranch), 
-                        productofficer = COALESCE($12, productofficer), 
-                        defaultpenaltyid = COALESCE($13, defaultpenaltyid), 
-                        registrationcharge = COALESCE($14, registrationcharge),
-                        status = COALESCE($15, status),
-                        eligibilityproductcategory = COALESCE($16, eligibilityproductcategory),
-                        eligibilityproduct = COALESCE($17, eligibilityproduct),
-                        eligibilityaccountage = COALESCE($18, eligibilityaccountage),
-                        eligibilityminbalance = COALESCE($19, eligibilityminbalance),
-                        eligibilitytype = COALESCE($20, eligibilitytype),
-                        maximumloan = COALESCE($21, maximumloan),
-                        minimumloan = COALESCE($22, minimumloan),
-                        eligibilityminimumloan = COALESCE($23, eligibilityminimumloan),
-                        eligibilityminimumclosedaccounts = COALESCE($24, eligibilityminimumclosedaccounts)
-                       WHERE id = $25 RETURNING *`,
-                values: [productname, description, interestmethod, interestrate, repaymentsettings, repaymentfrequency, numberofrepayments, duration, durationcategory, currency, excludebranch, productofficer, defaultpenaltyid, registrationcharge, status, eligibilityproductcategory, eligibilityproduct, eligibilityaccountage, eligibilityminbalance, eligibilitytype, maximumloan, minimumloan, eligibilityminimumloan, eligibilityminimumclosedaccounts, id]
+                        interestratetype = COALESCE($5, interestratetype),
+                        repaymentsettings = COALESCE($6, repaymentsettings), 
+                        repaymentfrequency = COALESCE($7, repaymentfrequency), 
+                        numberofrepayments = COALESCE($8, numberofrepayments), 
+                        duration = COALESCE($9, duration), 
+                        durationcategory = COALESCE($10, durationcategory), 
+                        currency = COALESCE($11, currency), 
+                        excludebranch = COALESCE($12, excludebranch), 
+                        productofficer = COALESCE($13, productofficer), 
+                        defaultpenaltyid = COALESCE($14, defaultpenaltyid), 
+                        registrationcharge = COALESCE($15, registrationcharge),
+                        status = COALESCE($16, status),
+                        eligibilityproductcategory = COALESCE($17, eligibilityproductcategory),
+                        eligibilityproduct = COALESCE($18, eligibilityproduct),
+                        eligibilityaccountage = COALESCE($19, eligibilityaccountage),
+                        eligibilityminbalance = COALESCE($20, eligibilityminbalance),
+                        eligibilitytype = COALESCE($21, eligibilitytype),
+                        maximumloan = COALESCE($22, maximumloan),
+                        minimumloan = COALESCE($23, minimumloan),
+                        eligibilityminimumloan = COALESCE($24, eligibilityminimumloan),
+                        eligibilityminimumclosedaccounts = COALESCE($25, eligibilityminimumclosedaccounts),
+                        membership = COALESCE($26, membership),
+                        seperateinterest = COALESCE($27, seperateinterest)
+                       WHERE id = $28 RETURNING *`,
+                values: [productname, description, interestmethod, interestrate, interestratetype, repaymentsettings, repaymentfrequency, numberofrepayments, duration, durationcategory, currency, excludebranch, productofficer, defaultpenaltyid, registrationcharge, status, eligibilityproductcategory, eligibilityproduct, eligibilityaccountage, eligibilityminbalance, eligibilitytype, maximumloan, minimumloan, eligibilityminimumloan, eligibilityminimumclosedaccounts, membership, seperateinterest, id]
             };
             const { rows: updatedLoanProductRows } = await pg.query(updateLoanProductQuery);
             loanProduct = updatedLoanProductRows[0];
         } else {
-            console.log('Creating new loan product');
+            console.log('Creating new loan product', numberofrepayments??0);
             // Create new loan product
-                // Start of Selection
-                const createLoanProductQuery = {
-                    text: `INSERT INTO divine."loanproduct" (
-                            productname, 
-                            description, 
-                            interestmethod, 
-                            interestrate, 
-                            repaymentsettings, 
-                            repaymentfrequency, 
-                            numberofrepayments, 
-                            duration, 
-                            durationcategory, 
-                            currency, 
-                            excludebranch, 
-                            productofficer, 
-                            defaultpenaltyid, 
-                            registrationcharge, 
-                            status, 
-                            dateadded, 
-                            createdby, 
-                            eligibilityproductcategory, 
-                            eligibilityproduct, 
-                            eligibilityaccountage, 
-                            eligibilityminbalance, 
-                            eligibilitytype, 
-                            maximumloan, 
-                            minimumloan, 
-                            eligibilityminimumloan, 
-                            eligibilityminimumclosedaccounts
-                        ) VALUES (
-                            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 
-                            $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, 
-                            $21, $22, $23, $24, $25, $26
-                        ) RETURNING *`,
-                    values: [
+            const createLoanProductQuery = {
+                text: `INSERT INTO divine."loanproduct" (
                         productname, 
                         description, 
                         interestmethod, 
                         interestrate, 
+                        interestratetype,
                         repaymentsettings, 
                         repaymentfrequency, 
                         numberofrepayments, 
@@ -400,9 +387,9 @@ const manageLoanProduct = async (req, res) => {
                         productofficer, 
                         defaultpenaltyid, 
                         registrationcharge, 
-                        "PENDING APPROVAL", 
-                        new Date(), 
-                        user.id, 
+                        status, 
+                        dateadded, 
+                        createdby, 
                         eligibilityproductcategory, 
                         eligibilityproduct, 
                         eligibilityaccountage, 
@@ -411,11 +398,48 @@ const manageLoanProduct = async (req, res) => {
                         maximumloan, 
                         minimumloan, 
                         eligibilityminimumloan, 
-                        eligibilityminimumclosedaccounts
-                    ]
-                };
-                const { rows: createdLoanProductRows } = await pg.query(createLoanProductQuery);
-                loanProduct = createdLoanProductRows[0];
+                        eligibilityminimumclosedaccounts,
+                        membership,
+                        seperateinterest
+                    ) VALUES (
+                        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 
+                        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, 
+                        $21, $22, $23, $24, $25, $26, $27, $28, $29
+                    ) RETURNING *`,
+                values: [
+                    productname, 
+                    description, 
+                    interestmethod, 
+                    interestrate == '' ? 0 : interestrate,
+                    interestratetype,
+                    repaymentsettings, 
+                    repaymentfrequency, 
+                    numberofrepayments == '' ? 0 : numberofrepayments,
+                    duration == '' ? 0 : duration,
+                    durationcategory, 
+                    currency,  
+                    excludebranch, 
+                    productofficer, 
+                    defaultpenaltyid == '' ? 0 : defaultpenaltyid,
+                    registrationcharge, 
+                    "PENDING APPROVAL", 
+                    new Date(), 
+                    user.id, 
+                    eligibilityproductcategory, 
+                    eligibilityproduct, 
+                    eligibilityaccountage == '' ? 0 : eligibilityaccountage,
+                    eligibilityminbalance == '' ? 0 : eligibilityminbalance,
+                    eligibilitytype, 
+                    maximumloan == '' ? 0 : maximumloan,
+                    minimumloan == '' ? 0 : minimumloan,
+                    eligibilityminimumloan == '' ? 0 : eligibilityminimumloan,
+                    eligibilityminimumclosedaccounts == '' ? 0 : eligibilityminimumclosedaccounts,
+                    membership,
+                    seperateinterest
+                ]
+            };
+            const { rows: createdLoanProductRows } = await pg.query(createLoanProductQuery);
+            loanProduct = createdLoanProductRows[0];
         }
 
         console.log('Returning success response'); 

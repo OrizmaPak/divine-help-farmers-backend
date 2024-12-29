@@ -585,6 +585,7 @@ model loanproduct {
       durationcategory         String? // "DAY" or "WEEK" or "MONTH" or "YEAR"
       interestmethod            String  // "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS", "REDUCING BALANCE", "BALLOON LOAN", "FIXED RATE", "UNSECURE LOAN", "INSTALLMENT LOAN", "PAYDAY LOAN", "MICRO LOAN", "BRIDGE LOAN", "AGRICULTURAL LOAN", "EDUCATION LOAN", "WORKIN CAPITAL"
       interestrate             Float
+      interestratetype          String? // "INSTALLMENT", "PRINCIPAL"
       defaultpenaltyid         Int?
       seperateinterest         Boolean? @default(false)
 
@@ -601,14 +602,16 @@ model loanproduct {
       eligibilityminimumclosedaccounts Int?
 
       eligibilitytype          String? // "PERCENTAGE" or "AMOUNT"
+
       maximumloan              Float? 
       minimumloan              Float?
-      membership                      String? @default("")
+      membership               String? @default("")
 
       currency                 String? // "NGN" or "USD"
       excludebranch            String? // "1,2,3"
       productofficer           String?
       status                   String @default("ACTIVE")
+      member                    Int? @default(0)
       dateadded                DateTime
       createdby                Int
 }
@@ -639,6 +642,7 @@ model loanaccounts {
       durationcategory          String? // "DAY" or "WEEK" or "MONTH" or "YEAR"
       interestmethod            String  // "NO INTEREST", "FLAT RATE", "ONE OF INTEREST", "INTEREST ONLY", "EQUAL INSTALLMENTS", "REDUCING BALANCE", "BALLOON LOAN", "FIXED RATE", "UNSECURE LOAN", "INSTALLMENT LOAN", "PAYDAY LOAN", "MICRO LOAN", "BRIDGE LOAN", "AGRICULTURAL LOAN", "EDUCATION LOAN", "WORKIN CAPITAL"
       interestrate              Float
+      interestratetype          String? // "INSTALLMENT", "PRINCIPAL"
       defaultpenaltyid          Int?
       seperateinterest         Boolean? @default(false)
 
@@ -647,6 +651,7 @@ model loanaccounts {
       dateclosed                DateTime?
       closeamount               Float?
       createdby                 Int
+      member                    Int? @default(0)
 }
 
 model loanpaymentschedule {

@@ -32,9 +32,9 @@ async function login(req, res) {
                 message: 'Invalid email format'
             });
         }
-
+ 
         return res.status(StatusCodes.BAD_REQUEST).json({
-            status: false,
+            status: false, 
             message: "Missing Fields",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,

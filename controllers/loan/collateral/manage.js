@@ -2,10 +2,18 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 
 async function addCollateral(req, res) {
-    if (req.files) {
-        await uploadToGoogleDrive(req, res);
-      }
+    // if (req.files) {
+    //     await uploadToGoogleDrive(req, res);
+    //   }
     const { accountnumber, documenttitle, documentnumber, description, docposition, worth, file1, file2, file3, file4, file5, documentexpiration } = req.body;
+
+    // res.status(StatusCodes.OK).json({
+    //     status: true,
+    //     message: "Collateral added successfully",
+    //     statuscode: StatusCodes.OK,
+    //     data: {accountnumber, documenttitle, documentnumber, description, docposition, worth, file1, file2, file3, file4, file5, documentexpiration},
+    //     errors: [] 
+    // });
 
     // Advanced validation for compulsory inputs
     const errors = [];
@@ -81,7 +89,7 @@ async function addCollateral(req, res) {
         });
     }
 
-    // Validate worth
+    // Validate worth 
     if (worth === undefined || worth === '' || isNaN(parseFloat(worth))) {
         errors.push({
             field: 'worth',
@@ -120,16 +128,16 @@ async function addCollateral(req, res) {
         }
 
         // Verify that the accountnumber exists in the loanaccounts table
-        const accountCheck = await pg.query(`SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`, [accountnumber]);
-        if (accountCheck.rows.length === 0) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                status: false,
-                message: "Account number does not exist",
-                statuscode: StatusCodes.NOT_FOUND,
-                data: null,
-                errors: []
-            });
-        }
+        // const accountCheck = await pg.query(`SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`, [accountnumber]);
+        // if (accountCheck.rows.length === 0) {
+        //     return res.status(StatusCodes.NOT_FOUND).json({
+        //         status: false,
+        //         message: "Account number does not exist",
+        //         statuscode: StatusCodes.NOT_FOUND,
+        //         data: null,
+        //         errors: []
+        //     });
+        // }
 
         // Insert the new collateral record
         const newCollateral = await pg.query(

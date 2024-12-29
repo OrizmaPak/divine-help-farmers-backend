@@ -8,7 +8,20 @@ const getLoanAccount = async (req, res) => {
 
     try {
         let query = {
-            text: `SELECT * FROM divine."loanaccounts"`,
+            text: `SELECT la.*, 
+                          CONCAT(u1.firstname, ' ', u1.lastname, ' ', COALESCE(u1.othernames, '')) AS useridname,
+                          CONCAT(u2.firstname, ' ', u2.lastname, ' ', COALESCE(u2.othernames, '')) AS accountofficername,
+                          lp.productname AS loanproductname,
+                          dm.member AS membername,
+                          br.branch AS branchname,
+                          COALESCE(rp.registrationpoint, 'N/A') AS registrationpointname
+                   FROM divine."loanaccounts" la
+                   JOIN divine."User" u1 ON la.userid::text = u1.id::text
+                   JOIN divine."User" u2 ON la.accountofficer::text = u2.id::text
+                   JOIN divine."loanproduct" lp ON la.loanproduct::text = lp.id::text
+                   JOIN divine."DefineMember" dm ON la.member::text = dm.id::text
+                   JOIN divine."Branch" br ON la.branch::text = br.id::text
+                   LEFT JOIN divine."Registrationpoint" rp ON la.registrationpoint::text = rp.id::text`,
             values: []
         };
 
@@ -16,7 +29,7 @@ const getLoanAccount = async (req, res) => {
         let whereClause = '';
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
-            if (key !== 'q') {
+            if (key !== 'q') { 
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
