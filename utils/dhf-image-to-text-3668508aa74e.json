@@ -1,0 +1,14 @@
+{
+  "type": "service_account",
+  "project_id": "dhf-image-to-text",
+  "private_key_id": "3668508aa74ee8f2035f11984e4c9b907a21ba75",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEugIBADANBgkqhkiG9w0BAQEFAASCBKQwggSgAgEAAoIBAQCbW0nyBUWbLqrm\nwExJ2cBddJ3nyPADaeZ2RA/J0A6uFdIeB15mpERX+FxOOdLAsOOcLaCWOmP1Ni5Z\nTqqzxwyaXZRoUiebjpClRmNFFIRp3CBi/Ry3WzjMuiVJma+MXD/mWl7WMEIwXBL4\n3A7UCOfjjmjS3UHNrt6YbHfKHzzWQMX6/7b6ZHTf+TNSPRuT0YnJgyx1E5Fx/SNN\nNxGvmoZ8/beYbIQpCOyOqLIeL9ZVkUudt3dybWn65Tm1eO1wBo6/btT2JG3Ko4Dq\n44IKQLmdo9VqaxOlODA0kIeSIt4S5QzWgaA3Lw65yH2U7tp36MOX6KHyGTAeUD3e\nbnVMjrhhAgMBAAECgf9e3wtJFe8Wf76IgOYViI7wg0aVRR/3oF7HL3PKH5mCCyaa\nhTrLc4TziQzVYyT7MbUiqrpmWJdc0g7RJY5uOsp3egN8XAR+pOZaskvs45qjtXQR\nqdWKIyrh2srqfJpiHJ4+YvGHMJvllv9UTw4UbgaDRXQTUQqI5euz096oj8BBwFjS\nRc2k1dklg5eBBg/UWagK4GATNTM5CMkQiK970+1b5jAGWbqRoH0RaYMzMvqfvHUi\nAk2l8dfLuOMXi5wSZrINsGqbFrOtPzH8Rat6mjWW/Ump3C7K+Kain3dAVy7uk1Tf\naXXM8+/r9YC4B6eBmi7apgue/4AEvv3Oh0L/XlECgYEAzPYY0CkDwTetsNmZ0b54\nrw3F6PL+k40YwymI9UKLjv/3yB984U3g6SthRyJcjllzrv90L8LP/XZh4w4KoP21\ng+CN/EfyShpqLbP85byc7sLptc29zi3EZEpfEd40GHk+kjgw1/gvt1izOiL3OT35\nik4yXwEKnjAAyEdQwYMOHLUCgYEAwgr7tl/jcaPhf7Zm3XODLiZlymkcLtxSE487\n5Liiw1PS0qrRePVR8vddZIXZicaLMU1CkNgloEBy78tLTrX7ueMpOEQFbB+o4u+4\nx0lfhtryi7YW3t7o+MW4Hgc3v7IP8ODIUoq9LY4DGfFeLtAqrv0GHnlyQsGxsdHC\n+vokZH0CgYAUYm15VnrvHpCBxEKOH7l0/5OtZW14U1IhJuJeMi4bHM4R8z/CULKL\nvirAnmRCLBdbUkDF90QkWz/FC0J3XIRPB2hXrPgl8paY0QvX9XhOLsh7smisNtUP\nfG4UIttfi79zX29MK3zjaUj6ATxBTy6gWMKdvEbIENIjGSSo+lXO+QKBgBvqIJP3\n72xluwb4YovxFioJdBNOU7OaFmSh8mfQ9/lJkcaktEXGZOejFlhjuQvM+DE7gBv+\nPEt1ehNtF4RXQcNYHpHtlyoa09zxx49Dyu5HiST4KQoe3z0KlJYdS7PUFd79N1RI\niTaIe4G762SopbtOwxaXOgzIeJuwJXCdk6axAoGAIVL5eYQx0Iw/EgmgCfvLgYu2\nwhCav7XgluGAkEefSfjNZEHHja8pM4qrvZchZhi40+Nk57nPgtFpIVqC6c1mYecT\nQDakUrk4zvjxMO6x1incuv6CPQjG9BJjgSQ/SZnFli8wyx4wkbAWTfzCEztgag0R\nvhxgAzkIkRXlEHh4xB8=\n-----END PRIVATE KEY-----\n",
+  "client_email": "divine-help-farmer-data-collec@dhf-image-to-text.iam.gserviceaccount.com",
+  "client_id": "111164013639803745155",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/divine-help-farmer-data-collec%40dhf-image-to-text.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
+ 
