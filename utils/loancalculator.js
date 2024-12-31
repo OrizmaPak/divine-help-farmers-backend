@@ -1,3 +1,5 @@
+const { StatusCodes } = require("http-status-codes");
+
 function calculateInterest(loanAmount, interestRate, numberOfRepayments, method = 'FLAT_RATE') {
     /**
      * Basic assumptions:
@@ -258,43 +260,36 @@ function generateRefinedRepaymentSchedule(
     // Input Validations
     const errors = [];
 
+    const validationErrors = [];
+
     if (isNaN(principal) || principal <= 0) {
-      res.status(400).json({
-        status: false,
+      validationErrors.push({
         field: 'loanAmount',
         message: 'Invalid loanAmount. It must be a positive number.'
       });
-      return;
     }
-  
+
     if (isNaN(rateDecimal) || rateDecimal < 0) {
-      res.status(400).json({
-        status: false,
+      validationErrors.push({
         field: 'interestRate',
         message: 'Invalid interestRate. It must be a non-negative number.'
       });
-      return;
     }
-  
+
     if (isNaN(totalPeriods) || totalPeriods <= 0 || !Number.isInteger(totalPeriods)) {
-      res.status(400).json({
-        status: false,
+      validationErrors.push({
         field: 'numberOfRepayments',
         message: 'Invalid numberOfRepayments. It must be a positive integer.'
       });
-      return;
     }
-  
+
     if (!['INSTALLMENT', 'PRINCIPAL'].includes(interestRateType)) {
-      res.status(400).json({
-        status: false,
+      validationErrors.push({
         field: 'interestRateType',
         message: 'Invalid interestRateType. Must be "INSTALLMENT" or "PRINCIPAL".'
       });
-      return;
     }
-  
-    // Validate that REDUCING_BALANCE does not use PRINCIPAL rate type
+
     const reducingBalanceMethods = [
       'REDUCING_BALANCE',
       'EQUAL_INSTALLMENTS',
@@ -304,28 +299,31 @@ function generateRefinedRepaymentSchedule(
       'AGRICULTURAL_LOAN',
       'EDUCATION_LOAN',
     ];
-  
+
     if (
       reducingBalanceMethods.includes(interestMethod) &&
       interestRateType !== 'INSTALLMENT'
     ) {
-      res.status(400).json({
-        status: false,
+      validationErrors.push({
         message: `Invalid interestRateType for ${interestMethod}. Must be "INSTALLMENT".`
       });
-      return;
     }
-  
-    // Validate repaymentDates length
-    const expectedDatesLength = separateInterest ? totalPeriods + 1 : totalPeriods;
-    if (repaymentDates.length < expectedDatesLength) {
-      res.status(400).json({
+
+    // const expectedDatesLength = separateInterest ? totalPeriods + 1 : totalPeriods;
+    // if (repaymentDates.length < expectedDatesLength) {
+    //   validationErrors.push({
+    //     message: `Insufficient repaymentDates. Expected at least ${expectedDatesLength} dates.`
+    //   });
+    // }
+
+    if (validationErrors.length > 0) {
+      const errorMessages = validationErrors.map(error => error.message).join(', ');
+      return res.status(StatusCodes.BAD_REQUEST).json({
         status: false,
-        message: `Insufficient repaymentDates. Expected at least ${expectedDatesLength} dates.`
+        message: `Validation Errors: ${errorMessages}`,
+        errors: validationErrors
       });
-      return;
     }
-  
     // Helper Functions
     /**
      * Calculates the Equated Monthly Installment (EMI) for amortized loans.

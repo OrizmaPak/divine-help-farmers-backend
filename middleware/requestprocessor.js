@@ -17,18 +17,18 @@ const upload = multer({ storage: storage });
 
 // Middleware function to handle file uploads and form data
 const requestprocessor = (req, res, next) => {
-    console.log('we entered the request processor', req.method)
+    console.log('we entered the request processor', req.files)
     if(req.method !== 'POST'){
-        next()
+        return next()
     }else{
         upload.any()(req, res, (err) => {
             if (err) {
                 return res.status(400).send('Error uploading files'+err);
             }
-     
+            
             // Handle files
             const files = req.files; // Array of uploaded files
-            console.log('files',files)
+            console.log('files 111',req.files)
             if (files) {
                 files.forEach(file => {
                     console.log(`Uploaded file: ${file.filename}`);
@@ -49,7 +49,7 @@ const requestprocessor = (req, res, next) => {
             // console.log(`Form fields: ${JSON.stringify(req.body)}`);
     
             // Proceed to the next middleware or route handler
-            next();
+            return next();
         });
     }
     // Use multer to handle any file uploads

@@ -3,9 +3,10 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 const { generateNextDates, validateCode } = require("../../../utils/datecode");
 const { generateRepaymentSchedule, calculateInterest, generateRefinedRepaymentSchedule } = require("../../../utils/loancalculator");
+const { number } = require("joi");
 
 const manageLoanAccount = async (req, res) => {
-    let { id, accountnumber, userid, registrationpoint, registrationcharge=0, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, seperateinterest, interestrate, defaultpenaltyid, loanamount, member, status, interestratetype } = req.body;
+    let { id, accountnumber, userid, registrationpoint, registrationcharge=0, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, seperateinterest, interestrate, defaultpenaltyid, loanamount, member, status, interestratetype, dateclosed, closeamount } = req.body;
     seperateinterest = seperateinterest ? true : false;
     const user = req.user;
     let generatedAccountNumber;
@@ -283,7 +284,7 @@ const manageLoanAccount = async (req, res) => {
             if (loanProduct.useraccount && userAccountCount >= loanProduct.useraccount) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: 'User has reached the maximum number of accounts allowed for this loan product',
+                    message: 'Maximum active loan accounts reached. Clear outstanding loan to reapply.',
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: []
@@ -546,7 +547,7 @@ const manageLoanAccount = async (req, res) => {
                     if (loanProduct.eligibilityminbalance > 0 && balance < loanProduct.eligibilityminbalance) {
                         errors.push({
                             field: 'eligibilityminbalance',
-                            message: `User account balance is ${balance}, which is less than the required minimum balance of ${loanProduct.eligibilityminbalance}`
+                            message: `Based on the required eligibility product, the user account balance is ${balance}, which is less than the required minimum balance of ${loanProduct.eligibilityminbalance}`
                         });
                     }
 
@@ -706,6 +707,14 @@ const manageLoanAccount = async (req, res) => {
 
         // THIS IS WHERE THE REPAYMENT SCHEDULE IS CREATED
         // IF THE REPAYMENT SETTINGS ARE ACCOUNT, WE NEED TO CREATE A REPAYMENT SCHEDULE
+        if(accountnumber)generatedAccountNumber = accountnumber;
+        if(accountnumber){
+            const deleteScheduleQuery = {
+                text: `DELETE FROM divine."loanpaymentschedule" WHERE accountnumber = $1`,
+                values: [accountnumber]
+            };
+            await pg.query(deleteScheduleQuery);
+        }
         if (loanProduct.repaymentsettings === 'ACCOUNT') {
             // Validate repayment frequency
             if (!validateCode(repaymentfrequency)) {
@@ -782,9 +791,10 @@ const manageLoanAccount = async (req, res) => {
             // Use loan product data for repayment frequency and interest method
             const productRepaymentFrequency = loanProduct.repaymentfrequency;
             const productInterestMethod = loanProduct.interestmethod.replace(' ', '_');
-            const productLoanAmount = loanProduct.loanamount;
+            const productLoanAmount = loanamount;
             const productInterestRate = loanProduct.interestrate;
             const productNumberOfRepayments = loanProduct.numberofrepayments;
+            numberOfRepayments = productNumberOfRepayments;
 
             // Validate repayment frequency from loan product
             if (!validateCode(productRepaymentFrequency)) {
@@ -832,6 +842,7 @@ const manageLoanAccount = async (req, res) => {
                 loanProduct.seperateinterest,
                 loanProduct.interestratetype,
                 repaymentDates,
+                res
             ).map((schedule, index) => ({
                 accountnumber: generatedAccountNumber,
                 scheduledpaymentdate: repaymentDates[index],
@@ -853,6 +864,7 @@ const manageLoanAccount = async (req, res) => {
         }
 
         // If account number is provided, update the existing loan account
+        let loandata
         if (accountnumber) {
             // Check if the account number already exists
             const accountNumberExistsQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
@@ -886,7 +898,6 @@ const manageLoanAccount = async (req, res) => {
                 }
             }
  
-            let loandata
 
             // Update existing loan account
             const updateaccountnumberQuery = {
@@ -922,17 +933,18 @@ const manageLoanAccount = async (req, res) => {
                         member = COALESCE($29, member),
                         interestratetype = COALESCE($30, interestratetype)
                        WHERE id = $31 RETURNING *`,
-                values: [accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, status, new Date(), user.id, null, null, null, member, interestratetype, id]
+                values: [accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, status, new Date(), user.id, dateclosed, closeamount, seperateinterest, member, interestratetype, id]
             };
             const { rows: updatedaccountnumberRows } = await pg.query(updateaccountnumberQuery);
             loandata = updatedaccountnumberRows[0];
+            console.log('loandata:', loandata);
         } else {
             // Create new loan account
             const createaccountnumberQuery = {
                 text: `INSERT INTO divine."loanaccounts" 
                         (accountnumber, userid, branch, registrationpoint, registrationcharge, registrationdate, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, status, dateadded, createdby, dateclosed, closeamount, seperateinterest, member, interestratetype) 
                    VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30) RETURNING *`,
-                values: [generatedAccountNumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments, duration, durationcategory, interestmethod, interestrate, defaultpenaltyid, loanamount, 'PENDING APPROVAL', new Date(), user.id, null, null, seperateinterest, member, interestratetype]
+                values: [generatedAccountNumber, userid, branch, registrationpoint, registrationcharge, registrationdesc, bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer, loanproduct, repaymentfrequency, numberofrepayments =="" ? 0 : numberofrepayments, duration, durationcategory, interestmethod, interestrate == "" ? 0 : interestrate, defaultpenaltyid == "" ? null : defaultpenaltyid, loanamount == "" ? 0 : loanamount, 'PENDING APPROVAL', new Date(), user.id, null, null, seperateinterest, member, interestratetype]
             };
             const { rows: newaccountnumberRows } = await pg.query(createaccountnumberQuery);
             loandata = newaccountnumberRows[0];

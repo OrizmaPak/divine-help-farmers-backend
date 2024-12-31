@@ -4,26 +4,29 @@ const { activityMiddleware } = require("../../../middleware/activity");
 const { divideAndRoundUp } = require("../../../utils/pageCalculator");
 
 const getLoanAccount = async (req, res) => {
-    const user = req.user;
+    const user = req.user;  
 
     try {
         let query = {
-            text: `SELECT la.*, 
-                          CONCAT(u1.firstname, ' ', u1.lastname, ' ', COALESCE(u1.othernames, '')) AS useridname,
-                          CONCAT(u2.firstname, ' ', u2.lastname, ' ', COALESCE(u2.othernames, '')) AS accountofficername,
-                          lp.productname AS loanproductname,
-                          dm.member AS membername,
-                          br.branch AS branchname,
-                          COALESCE(rp.registrationpoint, 'N/A') AS registrationpointname
+            text: `SELECT 
+                      la.*, 
+                      CONCAT(u1.firstname, ' ', u1.lastname, ' ', COALESCE(u1.othernames, '')) AS useridname,
+                      CONCAT(COALESCE(u2.firstname, ''), ' ', COALESCE(u2.lastname, ''), ' ', COALESCE(u2.othernames, '')) AS accountofficername,
+                      lp.productname AS loanproductname,
+                      row_to_json(lp) AS productdetails,
+                      dm.member AS membername,
+                      br.branch AS branchname,
+                      COALESCE(rp.registrationpoint, 'N/A') AS registrationpointname
                    FROM divine."loanaccounts" la
                    JOIN divine."User" u1 ON la.userid::text = u1.id::text
-                   JOIN divine."User" u2 ON la.accountofficer::text = u2.id::text
+                   LEFT JOIN divine."User" u2 ON la.accountofficer::text = u2.id::text
                    JOIN divine."loanproduct" lp ON la.loanproduct::text = lp.id::text
                    JOIN divine."DefineMember" dm ON la.member::text = dm.id::text
                    JOIN divine."Branch" br ON la.branch::text = br.id::text
                    LEFT JOIN divine."Registrationpoint" rp ON la.registrationpoint::text = rp.id::text`,
             values: []
         };
+        
 
         // Dynamically build the WHERE clause based on query parameters
         let whereClause = '';
@@ -74,7 +77,12 @@ const getLoanAccount = async (req, res) => {
         query.text += ` LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;
         query.values.push(limit, offset);
 
+        // Debugging: Log the final query and values
+        console.log('Executing query:', query.text);
+        console.log('With values:', query.values);
+
         const result = await pg.query(query);
+        // console.log('query:', result);
         const loanAccounts = result.rows;
 
         // Get total count for pagination
