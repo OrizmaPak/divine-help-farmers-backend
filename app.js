@@ -76,7 +76,7 @@ const port = process.env.PORT || 5000;
 const start = async () => {
   try {
     // Start your Express server
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
       console.log(`Server is listening on port ${port}...`);
     });
 
