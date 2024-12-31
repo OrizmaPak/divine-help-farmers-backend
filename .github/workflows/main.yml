@@ -23,7 +23,7 @@ jobs:
 
     - name: Deploy to Server
       env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SSH_PRIVATE_KEY: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCb1ohHnQ5qQXHcTFb/QFu4xLcMXsQB13D75G96/BCe3GCk8p7nR4TejrGn2t05YeryJEINYk7NxQpaQSBwwdYRulup1scty17kPwecTyJ+CVZlpseiroidpW3dqng5Yh31ZYSLvMjzg6mKy7cVD7blLpt9Sl6R9dkZZTOmC64Of49+RqJE4PT5bR7sUWvbfZNNSnBUMDLpK2VIjzetxJ3qXx0uACcn5KnNTlyv24lGLdVOLmxDzk7rd+AidjOvsCTArPeDVQEgfrOKG4Nqpt8zpcIhR9xlJxDgN/H7iSl78iKinUrLqCzI4YyL/VlAXqhe67SIILEaoAIo6bI/AT4aPmJPr5j1c47zO+masw8ktl1Ypzl4EGcjvAGicaEGuV+lQVswESlkYkgSkZ/fOAJ+jBnKGyktGUkqwnbE+nB+R2ARyZ7rFcvbyOv0ei8mh+IAtUnk0dCrM4mtliyKq0uWxF0LZM+88Dj6IO+TIYx2qmYKurT0S6yCyR2k9hJPLjoiZDColNFa6OpQH0Anb1NEgRlWNHwO+MRR6+2AiyLq453A50dSmkZx/4sUkSy51roTHS46LMhK64ZLhXVZ6Z9ZgPv2mDip2LeP91cTCraeyvDbF03ReNyb7G2k0lyVzhVfjUlM6fWigOvRO30apV/PXPeKS/ZCbdELfI0Wdw25zw== orevaorior@gmail.com
       run: |
         mkdir -p ~/.ssh
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
