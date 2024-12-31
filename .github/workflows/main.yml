@@ -30,7 +30,7 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H 66.96.83.87 >> ~/.ssh/known_hosts
         ssh root@66.96.83.87 "
-          cd var/www/backend/divine-help-farmers-backend &&
+          cd /var/www/backend/divine-help-farmers-backend &&
           git pull origin main &&
           npm install &&
           pm2 restart all
