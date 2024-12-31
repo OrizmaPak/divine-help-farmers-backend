@@ -17,7 +17,7 @@ const client = new vision.ImageAnnotatorClient();
  */
 function convertToJson(inputString) {
   try {
-    const cleanedString = inputString
+    const cleanedString = inputString 
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
