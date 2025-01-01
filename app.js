@@ -71,6 +71,12 @@ app.use('/api/v1/ai', aiRouter);
 app.get('/', (req, res) => {
     res.send('Welcome to the divine help farmers backend!');
 });
+app.use('*', (req, res) => {
+    res.send('wild card handles this route');
+});
+
+
+
 
 
 app.use(notFoundMiddleware);
