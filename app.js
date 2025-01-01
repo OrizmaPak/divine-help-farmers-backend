@@ -68,6 +68,11 @@ app.use('/api/v1/transactions', authMiddleware, transactionsRouter);
 app.use('/api/v1/incomings', incomingsRouter);
 app.use('/api/v1/ai', aiRouter);
 
+app.get('/', (req, res) => {
+    res.send('Welcome to the divine help farmers backend!');
+});
+
+
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
 
