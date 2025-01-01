@@ -55,20 +55,20 @@ app.use(encryptResponseMiddleware);
 app.use(requestprocessor);
 
 // routes
-app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/branch', branchRouter);
-app.use('/api/v1/admin', authMiddleware, adminRouter);
-app.use('/api/v1/inventory', authMiddleware, inventoryRouter);
-app.use('/api/v1/glaccounts', authMiddleware, glaccountsRouter);
-app.use('/api/v1/members', authMiddleware, memberRouter);
-app.use('/api/v1/savings', authMiddleware, savingsRouter);
-app.use('/api/v1/loan', authMiddleware, loanRouter);
-app.use('/api/v1/payment', authMiddleware, transactionMiddleware, paymentRouter);
-app.use('/api/v1/transactions', authMiddleware, transactionsRouter); 
-app.use('/api/v1/incomings', incomingsRouter);
-app.use('/api/v1/ai', aiRouter);
+app.use('/dhf/node/api/v1/auth', authRouter);
+app.use('/dhf/node/api/v1/branch', branchRouter);
+app.use('/dhf/node/api/v1/admin', authMiddleware, adminRouter);
+app.use('/dhf/node/api/v1/inventory', authMiddleware, inventoryRouter);
+app.use('/dhf/node/api/v1/glaccounts', authMiddleware, glaccountsRouter);
+app.use('/dhf/node/api/v1/members', authMiddleware, memberRouter);
+app.use('/dhf/node/api/v1/savings', authMiddleware, savingsRouter);
+app.use('/dhf/node/api/v1/loan', authMiddleware, loanRouter);
+app.use('/dhf/node/api/v1/payment', authMiddleware, transactionMiddleware, paymentRouter);
+app.use('/dhf/node/api/v1/transactions', authMiddleware, transactionsRouter); 
+app.use('/dhf/node/api/v1/incomings', incomingsRouter);
+app.use('/dhf/node/api/v1/ai', aiRouter);
 
-app.get('/', (req, res) => {
+app.get('/dhf/node', (req, res) => {
     res.send('Welcome to the divine help farmers backend!');
 });
 app.use('*', (req, res) => {
