@@ -3,7 +3,6 @@ const path = require('path');
 const { StatusCodes } = require('http-status-codes');
 
 const activityMiddleware = async (res, userid, message, module) => {
-  return
   const today = new Date();
   const date = today.toISOString().split('T')[0]; // YYYY-MM-DD
   const filePath = path.join(__dirname, '../activities', `${date}.txt`); // Use __dirname for absolute path
