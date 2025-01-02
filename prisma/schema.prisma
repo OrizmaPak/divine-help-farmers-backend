@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "cockroachdb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -53,7 +53,7 @@ enum accounttype {
 }
 
 model User {
-  id            Int       @id @default(sequence())
+  id            Int       @id @default(autoincrement())
   firstname     String
   lastname      String
   othernames    String? 
@@ -103,7 +103,7 @@ model Roles {
 }
 
 model Department {
-  id            Int       @id @default(sequence())
+  id            Int       @id @default(autoincrement())
   department    String    
   branch        Int
   category      String? @default("STORE") // "OFFICE", "STORE", "IT", "MOBILE UNIT", "OTHER"
@@ -116,7 +116,7 @@ model Department {
 }
 
 model DefineMember {
-  id            Int       @id @default(sequence())
+  id            Int       @id @default(autoincrement())
   member        String    @unique
   dateadded     DateTime  @default(now())
   status        String    @default("ACTIVE")
@@ -126,7 +126,7 @@ model DefineMember {
 }
 
 model Membership {
-  id            Int      @id @default(sequence())
+  id            Int      @id @default(autoincrement())
   member        Int      @default(1)
   userid        Int
   createdby     Int      @default(0)
@@ -136,7 +136,7 @@ model Membership {
 }
 
 model Position {
-  id            Int       @id @default(sequence())
+  id            Int       @id @default(autoincrement())
   member        Int  
   position      String
   userid        Int? @default(0)
@@ -148,7 +148,7 @@ model Position {
 }
 
 model Activity {
-  id        Int           @id @default(sequence())
+  id        Int           @id @default(autoincrement())
   userid    Int
   activity  String
   date      DateTime
@@ -159,7 +159,7 @@ model Activity {
 }
 
 model Session {
-  id           Int       @id @default(sequence()) 
+  id           Int       @id @default(autoincrement()) 
   sessiontoken String    @unique
   userid       Int
   expires      DateTime
@@ -179,7 +179,7 @@ model VerificationToken {
 }
 
 model Branch {
-  id          Int        @id @default(sequence()) 
+  id          Int        @id @default(autoincrement()) 
   branch      String
   country     String?
   state       String?
@@ -273,14 +273,14 @@ model Organisationsettings {
 
 
 model Rejecttransactiondate {
-  id                 Int       @id @default(sequence())
+  id                 Int       @id @default(autoincrement())
   rejectiondate      DateTime
   status             String    @default("ACTIVE")
   reason             String?
 }
 
 model Registrationpoint {
-  id                 Int       @id @default(sequence())
+  id                 Int       @id @default(autoincrement())
   registrationpoint  String
   description        String?
   branch             Int
@@ -290,7 +290,7 @@ model Registrationpoint {
 }
 
 model Task {
-  id                 Int       @id @default(sequence())
+  id                 Int       @id @default(autoincrement())
   title              String
   description        String?
   priority           String
@@ -304,7 +304,7 @@ model Task {
 }
 
 model Subtask {
-  id                 Int       @id @default(sequence())
+  id                 Int       @id @default(autoincrement())
   task               Int
   title              String
   startdate          DateTime
@@ -317,7 +317,7 @@ model Subtask {
 }
 
 model Cashierlimit {
-  id                 Int       @id @default(sequence())
+  id                 Int       @id @default(autoincrement())
   cashier            Int
   depositlimit       Float
   withdrawallimit    Float
@@ -327,14 +327,14 @@ model Cashierlimit {
 }
 
 model Lastseen {
-  id                 Int       @id @default(sequence())
+  id                 Int       @id @default(autoincrement())
   userid             Int
   date               DateTime
   status             String    @default("ACTIVE")
 }
 
 model Inventory {
-  id                 Int       @id @default(sequence())
+  id                 Int       @id @default(autoincrement())
   itemid             Int
   itemname           String
   department         String    
@@ -370,7 +370,7 @@ model Inventory {
 }
 
 model issue {
-  id                 Int       @id @default(sequence())
+  id                 Int       @id @default(autoincrement())
   issuetype          String    @unique
   status             String @default("ACTIVE")
   dateadded          DateTime
@@ -378,7 +378,7 @@ model issue {
 }
 
 model Supplier {
-  id                 Int       @id @default(sequence())
+  id                 Int       @id @default(autoincrement())
   supplier           String    @unique
   contactperson      String
   contactpersonphone String
@@ -425,7 +425,7 @@ model savingsproduct {
   eligibilityminimumloan            Float? // for LOAN
   eligibilityproduct                Int? @default(0)  // the product that the user must have account in
   eligibilityproductcategory        String? // "LOAN" or "SAVINGS" 
-  id                                Int      @id @default(sequence())
+  id                                Int      @id @default(autoincrement())
   interests                         Interest[]
   maxbalance                        Float?
   membership                        String? @default("")
@@ -447,7 +447,7 @@ model savingsproduct {
 }
 
 model Interest {
-  id                        Int      @id @default(sequence())
+  id                        Int      @id @default(autoincrement())
   savingsproductid          Int
   interestname              String
   interestmethod            String   // "LAST BALANCE" or "PRO RATA BASIS"
@@ -466,7 +466,7 @@ model Interest {
 }
 
 model frequencyoverride {
-  id                        Int      @id @default(sequence())
+  id                        Int      @id @default(autoincrement())
   savingsproductid          Int 
   compulsorydepositfrequency String   // "D1", "W1", "M1"
   branch                  Int
@@ -474,7 +474,7 @@ model frequencyoverride {
 }
     
 model Deduction {
-  id                        Int      @id @default(sequence())
+  id                        Int      @id @default(autoincrement())
   savingsproductid          Int 
   deductionname             String
   deductioneligibilityaccountage     Int   @default(0)    // in months
@@ -493,7 +493,7 @@ model Deduction {
 }
 
 model savings {
-  id                        Int      @id @default(sequence())
+  id                        Int      @id @default(autoincrement())
   savingsproductid          Int
   accountnumber             Int
   userid                    Int
@@ -521,7 +521,7 @@ model savings {
 }
 
 model transaction {
-  id                        Int       @id @default(sequence())
+  id                        Int       @id @default(autoincrement())
   accountnumber             String
   userid                    Int
   currency                  String
@@ -548,7 +548,7 @@ model transaction {
 }
 
 model Accounts {
-  id                       Int        @id @default(sequence()) 
+  id                       Int        @id @default(autoincrement()) 
   accountnumber            String
   groupname                String?
   accounttype              String?
@@ -559,7 +559,7 @@ model Accounts {
 }
  
 model loanfee {
-  id                       Int        @id @default(sequence()) 
+  id                       Int        @id @default(autoincrement()) 
   feename                  String    @unique
   feemethod                String    // "FORM FEE" or "PROCESSING FEE" or "INSURANCE FEE" or "DEDUCTION FEE" or "PENALTY"
   chargesbasedon           String    // "PRINCIPAL AMOUNT ONLY" or "PRINCIPAL AND INTEREST"
@@ -572,7 +572,7 @@ model loanfee {
 }
 
 model loanproduct {
-      id                       Int        @id @default(sequence()) 
+      id                       Int        @id @default(autoincrement()) 
       productname              String    @unique
       description              String?
       registrationcharge       Float?
@@ -617,7 +617,7 @@ model loanproduct {
 }
 
 model loanaccounts {
-      id                        Int       @id @default(sequence()) 
+      id                        Int       @id @default(autoincrement()) 
       loanproduct               Int? @default(0)
       accountnumber             String?
       userid                    Int 
@@ -655,7 +655,7 @@ model loanaccounts {
 }
 
 model loanpaymentschedule {
-      id                        Int       @id @default(sequence())
+      id                        Int       @id @default(autoincrement())
       accountnumber             Int
       scheduledpaymentdate      DateTime
       gracepaymentdate          DateTime?
@@ -668,7 +668,7 @@ model loanpaymentschedule {
 }
 
 model collateral {
-  id                 Int      @id @default(sequence())
+  id                 Int      @id @default(autoincrement())
   accountnumber      Int
   documenttitle      String
   documentnumber     String
