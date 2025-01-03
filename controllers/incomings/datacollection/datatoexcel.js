@@ -126,4 +126,128 @@
         }
     };
 
-    module.exports = { saveDataToGoogleSheet };
+
+    
+const getDataByPhoneNumber = async (req, res) => {
+    try {
+        const { phonenumber } = req.query;
+
+        // Validate the presence of the phone number in the query
+        if (!phonenumber) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                error: true,
+                message: 'Phone number is required.',
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: [{ field: 'phonenumber', message: 'Phone number is required.' }]
+            });
+        }
+
+        // Initialize Google Sheets API client with read-only access
+        const auth = new google.auth.GoogleAuth({
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
+
+        const authClient = await auth.getClient();
+        const sheets = google.sheets({ version: 'v4', auth: authClient });
+
+        // Replace with your actual Spreadsheet ID
+        const spreadsheetId = '1UGZ9x-2_xii2M18L0-3mbIxHJ6nI6oORdjiS07FKB2k';
+        // Specify the exact range to include all relevant columns (A to M)
+        const range = 'Data Collection!A:M';
+
+        // Fetch data from the specified range in the spreadsheet
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range,
+        });
+
+        const rows = response.data.values;
+
+        // Log the number of rows fetched for debugging
+        console.log(`Total rows fetched: ${rows ? rows.length : 0}`);
+
+        // Check if there are enough rows (at least one header row and one data row)
+        if (!rows || rows.length <= 1) { // Assuming first row is header
+            return res.status(StatusCodes.NOT_FOUND).json({
+                error: true,
+                message: 'No data found in the sheet.',
+                statuscode: StatusCodes.NOT_FOUND,
+                data: null,
+                errors: []
+            });
+        }
+
+        // Log the header row for verification
+        const headerRow = rows[0];
+        console.log(`Header Row: ${headerRow}`);
+
+        // Find the row matching the phone number, assuming phone number is in column A (index 0)
+        const dataRow = rows.slice(1).find(row => {
+            // Handle cases where the row might be shorter than expected
+            if (!row[0]) return false;
+            // Compare trimmed phone numbers for consistency
+            return row[0].trim() === phonenumber.trim();
+        });
+
+        // Log whether the phone number was found
+        if (dataRow) {
+            console.log(`Data Row Found: ${dataRow}`);
+        } else {
+            console.log(`Phone number ${phonenumber} not found.`);
+        }
+
+        // If the phone number is not found, return a 404 response
+        if (!dataRow) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                error: true,
+                message: 'Phone number not found in the sheet.',
+                statuscode: StatusCodes.NOT_FOUND,
+                data: null,
+                errors: []
+            });
+        }
+
+        // Map the dataRow to the desired structure using fixed indices
+        const data = {
+            phonenumber: dataRow[0] || null,
+            firstname: dataRow[1] || null,
+            lastname: dataRow[2] || null,
+            othernames: dataRow[3] || null,
+            email: dataRow[4] || null,
+            branch: dataRow[5] || null,
+            date_joined: dataRow[6] ? new Date(dataRow[6]).toISOString() : null,
+            batch_no: dataRow[7] || null,
+            unit: dataRow[8] || null
+        };
+
+        // Log the mapped data for verification
+        console.log(`Mapped Data: ${JSON.stringify(data)}`);
+
+        // Return the mapped data as a successful response
+        return res.status(StatusCodes.OK).json({
+            error: false,
+            message: 'Data retrieved successfully.',
+            statuscode: StatusCodes.OK,
+            data,
+            errors: []
+        });
+
+    } catch (error) {
+        // Log the error details for debugging
+        console.error('Error retrieving data from Google Sheets:', error);
+
+        // Return a 500 response indicating an internal server error
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            error: true,
+            message: 'Failed to retrieve data from Google Sheets.',
+            statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+            data: null,
+            errors: [{ message: error.message }]
+        });
+    }
+};
+
+
+    module.exports = { saveDataToGoogleSheet, getDataByPhoneNumber };
+
