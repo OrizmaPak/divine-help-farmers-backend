@@ -9,7 +9,9 @@ const changePassword = async (req, res) => {
   try {
     const { oldpassword, newpassword, token = '' } = req.body;
     const bearertoken = req.headers.authorization?.split(' ')[1];
-    const changeType = req.headers['change-type'];
+    const changeType = "change password";
+
+ 
 
     // Ensure the frontend guy is not sending the same password
     if (oldpassword === newpassword) {
@@ -58,6 +60,8 @@ const changePassword = async (req, res) => {
         errors: []
       });
     }
+
+    
 
     // If it’s a non-signed-in user
     if (token) {

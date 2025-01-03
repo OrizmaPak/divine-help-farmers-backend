@@ -72,7 +72,7 @@ app.get('/dhf/node', (req, res) => {
     res.send('Welcome to the divine help farmers backend!');
 });
 app.use('*', (req, res) => {
-    res.send('wild card handles this route');
+    res.send('wild card handled this route');
 });
 
 
