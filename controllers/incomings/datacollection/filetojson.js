@@ -166,7 +166,7 @@ Your task is to analyze the text enclosed within <> and extract the following in
   "branch": "Main Office",
   "date_joined": "2024-01-15T00:00:00",
   "batch_no": "B123",
-  "unit": "Unit 5"
+  "unit": "5"
 }
 
 <${text}>
