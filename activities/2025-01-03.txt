@@ -1,1 +1,2 @@
 {"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-03T10:53:35.230Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-03T10:54:51.597Z"}
