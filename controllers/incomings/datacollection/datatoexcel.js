@@ -1,7 +1,7 @@
     const { google } = require('googleapis');
     const { StatusCodes } = require('http-status-codes');
 
-    const saveDataToGoogleSheet = async (req, res) => {
+const saveDataToGoogleSheet = async (req, res) => {
         const codecheck = [
             {
                 "code": "CANADA",
@@ -15,6 +15,17 @@
 
         try {
             const data = req.body;
+
+            // Validate the presence of the type field
+            if (!data.type || (data.type !== 'NEW' && data.type !== 'UPDATE')) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    error: true,
+                    message: 'Invalid type provided. Must be either NEW or UPDATE.',
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: [{ field: 'type', message: 'Type must be either NEW or UPDATE.' }]
+                });
+            }
 
             const auth = new google.auth.GoogleAuth({
                 scopes: ['https://www.googleapis.com/auth/spreadsheets'],
@@ -48,9 +59,30 @@
                 }
             }
 
+            // Check for type and phone number existence
+            if (data.type === 'NEW' && phoneNumberExists) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    error: true,
+                    message: 'Phone number already exists. Cannot create new entry.',
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: [{ field: 'phonenumber', message: 'Phone number already exists.' }]
+                });
+            }
+
+            if (data.type === 'UPDATE' && !phoneNumberExists) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    error: true,
+                    message: 'Phone number does not exist. Cannot update non-existent entry.',
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: [{ field: 'phonenumber', message: 'Phone number does not exist.' }]
+                });
+            }
+
             const currentDate = new Date().toISOString();
             const userCode = codecheck.find(item => item.code === data.code);
-        //    return console.log(userCode, data.code, codecheck);
+
             if (!userCode) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     error: true,
@@ -124,7 +156,7 @@
                 errors: [{ message: error.message }]
             });
         }
-    };
+};
 
 
     
