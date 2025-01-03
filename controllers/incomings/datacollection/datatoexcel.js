@@ -157,8 +157,6 @@ const saveDataToGoogleSheet = async (req, res) => {
             });
         }
 };
-
-
     
 const getDataByPhoneNumber = async (req, res) => {
     try {
@@ -280,6 +278,97 @@ const getDataByPhoneNumber = async (req, res) => {
     }
 };
 
+const getAllDataFromGoogleSheet = async (req, res) => {
+    try {
+        // Initialize Google Sheets API client with read-only access
+        const auth = new google.auth.GoogleAuth({
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
 
-    module.exports = { saveDataToGoogleSheet, getDataByPhoneNumber };
+        const authClient = await auth.getClient();
+        const sheets = google.sheets({ version: 'v4', auth: authClient });
 
+        // Replace with your actual Spreadsheet ID
+        const spreadsheetId = '1UGZ9x-2_xii2M18L0-3mbIxHJ6nI6oORdjiS07FKB2k';
+        // Specify the exact range to include all relevant columns (A to M)
+        const range = 'Data Collection!A:M';
+
+        // Fetch data from the specified range in the spreadsheet
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range,
+        });
+
+        const rows = response.data.values;
+
+        // Log the number of rows fetched for debugging
+        console.log(`Total rows fetched: ${rows ? rows.length : 0}`);
+
+        // Check if there are enough rows (at least two header rows and one data row)
+        if (!rows || rows.length <= 2) { // Assuming first two rows are headers
+            return res.status(StatusCodes.NOT_FOUND).json({
+                error: true,
+                message: 'No data found in the sheet.',
+                statuscode: StatusCodes.NOT_FOUND,
+                data: [],
+                errors: []
+            });
+        }
+
+        // Extract the header row
+        const headerRow = rows[1]; // Start from the second header row
+        console.log(`Header Row: ${headerRow}`);
+
+        // Define the mapping based on fixed indices as per the save function
+        // Adjust the indices if the structure changes
+        const dataObjects = rows.slice(2).map((row, index) => { // Start from row three
+            return {
+                phonenumber: row[0] || null,
+                firstname: row[1] || null,
+                lastname: row[2] || null,
+                othernames: row[3] || null,
+                email: row[4] || null,
+                branch: row[5] || null,
+                date_joined: row[6] ? new Date(row[6]).toISOString() : null,
+                batch_no: row[7] || null,
+                unit: row[8] || null,
+                // Additional fields if needed can be added here
+                // For example:
+                // created_by: row[9] || null,
+                // updated_by: row[10] || null,
+                // date_added: row[11] ? new Date(row[11]).toISOString() : null,
+                // date_updated: row[12] ? new Date(row[12]).toISOString() : null,
+            };
+        }); 
+
+        // Log the number of data objects created
+        console.log(`Total data objects created: ${dataObjects.length}`);
+
+        // Optionally, you can log the first few data objects for verification
+        console.log(`Sample Data: ${JSON.stringify(dataObjects.slice(0, 3), null, 2)}`);
+
+        // Return the array of data objects as a successful response
+        return res.status(StatusCodes.OK).json({
+            error: false,
+            message: 'All data retrieved successfully.',
+            statuscode: StatusCodes.OK,
+            data: dataObjects,
+            errors: []
+        });
+
+    } catch (error) {
+        // Log the error details for debugging
+        console.error('Error retrieving all data from Google Sheets:', error);
+
+        // Return a 500 response indicating an internal server error
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            error: true,
+            message: 'Failed to retrieve data from Google Sheets.',
+            statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+            data: null,
+            errors: [{ message: error.message }]
+        });
+    }
+};
+
+module.exports = { saveDataToGoogleSheet, getDataByPhoneNumber, getAllDataFromGoogleSheet };
