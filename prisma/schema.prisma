@@ -322,7 +322,7 @@ model Cashierlimit {
   depositlimit       Float
   withdrawallimit    Float
   status             String @default("ACTIVE")
-  dateadded          Int
+  dateadded          DateTime
   createdby          Int
 }
 

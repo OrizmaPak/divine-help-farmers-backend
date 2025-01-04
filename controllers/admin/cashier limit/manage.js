@@ -84,14 +84,15 @@ const manageCashierLimit = async (req, res) => {
             }
         } else {
             // Create new cashier limit
-            const { rows: [newCashierLimit] } = await pg.query(`INSERT INTO divine."Cashierlimit" (cashier, depositlimit, withdrawallimit, status, dateadded, createdby) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`, [cashier, depositlimit, withdrawallimit, 'ACTIVE', new Date().getTime(), req.user.id]);
+            console.log([cashier, depositlimit, withdrawallimit, 'ACTIVE', new Date().getTime(), req.user.id])
+            const { rows: [newCashierLimit] } = await pg.query(`INSERT INTO divine."Cashierlimit" (cashier, depositlimit, withdrawallimit, status, dateadded, createdby) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`, [cashier, depositlimit, withdrawallimit, 'ACTIVE', new Date(), req.user.id]);
             return res.status(StatusCodes.CREATED).json({
                 status: true,
                 message: "Cashier limit created successfully",
                 statuscode: StatusCodes.CREATED,
                 data: newCashierLimit,
                 errors: []
-            });
+            }); 
         }
     } catch (err) {
         console.error('Unexpected Error:', err);
