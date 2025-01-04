@@ -1,29 +1,22 @@
     const { google } = require('googleapis');
     const { StatusCodes } = require('http-status-codes');
 
-const saveDataToGoogleSheet = async (req, res) => {
+    const saveDataToGoogleSheet = async (req, res) => {
         const codecheck = [
-            {
-                "code": "CANADA",
-                "name": "Wisdom Dev"
-            },
-            {
-                "code": "LONDON",
-                "name": "Oreva Dev"
-            },
-            {
-                "code": "NEWYORK",
-                "name": "Yray Tester"
-            },
-            {
-                "code": "CHICAGO",
-                "name": "Gabriel Tester"
-            },
+            { "code": "CANADA", "name": "Wisdom Dev" },
+            { "code": "LONDON", "name": "Oreva Dev" },
+            { "code": "NEWYORK", "name": "Yray Tester" },
+            { "code": "CHICAGO", "name": "Gabriel Tester" },
+            { "code": "USA", "name": "John Esegine" },
+            { "code": "PHILADELPHIA", "name": "Moses Staff" },
+            { "code": "FRANCISCO", "name": "Samuel Staff" },
+            { "code": "NIGERIA", "name": "Tobore Staff" },
+            { "code": "HOUSTON", "name": "Engineer Lucky" },
         ];
-
+    
         try {
             const data = req.body;
-
+    
             // Validate the presence of the type field
             if (!data.type || (data.type !== 'NEW' && data.type !== 'UPDATE')) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -34,28 +27,28 @@ const saveDataToGoogleSheet = async (req, res) => {
                     errors: [{ field: 'type', message: 'Type must be either NEW or UPDATE.' }]
                 });
             }
-
+    
             const auth = new google.auth.GoogleAuth({
                 scopes: ['https://www.googleapis.com/auth/spreadsheets'],
             });
-
+    
             const authClient = await auth.getClient();
             const sheets = google.sheets({ version: 'v4', auth: authClient });
-
+    
             const spreadsheetId = '1UGZ9x-2_xii2M18L0-3mbIxHJ6nI6oORdjiS07FKB2k'; // Replace with your actual Spreadsheet ID
             const range = 'Data Collection'; // Adjust the sheet name and range as needed
-
+    
             // Fetch existing data to check for the phone number
             const getResult = await sheets.spreadsheets.values.get({
                 spreadsheetId,
                 range,
             });
-
+    
             const rows = getResult.data.values;
             let phoneNumberExists = false;
             let rowIndexToUpdate = -1;
             let existingRow = [];
-
+    
             if (rows) {
                 for (let i = 0; i < rows.length; i++) {
                     if (rows[i][0] === data.phonenumber) {
@@ -66,7 +59,7 @@ const saveDataToGoogleSheet = async (req, res) => {
                     }
                 }
             }
-
+    
             // Check for type and phone number existence
             if (data.type === 'NEW' && phoneNumberExists) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -77,7 +70,7 @@ const saveDataToGoogleSheet = async (req, res) => {
                     errors: [{ field: 'phonenumber', message: 'Phone number already exists.' }]
                 });
             }
-
+    
             if (data.type === 'UPDATE' && !phoneNumberExists) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     error: true,
@@ -87,10 +80,9 @@ const saveDataToGoogleSheet = async (req, res) => {
                     errors: [{ field: 'phonenumber', message: 'Phone number does not exist.' }]
                 });
             }
-
-            const currentDate = new Date().toISOString();
+    
             const userCode = codecheck.find(item => item.code === data.code);
-
+    
             if (!userCode) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     error: true,
@@ -100,8 +92,28 @@ const saveDataToGoogleSheet = async (req, res) => {
                     errors: [{ field: 'code', message: 'Code not found in the system.' }]
                 });
             }
+    
             const userName = userCode.name;
-
+    
+            if (data.type === 'UPDATE') {
+                const creatorName = existingRow[9]; // Column for 'Created By'
+    
+                if (creatorName !== userName) {
+                    return res.status(StatusCodes.FORBIDDEN).json({
+                        error: true,
+                        message: 'You are not authorized to update this record.',
+                        statuscode: StatusCodes.FORBIDDEN,
+                        data: null,
+                        errors: [{
+                            field: 'code',
+                            message: 'The code does not match the original creator of the record.'
+                        }]
+                    });
+                }
+            }
+    
+            const currentDate = new Date().toISOString();
+    
             const values = [
                 [
                     data.phonenumber,
@@ -119,7 +131,7 @@ const saveDataToGoogleSheet = async (req, res) => {
                     phoneNumberExists ? currentDate : '', // Date Updated
                 ],
             ];
-
+    
             if (phoneNumberExists) {
                 // Update the existing row
                 const updateRange = `Data Collection!A${rowIndexToUpdate + 1}:M${rowIndexToUpdate + 1}`;
@@ -164,7 +176,8 @@ const saveDataToGoogleSheet = async (req, res) => {
                 errors: [{ message: error.message }]
             });
         }
-};
+    };
+    
     
 const getDataByPhoneNumber = async (req, res) => {
     try {
