@@ -146,7 +146,8 @@ Your task is to analyze the text enclosed within <> and extract the following in
 4. **othernames**: Extract any middle names or additional names if available; otherwise, set to null.
 5. **email**: Extract the email address.
 6. **branch**: Extract the branch or office location.
-7. **date_joined**: Extract the date the individual joined, formatted as ISO 8601 (e.g., 2024-01-15T00:00:00).
+7. **date_joined**: Extract the date froom the part wherer we have 'DATE ADMITTED' the value format seen on the card could be 20|03|2023 or 20/03/2023 or 20-03-2024. 
+Extract the date the individual joined, formatted as ISO 8601 (e.g., 2024-01-15).
 8. **batch_no**: Extract the batch number.
 9. **unit**: Extract the unit information.
 
@@ -158,7 +159,7 @@ Your task is to analyze the text enclosed within <> and extract the following in
 
 **Example Output**:
 {
-  "phonenumber": "1234567890",
+  "phonenumber": "08045678911",
   "firstname": "John",
   "lastname": "Doe",
   "othernames": "Michael",
