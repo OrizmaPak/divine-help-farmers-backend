@@ -140,7 +140,7 @@ Your task is to analyze the text enclosed within <> and extract the following in
 }
 
 **Extraction Rules**:
-1. **phonenumber**: Extract the phone number in a standard format (e.g., +1234567890).
+1. **phonenumber**: Extract the phone number in a standard format (e.g., 08034567890).
 2. **firstname**: Extract the first name of the individual.
 3. **lastname**: Extract the last name of the individual.
 4. **othernames**: Extract any middle names or additional names if available; otherwise, set to null.
@@ -158,13 +158,13 @@ Your task is to analyze the text enclosed within <> and extract the following in
 
 **Example Output**:
 {
-  "phonenumber": "+1234567890",
+  "phonenumber": "1234567890",
   "firstname": "John",
   "lastname": "Doe",
   "othernames": "Michael",
   "email": "john.doe@example.com",
   "branch": "Main Office",
-  "date_joined": "2024-01-15T00:00:00",
+  "date_joined": "2024-01-15",
   "batch_no": "B123",
   "unit": "5"
 }
