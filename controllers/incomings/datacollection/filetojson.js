@@ -148,7 +148,7 @@ Your task is to analyze the text enclosed within <> and extract the following in
 6. **branch**: Extract the branch or office location.
 7. **date_joined**: Extract the date froom the part wherer we have 'DATE ADMITTED' the value format seen on the card could be 20|03|2023 or 20/03/2023 or 20-03-2024. 
 Extract the date the individual joined, formatted as ISO 8601 (e.g., 2024-01-15).
-8. **batch_no**: Extract the batch number.
+8. **batch_no**: Extract the batch number. 
 9. **unit**: Extract the unit information.
 
 **Instructions**:
