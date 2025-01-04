@@ -10,7 +10,15 @@ const saveDataToGoogleSheet = async (req, res) => {
             {
                 "code": "LONDON",
                 "name": "Oreva Dev"
-            }
+            },
+            {
+                "code": "NEWYORK",
+                "name": "Yray Tester"
+            },
+            {
+                "code": "CHICAGO",
+                "name": "Gabriel Tester"
+            },
         ];
 
         try {
