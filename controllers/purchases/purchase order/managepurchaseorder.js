@@ -37,19 +37,19 @@ const managePurchaseOrder = async (req, res) => {
         // Loop through each item based on rowsize
         for (let i = 1; i <= rowsize; i++) {
             // Extract id from request body
-            const id = req.body[`id${i}`];
-            // Query to select inventory item by id
-            const inventory = await pg.query(`SELECT * FROM divine."Inventory" WHERE id = $1`, [id]);
+            const itemid = req.body[`itemid${i}`];
+            // Query to select inventory item by itemid
+            const inventory = await pg.query(`SELECT * FROM divine."Inventory" WHERE itemid = $1`, [itemid]);
 
             // Check if inventory item is not found
             if (!inventory.rows[0]) {
                 // Return error response if inventory item not found
                 return res.status(StatusCodes.OK).json({
                     status: false,
-                    message: `Inventory item ${id} not found`,
+                    message: `Inventory item ${itemid} not found`,
                     statuscode: StatusCodes.OK,
                     data: '',
-                    errors: [`Inventory item ${id} not found`]  
+                    errors: [`Inventory item ${itemid} not found`]  
                 });
             }
 
@@ -72,7 +72,7 @@ const managePurchaseOrder = async (req, res) => {
 
             // Add the cloned inventory item to the array
             inventoryItems.push(clonedInventory);
-        }
+        } 
 
         // Insert cloned inventory items into the database
         for (const item of inventoryItems) {
