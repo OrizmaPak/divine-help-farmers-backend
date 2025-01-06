@@ -359,6 +359,7 @@ model Inventory {
   reference          String?
   transactiondate    String?
   transactiondesc    String?
+  transactionref     String? @default("")
   reorderlevel       String? @default("2")
   issue              String?
   issuetype          String?
@@ -384,6 +385,7 @@ model Supplier {
   contactpersonphone String
   officeaddress      String?
   nationality        String
+  currency           String? @default("NGN")
   state              String
   bank1              String?
   accountnumber1     String?

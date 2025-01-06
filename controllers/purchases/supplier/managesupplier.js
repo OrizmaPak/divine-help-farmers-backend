@@ -3,9 +3,9 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware for activity tracking
 
 const manageSupplier = async (req, res) => {
-  const { id, supplier, contactperson, officeaddress, nationality, state, contactpersonphone, bank1, accountnumber1, bank2, accountnumber2, status } = req.body;
+  const { id, supplier, contactperson, officeaddress, nationality, state, contactpersonphone, bank1, accountnumber1, bank2, accountnumber2, status, currency } = req.body;
 
-  const requiredFields = ['supplier', 'contactperson', 'officeaddress', 'nationality', 'state'];
+  const requiredFields = ['supplier', 'contactperson', 'officeaddress', 'nationality', 'state', 'currency'];
   const missingFields = requiredFields.filter(field => !req.body[field]);
   if (missingFields.length > 0) {
     return res.status(StatusCodes.BAD_REQUEST).json({
@@ -14,6 +14,32 @@ const manageSupplier = async (req, res) => {
       statuscode: StatusCodes.BAD_REQUEST,
       data: null,
       errors: missingFields
+    });
+  }
+
+  // Check if contactpersonphone already exists in the User table
+  const phoneQuery = `SELECT * FROM divine."User" WHERE phone = $1`;
+  const phoneParams = [contactpersonphone];
+  try {
+    const { rows: existingUser } = await pg.query(phoneQuery, phoneParams);
+    if (existingUser.length > 0) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: false,
+        message: "Contact person phone already exist as a member/staff please use a different phone number",
+        statuscode: StatusCodes.BAD_REQUEST,
+        data: null,
+        errors: []
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    await activityMiddleware(req, req.user.id, 'An unexpected error occurred checking contact person phone existence', 'SUPPLIER'); // Tracker middleware
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: false,
+      message: "Internal Server Error",
+      statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+      data: null,
+      errors: []
     });
   }
 
@@ -46,8 +72,8 @@ const manageSupplier = async (req, res) => {
       }
     } else {
       // Update everything
-      const query = `UPDATE divine."Supplier" SET supplier = $1, contactperson = $2, officeaddress = $3, nationality = $4, state = $5, contactpersonphone = $6, bank1 = $7, accountnumber1 = $8, bank2 = $9, accountnumber2 = $10 WHERE id = $11`;
-      const params = [supplier, contactperson, officeaddress, nationality, state, contactpersonphone, bank1, accountnumber1, bank2, accountnumber2, id];
+      const query = `UPDATE divine."Supplier" SET supplier = $1, contactperson = $2, officeaddress = $3, nationality = $4, state = $5, contactpersonphone = $6, bank1 = $7, accountnumber1 = $8, bank2 = $9, accountnumber2 = $10, currency = $11 WHERE id = $12`;
+      const params = [supplier, contactperson, officeaddress, nationality, state, contactpersonphone, bank1, accountnumber1, bank2, accountnumber2, currency, id];
       try {
         await pg.query(query, params);
         await activityMiddleware(req, req.user.id, `Supplier updated successfully`, 'SUPPLIER'); // Tracker middleware
@@ -85,8 +111,8 @@ const manageSupplier = async (req, res) => {
           errors: []
         });
       } else {
-        const query = `INSERT INTO divine."Supplier" (supplier, contactperson, officeaddress, nationality, state, contactpersonphone, bank1, accountnumber1, bank2, accountnumber2, status, dateadded, createdby) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`;
-        const params = [supplier, contactperson, officeaddress, nationality, state, contactpersonphone, bank1, accountnumber1, bank2, accountnumber2, "ACTIVE", new Date(), req.user.id];
+        const query = `INSERT INTO divine."Supplier" (supplier, contactperson, officeaddress, nationality, state, contactpersonphone, bank1, accountnumber1, bank2, accountnumber2, status, dateadded, createdby, currency) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`;
+        const params = [supplier, contactperson, officeaddress, nationality, state, contactpersonphone, bank1, accountnumber1, bank2, accountnumber2, "ACTIVE", new Date(), req.user.id, currency];
         try {
           await pg.query(query, params);
           await activityMiddleware(req, req.user.id, 'Supplier created successfully', 'SUPPLIER'); // Tracker middleware
@@ -124,5 +150,3 @@ const manageSupplier = async (req, res) => {
 };
 
 module.exports = { manageSupplier };
-
-

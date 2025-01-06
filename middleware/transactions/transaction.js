@@ -105,16 +105,21 @@ const saveTransactionMiddleware = async (req, res, next) => {
             const userQuery = `SELECT * FROM divine."User" WHERE phone = $1`;
             const userResult = await client.query(userQuery, [phoneNumber]);
             if (userResult.rowCount === 0) {
-                // If personal account number is invalid, save the transaction as failed
-                await saveFailedTransaction(client, req, res, 'Invalid personal account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
-                await client.query('COMMIT'); // Commit the transaction
-                await activityMiddleware(req, req.user.id, 'Transaction failed due to invalid personal account number', 'TRANSACTION');
-                req.transactionError = {
-                    status: StatusCodes.EXPECTATION_FAILED,
-                    message: 'Invalid personal or savings account number.',
-                    errors: ['Account not found.']
-                }; 
-                req.body.transactiondesc += 'Invalid personal or savings account number.|';
+                // If not found in User table, check the Supplier table
+                const supplierQuery = `SELECT * FROM divine."Supplier" WHERE contactpersonphone = $1`;
+                const supplierResult = await client.query(supplierQuery, [phoneNumber]);
+                if (supplierResult.rowCount === 0) {
+                    // If personal account number is invalid, save the transaction as failed
+                    await saveFailedTransaction(client, req, res, 'Invalid personal account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
+                    await client.query('COMMIT'); // Commit the transaction
+                    await activityMiddleware(req, req.user.id, 'Transaction failed due to invalid personal account number', 'TRANSACTION');
+                    req.transactionError = {
+                        status: StatusCodes.EXPECTATION_FAILED,
+                        message: 'Invalid personal or savings account number.',
+                        errors: ['Account not found.']
+                    }; 
+                    req.body.transactiondesc += 'Invalid personal or savings account number.|';
+                }
             }
             whichaccount = 'PERSONAL'; // Set account type to PERSONAL
             const accountuser = userResult.rows[0]; // Save the user data in accountuser variable

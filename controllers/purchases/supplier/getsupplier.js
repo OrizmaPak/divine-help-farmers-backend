@@ -6,17 +6,42 @@ const getSupplier = async (req, res) => {
   const { query } = req;
   let queryStr = `SELECT * FROM divine."Supplier"`;
   let params = [];
+  let whereClause = '';
+  let valueIndex = 1;
 
-  if (Object.keys(query).length > 0) {
-    queryStr += " WHERE ";
-    Object.keys(query).forEach((key, index) => {
-      queryStr += `${key} = $${index + 1}`;
-      params.push(query[key]);
-      if (index < Object.keys(query).length - 1) {
-        queryStr += " AND ";
+  Object.keys(query).forEach((key) => {
+    if (key !== 'q') {
+      if (whereClause) {
+        whereClause += ` AND `;
+      } else {
+        whereClause += ` WHERE `;
       }
-    });
+      whereClause += `"${key}" = $${valueIndex}`;
+      params.push(query[key]);
+      valueIndex++;
+    }
+  });
+
+  if (query.q) {
+    const { rows: columns } = await pg.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'Supplier'
+    `);
+
+    const cols = columns.map(row => row.column_name);
+    const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
+
+    if (whereClause) {
+      whereClause += ` AND (${searchConditions})`;
+    } else {
+      whereClause += ` WHERE (${searchConditions})`;
+    }
+    params.push(`%${query.q}%`);
+    valueIndex++;
   }
+
+  queryStr += whereClause;
 
   try {
     const { rows: suppliers } = await pg.query(queryStr, params);
@@ -42,4 +67,3 @@ const getSupplier = async (req, res) => {
 };
 
 module.exports = { getSupplier };
-

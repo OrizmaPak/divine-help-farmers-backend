@@ -22,6 +22,7 @@ const savingsRouter = require('./routes/savings');
 const loanRouter = require('./routes/loan');
 const paymentRouter = require('./routes/payment');
 const transactionsRouter = require('./routes/transactions');
+const purchasesRouter = require('./routes/purchases');
 const incomingsRouter = require('./routes/incomings');
 const aiRouter = require('./routes/ai');
 
@@ -65,6 +66,7 @@ app.use('/node/api/v1/savings', authMiddleware, savingsRouter);
 app.use('/node/api/v1/loan', authMiddleware, loanRouter);
 app.use('/node/api/v1/payment', authMiddleware, transactionMiddleware, paymentRouter);
 app.use('/node/api/v1/transactions', authMiddleware, transactionsRouter); 
+app.use('/node/api/v1/purchases', authMiddleware, purchasesRouter);
 app.use('/node/api/v1/incomings', incomingsRouter);
 app.use('/node/api/v1/ai', aiRouter);
 
