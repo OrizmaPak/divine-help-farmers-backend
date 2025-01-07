@@ -18,7 +18,7 @@ const managePurchaseOrder = async (req, res) => {
         });
     }
 
-    const reference = req.body.reference;
+    const reference = req.body.transactionref;
 
     // Extract user from request
     const user = req.user;
@@ -29,10 +29,12 @@ const managePurchaseOrder = async (req, res) => {
 
         if(reference){  
             await pg.query(
-                `DELETE FROM divine."Inventory" WHERE reference = $1`,
+                `DELETE FROM divine."Inventory" WHERE transactionref = $1`,
                 [reference]
             );
         };
+
+        const refinstance = new Date().getTime().toString();
 
         // Loop through each item based on rowsize
         for (let i = 1; i <= rowsize; i++) {
@@ -53,7 +55,7 @@ const managePurchaseOrder = async (req, res) => {
                 });
             }
 
-
+            
 
             // Clone the inventory item to modify its properties
             const clonedInventory = { ...inventory.rows[0] };
@@ -65,9 +67,9 @@ const managePurchaseOrder = async (req, res) => {
             clonedInventory.branch = req.body[`branch`] || clonedInventory.branch;
             clonedInventory.transactiondate = req.body[`transactiondate${i}`] || new Date(); // Set transaction date to current date
             clonedInventory.transactiondesc = req.body[`transactiondesc${i}`] || ''; // Set transaction description
-            clonedInventory.transactionref = req.body[`transactionref`] || ''; // Set transaction description
+            clonedInventory.transactionref = !req.body[`transactionref`].length ? `PO-${refinstance}` : req.body[`transactionref`]; // Set transaction reference
             clonedInventory.supplier = req.body[`supplier`] || ''; // Set transaction description
-            clonedInventory.reference = reference.split('||')[0]+'||'+req.body['supplier'] || `P0-${new Date().getTime().toString()}||${req.body[`supplier`]}`; // Use provided reference or generate new one
+            clonedInventory.reference = reference ? reference.split('||')[0] + '||' + req.body['supplier'] : `PO-${refinstance}||${req.body['supplier']}`;
             clonedInventory.createdby = user.id; // Set created by to the current user
 
             // Add the cloned inventory item to the array
@@ -80,10 +82,10 @@ const managePurchaseOrder = async (req, res) => {
                 itemid, itemname, department, branch, units, cost, price, pricetwo, 
                 beginbalance, qty, minimumbalance, "group", applyto, itemclass, 
                 composite, compositeid, description, imageone, imagetwo, imagethree, 
-                status, "reference", transactiondate, transactiondesc, createdby, dateadded
+                status, "reference", transactiondate, transactiondesc, transactionref, createdby, dateadded, supplier
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
-                $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26
+                $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28
             )`, [
                 item.itemid, item.itemname, item.department, 
                 item.branch, item.units, item.cost, 
@@ -93,7 +95,7 @@ const managePurchaseOrder = async (req, res) => {
                 item.compositeid, item.description, item.imageone, 
                 item.imagetwo, item.imagethree, 'PO', 
                 item.reference, item.transactiondate, item.transactiondesc, 
-                item.createdby, new Date()
+                item.transactionref, item.createdby, new Date(), item.supplier
             ]);
 
             // Log activity for opening stock

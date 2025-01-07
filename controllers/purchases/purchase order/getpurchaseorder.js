@@ -8,9 +8,30 @@ const getPurchaseOrder = async (req, res) => {
 
     try {
         let query = {
-            text: `SELECT reference, MAX(id) as id, MAX(transactiondate) as transactiondate, MAX(supplier) as supplier FROM divine."Inventory" WHERE status = 'PO' GROUP BY reference`,
+            text: `
+                SELECT 
+                    MAX(i.transactiondate) as transactiondate, 
+                    MAX(s.supplier) as suppliername, 
+                    MAX(b.branch) as branchname,
+                    MAX(d.department) as departmentname,
+                    i.transactionref, 
+                    JSON_AGG(ROW_TO_JSON(i)) as items
+                FROM divine."Inventory" i
+                LEFT JOIN divine."Supplier" s ON i.supplier::text = s.id::text
+                LEFT JOIN divine."Branch" b ON i.branch::text = b.id::text
+                LEFT JOIN divine."Department" d ON i.department::text = d.id::text
+                WHERE i.status = 'PO'
+            `,
             values: []
         };
+
+        // Add filter by transactionref if provided
+        if (req.query.transactionref) {
+            query.text += ` AND i.transactionref = $1`;
+            query.values.push(req.query.transactionref);
+        }
+
+        query.text += ` GROUP BY i.transactionref, s.supplier`;
 
         // Add pagination
         const searchParams = new URLSearchParams(req.query);
@@ -18,7 +39,7 @@ const getPurchaseOrder = async (req, res) => {
         const limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10);
         const offset = (page - 1) * limit;
 
-        query.text += ` LIMIT $1 OFFSET $2`;
+        query.text += ` LIMIT $${query.values.length + 1} OFFSET $${query.values.length + 2}`;
         query.values.push(limit, offset);
 
         const result = await pg.query(query);
