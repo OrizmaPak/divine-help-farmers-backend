@@ -3,6 +3,7 @@ const { manageSupplier } = require('../controllers/purchases/supplier/managesupp
 const { getSupplier } = require('../controllers/purchases/supplier/getsupplier');
 const { getPurchaseOrder } = require('../controllers/purchases/purchase order/getpurchaseorder');
 const { managePurchaseOrder } = require('../controllers/purchases/purchase order/managepurchaseorder');
+const { deletePurchaseOrder } = require('../controllers/purchases/purchase order/deletepurchaseorder');
 const router = express.Router();
 
 
@@ -14,7 +15,7 @@ router.route('/supplier')
 router.route('/order')
     .post(managePurchaseOrder)
     .get(getPurchaseOrder)
-    // .get(findUsers)
+    .delete(deletePurchaseOrder)
 
 
     

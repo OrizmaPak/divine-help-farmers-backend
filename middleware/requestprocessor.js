@@ -18,7 +18,7 @@ const upload = multer({ storage: storage });
 // Middleware function to handle file uploads and form data
 const requestprocessor = (req, res, next) => {
     // console.log('we entered the request processor', req.files)
-    if(req.method !== 'POST'){
+    if(req.method !== 'POST' && req.method !== 'DELETE'){
         return next()
     }else{
         upload.any()(req, res, (err) => {

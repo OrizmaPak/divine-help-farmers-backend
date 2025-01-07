@@ -27,8 +27,22 @@ const getPurchaseOrder = async (req, res) => {
 
         // Add filter by transactionref if provided
         if (req.query.transactionref) {
-            query.text += ` AND i.transactionref = $1`;
+            query.text += ` AND i.transactionref = $${query.values.length + 1}`;
             query.values.push(req.query.transactionref);
+        }
+
+        // Add filter by transactiondate range if startdate and enddate are provided
+        const startDate = req.query.startdate;
+        const endDate = req.query.enddate;
+        if (startDate || endDate) {
+            if (startDate) {
+                query.text += ` AND i.transactiondate >= $${query.values.length + 1}`;
+                query.values.push(startDate);
+            }
+            if (endDate) {
+                query.text += ` AND i.transactiondate <= $${query.values.length + 1}`;
+                query.values.push(endDate);
+            }
         }
 
         query.text += ` GROUP BY i.transactionref, s.supplier`;
