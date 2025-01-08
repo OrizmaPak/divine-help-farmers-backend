@@ -91,6 +91,14 @@ const updateinventory = async (req, res) => {
                 }
             }
 
+            // Ensure image fields use database values if not provided
+            const imageFields = ['imageone', 'imagetwo', 'imagethree'];
+            imageFields.forEach(field => {
+                if (!data[field]) {
+                    data[field] = maxIdDepartment[0][field];
+                }
+            });
+
             itmn = data.itemname;
 
             // Insert the data into the Inventory table
