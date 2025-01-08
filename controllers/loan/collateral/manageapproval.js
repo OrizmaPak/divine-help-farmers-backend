@@ -16,9 +16,11 @@ async function approveDeclineCollateral(req, res) {
     }
 
     // Validate status
-    const validStatuses = ["APPROVED", "DECLINED"];
+    const validStatuses = ["ACTIVE", "DECLINED"];
     if (!status) {
         addError('status', 'Status is required');
+    } else if (!validStatuses.includes(status)) {
+        addError('status', `Status must be one of the following: ${validStatuses.join(', ')}`);
     }
 
     if (errors.length > 0) {
@@ -26,7 +28,7 @@ async function approveDeclineCollateral(req, res) {
             status: false,
             message: "Validation Errors",
             statuscode: StatusCodes.BAD_REQUEST,
-            data: null, 
+            data: null,
             errors: errors
         });
     }

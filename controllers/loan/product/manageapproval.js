@@ -16,7 +16,7 @@ async function approveDeclineLoanProduct(req, res) {
     }
 
     // Validate status
-    const validStatuses = ["APPROVED", "DECLINED"];
+    const validStatuses = ["ACTIVE", "DECLINED"];
     if (!status || !validStatuses.includes(status)) {
         addError('status', 'Valid status is required');
     }
