@@ -100,8 +100,10 @@ const updateinventory = async (req, res) => {
         }
 
         // Log activity
-        const { rows: branchName } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [branch]);
-        await activityMiddleware(res, req.user.id, `Inventory for item ${itmn} in branch ${branchName[0].branch} updated successfully`, 'UPDATE_INVENTORY');
+        if (branch) {
+            const { rows: branchName } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [branch]);
+            await activityMiddleware(res, req.user.id, `Inventory for item ${itmn} in branch ${branchName[0].branch} updated successfully`, 'UPDATE_INVENTORY');
+        }
 
         // Return success response
         return res.status(StatusCodes.OK).json({

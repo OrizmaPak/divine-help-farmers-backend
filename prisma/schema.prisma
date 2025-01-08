@@ -208,6 +208,7 @@ model Organisationsettings {
   maintenace_charge                         Float?
   vat_rate_percent                           Float      @default(0)
   addition_savings_registration_charge       Float?
+  addition_loan_registration_charge       Float? @default(0)
 
   allow_back_dated_transaction               String    @default("NO")
   allow_future_transaction                   String    @default("NO")
@@ -654,6 +655,7 @@ model loanaccounts {
       closeamount               Float?
       createdby                 Int
       member                    Int? @default(0)
+      disbursementref           String? @default("")
 }
 
 model loanpaymentschedule {

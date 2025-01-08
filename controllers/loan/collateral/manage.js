@@ -1,100 +1,73 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 
-async function addCollateral(req, res) {
-    // if (req.files) {
-    //     await uploadToGoogleDrive(req, res);
-    //   }
-    const { accountnumber, documenttitle, documentnumber, description, docposition, worth, file1, file2, file3, file4, file5, documentexpiration } = req.body;
+async function addOrUpdateCollateral(req, res) {
+    // Destructure all potential fields, including 'id' for updates
+    const {
+        id,
+        accountnumber,
+        documenttitle,
+        documentnumber,
+        description,
+        docposition,
+        worth,
+        file1,
+        file2,
+        file3,
+        file4,
+        file5,
+        documentexpiration
+    } = req.body;
 
-    // res.status(StatusCodes.OK).json({
-    //     status: true,
-    //     message: "Collateral added successfully",
-    //     statuscode: StatusCodes.OK,
-    //     data: {accountnumber, documenttitle, documentnumber, description, docposition, worth, file1, file2, file3, file4, file5, documentexpiration},
-    //     errors: [] 
-    // });
-
-    // Advanced validation for compulsory inputs
+    // Initialize an array to collect validation errors
     const errors = [];
+
+    // Helper function to add errors
+    const addError = (field, message) => {
+        errors.push({ field, message });
+    };
 
     // Validate account number
     if (!accountnumber) {
-        errors.push({
-            field: 'accountnumber',
-            message: 'Account number is required'
-        });
+        addError('accountnumber', 'Account number is required');
     } else if (isNaN(parseInt(accountnumber))) {
-        errors.push({
-            field: 'accountnumber',
-            message: 'Account number must be a number'
-        });
-    } 
+        addError('accountnumber', 'Account number must be a number');
+    }
 
     // Validate document title
     if (!documenttitle) {
-        errors.push({
-            field: 'documenttitle',
-            message: 'Document title is required'
-        });
+        addError('documenttitle', 'Document title is required');
     } else if (typeof documenttitle !== 'string') {
-        errors.push({
-            field: 'documenttitle',
-            message: 'Document title must be a string'
-        });
+        addError('documenttitle', 'Document title must be a string');
     }
 
     // Validate document number
     if (!documentnumber) {
-        errors.push({
-            field: 'documentnumber',
-            message: 'Document number is required'
-        });
+        addError('documentnumber', 'Document number is required');
     } else if (typeof documentnumber !== 'string') {
-        errors.push({
-            field: 'documentnumber',
-            message: 'Document number must be a string'
-        });
+        addError('documentnumber', 'Document number must be a string');
     }
 
     // Validate description
     if (!description) {
-        errors.push({
-            field: 'description',
-            message: 'Description is required'
-        });
+        addError('description', 'Description is required');
     } else if (typeof description !== 'string') {
-        errors.push({
-            field: 'description',
-            message: 'Description must be a string'
-        });
+        addError('description', 'Description must be a string');
     }
 
     // Validate document position
     const validDocPositions = ["ISSUED", "WITHHELD", "INVALID", "RETURNED", "DESTROYED", "LOST", "DAMAGED", "RECOVERED"];
     if (!docposition) {
-        errors.push({
-            field: 'docposition',
-            message: 'Document position is required'
-        });
+        addError('docposition', 'Document position is required');
     } else if (typeof docposition !== 'string') {
-        errors.push({
-            field: 'docposition',
-            message: 'Document position must be a string'
-        });
+        addError('docposition', 'Document position must be a string');
     } else if (!validDocPositions.includes(docposition)) {
-        errors.push({
-            field: 'docposition',
-            message: `Document position must be one of the following: ${validDocPositions.join(', ')}`
-        });
+        addError('docposition', `Document position must be one of the following: ${validDocPositions.join(', ')}`);
     }
 
     // Validate worth 
     if (worth === undefined || worth === '' || isNaN(parseFloat(worth))) {
-        errors.push({
-            field: 'worth',
-            message: 'Worth must be a number'
-        });
+        addError('worth', 'Worth must be a number');
     }
 
     // If there are validation errors, return a bad request response
@@ -109,50 +82,178 @@ async function addCollateral(req, res) {
     }
 
     try {
+        if (id) {
+            // **Update Operation**
 
-        // Check if the document number already exists for the account number with the docposition of 'ISSUED'
-        const existingDocumentQuery = `
-            SELECT * FROM divine."collateral" 
-            WHERE accountnumber = $1 AND documentnumber = $2 AND docposition = 'ISSUED'
-        `;
-        const existingDocumentResult = await pg.query(existingDocumentQuery, [accountnumber, documentnumber]);
+            // First, check if the collateral with the given id exists
+            const existingCollateralQuery = `SELECT * FROM divine."collateral" WHERE id = $1`;
+            const existingCollateralResult = await pg.query(existingCollateralQuery, [id]);
 
-        if (existingDocumentResult.rows.length > 0) {
-            return res.status(StatusCodes.CONFLICT).json({
-                status: false,
-                message: "Document number already exists for the account number with the document position of 'ISSUED'",
-                statuscode: StatusCodes.CONFLICT,
-                data: null,
+            if (existingCollateralResult.rows.length === 0) {
+                return res.status(StatusCodes.NOT_FOUND).json({
+                    status: false,
+                    message: "Collateral with the provided ID does not exist",
+                    statuscode: StatusCodes.NOT_FOUND,
+                    data: null,
+                    errors: []
+                });
+            }
+
+            // Optional: If updating document number with docposition 'ISSUED', ensure uniqueness
+            if (documentnumber || docposition) {
+                const existingDocumentQuery = `
+                    SELECT * FROM divine."collateral" 
+                    WHERE accountnumber = $1 
+                      AND documentnumber = $2 
+                      AND docposition = 'ISSUED'
+                      AND id <> $3
+                `;
+                const existingDocumentResult = await pg.query(existingDocumentQuery, [accountnumber, documentnumber, id]);
+
+                if (existingDocumentResult.rows.length > 0) {
+                    return res.status(StatusCodes.CONFLICT).json({
+                        status: false,
+                        message: "Document number already exists for the account number with the document position of 'ISSUED'",
+                        statuscode: StatusCodes.CONFLICT,
+                        data: null,
+                        errors: []
+                    });
+                }
+            }
+
+            // Perform the update using COALESCE to retain existing values if new ones aren't provided
+            const updateCollateralQuery = `
+                UPDATE divine."collateral" SET
+                    accountnumber = COALESCE($1, accountnumber),
+                    documenttitle = COALESCE($2, documenttitle),
+                    documentnumber = COALESCE($3, documentnumber),
+                    description = COALESCE($4, description),
+                    docposition = COALESCE($5, docposition),
+                    worth = COALESCE($6, worth),
+                    file1 = COALESCE($7, file1),
+                    file2 = COALESCE($8, file2),
+                    file3 = COALESCE($9, file3),
+                    file4 = COALESCE($10, file4),
+                    file5 = COALESCE($11, file5),
+                    documentexpiration = COALESCE($12, documentexpiration),
+                    status = 'PENDING APPROVAL',
+                    dateadded = NOW(),
+                    createdby = COALESCE($13, createdby)
+                WHERE id = $14
+                RETURNING *
+            `;
+
+            const updateValues = [
+                accountnumber,
+                documenttitle,
+                documentnumber,
+                description,
+                docposition,
+                worth,
+                file1,
+                file2,
+                file3,
+                file4,
+                file5,
+                documentexpiration,
+                req.user.id,
+                id
+            ];
+
+            const updatedCollateral = await pg.query(updateCollateralQuery, updateValues);
+
+            return res.status(StatusCodes.OK).json({
+                status: true,
+                message: "Collateral updated successfully",
+                statuscode: StatusCodes.OK,
+                data: updatedCollateral.rows[0],
+                errors: []
+            });
+
+        } else {
+            // **Create Operation**
+
+            // Check if the document number already exists for the account number with the docposition of 'ISSUED'
+            const existingDocumentQuery = `
+                SELECT * FROM divine."collateral" 
+                WHERE accountnumber = $1 AND documentnumber = $2 AND docposition = 'ISSUED'
+            `;
+            const existingDocumentResult = await pg.query(existingDocumentQuery, [accountnumber, documentnumber]);
+
+            if (existingDocumentResult.rows.length > 0) {
+                return res.status(StatusCodes.CONFLICT).json({
+                    status: false,
+                    message: "Document number already exists for the account number with the document position of 'ISSUED'",
+                    statuscode: StatusCodes.CONFLICT,
+                    data: null,
+                    errors: []
+                });
+            }
+
+            // Optional: Verify that the account number exists in the loanaccounts table
+            // Uncomment if needed
+            /*
+            const accountCheck = await pg.query(`SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`, [accountnumber]);
+            if (accountCheck.rows.length === 0) {
+                return res.status(StatusCodes.NOT_FOUND).json({
+                    status: false,
+                    message: "Account number does not exist",
+                    statuscode: StatusCodes.NOT_FOUND,
+                    data: null,
+                    errors: []
+                });
+            }
+            */
+
+            // Insert the new collateral record
+            const insertCollateralQuery = `
+                INSERT INTO divine."collateral" (
+                    accountnumber, 
+                    documenttitle, 
+                    documentnumber, 
+                    description, 
+                    docposition, 
+                    worth, 
+                    file1, 
+                    file2, 
+                    file3, 
+                    file4, 
+                    file5, 
+                    documentexpiration, 
+                    status, 
+                    dateadded, 
+                    createdby
+                ) VALUES (
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 
+                    'PENDING APPROVAL', NOW(), $13
+                ) RETURNING *
+            `;
+            const insertValues = [
+                accountnumber,
+                documenttitle,
+                documentnumber,
+                description,
+                docposition,
+                worth,
+                file1,
+                file2,
+                file3,
+                file4,
+                file5,
+                documentexpiration,
+                req.user.id
+            ];
+
+            const newCollateral = await pg.query(insertCollateralQuery, insertValues);
+
+            return res.status(StatusCodes.CREATED).json({
+                status: true,
+                message: "Collateral added successfully",
+                statuscode: StatusCodes.CREATED,
+                data: newCollateral.rows[0],
                 errors: []
             });
         }
-
-        // Verify that the accountnumber exists in the loanaccounts table
-        // const accountCheck = await pg.query(`SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`, [accountnumber]);
-        // if (accountCheck.rows.length === 0) {
-        //     return res.status(StatusCodes.NOT_FOUND).json({
-        //         status: false,
-        //         message: "Account number does not exist",
-        //         statuscode: StatusCodes.NOT_FOUND,
-        //         data: null,
-        //         errors: []
-        //     });
-        // }
-
-        // Insert the new collateral record
-        const newCollateral = await pg.query(
-            `INSERT INTO divine."collateral" (accountnumber, documenttitle, documentnumber, description, docposition, worth, file1, file2, file3, file4, file5, documentexpiration, dateadded, createdby)  
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13) RETURNING *`,
-            [accountnumber, documenttitle, documentnumber, description, docposition, worth, file1, file2, file3, file4, file5, documentexpiration, req.user.id]
-        );
-
-        return res.status(StatusCodes.CREATED).json({
-            status: true,
-            message: "Collateral added successfully",
-            statuscode: StatusCodes.CREATED,
-            data: newCollateral.rows[0],
-            errors: []
-        });
     } catch (err) {
         console.error('Unexpected Error:', err);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -165,4 +266,4 @@ async function addCollateral(req, res) {
     }
 }
 
-module.exports = { addCollateral };
+module.exports = { addOrUpdateCollateral };

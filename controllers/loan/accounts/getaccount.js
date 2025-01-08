@@ -16,14 +16,17 @@ const getLoanAccount = async (req, res) => {
                       row_to_json(lp) AS productdetails,
                       dm.member AS membername,
                       br.branch AS branchname,
-                      COALESCE(rp.registrationpoint, 'N/A') AS registrationpointname
+                      COALESCE(rp.registrationpoint, 'N/A') AS registrationpointname,
+                      array_agg(c.collateral) AS collaterals
                    FROM divine."loanaccounts" la
                    JOIN divine."User" u1 ON la.userid::text = u1.id::text
                    LEFT JOIN divine."User" u2 ON la.accountofficer::text = u2.id::text
                    JOIN divine."loanproduct" lp ON la.loanproduct::text = lp.id::text
                    JOIN divine."DefineMember" dm ON la.member::text = dm.id::text
                    JOIN divine."Branch" br ON la.branch::text = br.id::text
-                   LEFT JOIN divine."Registrationpoint" rp ON la.registrationpoint::text = rp.id::text`,
+                   LEFT JOIN divine."Registrationpoint" rp ON la.registrationpoint::text = rp.id::text
+                   LEFT JOIN divine."Collateral" c ON la.accountnumber = c.accountnumber
+                   GROUP BY la.id, u1.firstname, u1.lastname, u1.othernames, u2.firstname, u2.lastname, u2.othernames, lp.productname, dm.member, br.branch, rp.registrationpoint`,
             values: []
         };
         

@@ -132,7 +132,7 @@ const manageReceivePurchases = async (req, res) => {
             tax: false,
         };
 
-        await saveTransactionMiddleware({ ...req, body: transactionData1 }, res, (data) => {});
+        await saveTransactionMiddleware({ ...req, body: transactionData1 }, res, (data) => {return});
 
         const transactionData2 = {
             accountnumber: `${orgSettings.personal_account_prefix}${supplier.contactpersonphone}`,
@@ -150,7 +150,7 @@ const manageReceivePurchases = async (req, res) => {
             tax: false,
         };
 
-        await saveTransactionMiddleware({ ...req, body: transactionData2 }, res, (data) => {});
+        await saveTransactionMiddleware({ ...req, body: transactionData2 }, res, (data) => {return});
 
         
         // Return success response with the inserted inventory items
