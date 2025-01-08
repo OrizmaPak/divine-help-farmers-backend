@@ -51,10 +51,10 @@ const getdefinedmembership = async (req, res) => {
         params.push(`%${q}%`);
     }
 
-    if (status) {
-        queryString += ` AND status = $${params.length + 1}`;
-        params.push(status);
-    }
+    // if (status) {
+    //     queryString += ` AND status = $${params.length + 1}`;
+    //     params.push(status);
+    // }
 
     if (module) {
         queryString += ` AND module = $${params.length + 1}`;

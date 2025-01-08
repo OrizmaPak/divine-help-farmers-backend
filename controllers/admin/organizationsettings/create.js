@@ -18,17 +18,17 @@ const organizationsettings = async (req, res) => {
       phone = "",
       mobile = "",
       email,
-      address,
+      address, 
       logo,
       sms_charge = null,
       maintenace_charge = null,
       vat_rate_percent = 0,
       addition_savings_registration_charge = null,
-      addition_loan_registration_charge = null, // Added new field
+      addition_loan_registration_charge = null, 
       allow_back_dated_transaction = "NO",
       allow_future_transaction = "NO",
       set_accounting_year_end = null,
-      personal_account_overdrawn = false, // Default to false if not provided
+      personal_account_overdrawn = false, 
       schedule_maintenace_charge = "NO",
       sms_charge_members = "YES",
       minimum_credit_amount = 2000,
@@ -223,11 +223,11 @@ const organizationsettings = async (req, res) => {
         parseNumber(maintenace_charge, null),
         parseNumber(vat_rate_percent, 0),
         parseNumber(addition_savings_registration_charge, null),
-        parseNumber(addition_loan_registration_charge, null), // Added to insert values
+        parseNumber(addition_loan_registration_charge, null),
         allow_back_dated_transaction || "NO",
         allow_future_transaction || "NO",
         set_accounting_year_end || null,
-        personal_account_overdrawn, // Added to insert values
+        personal_account_overdrawn,
         schedule_maintenace_charge || "NO",
         sms_charge_members || "YES",
         parseNumber(minimum_credit_amount, 2000),
@@ -326,7 +326,7 @@ const organizationsettings = async (req, res) => {
           maintenace_charge = COALESCE($9, maintenace_charge),
           vat_rate_percent = COALESCE($10, vat_rate_percent),
           addition_savings_registration_charge = COALESCE($11, addition_savings_registration_charge),
-          addition_loan_registration_charge = COALESCE($12, addition_loan_registration_charge), // Added to update query
+          addition_loan_registration_charge = COALESCE($12, addition_loan_registration_charge), 
           allow_back_dated_transaction = COALESCE($13, allow_back_dated_transaction),
           allow_future_transaction = COALESCE($14, allow_future_transaction),
           set_accounting_year_end = COALESCE($15, set_accounting_year_end),
@@ -387,77 +387,77 @@ const organizationsettings = async (req, res) => {
       `;
 
       const updateValues = [
-        company_name, // $1
-        sms_sender_id, // $2
-        phone, // $3
-        mobile, // $4
-        email, // $5
-        address, // $6
-        logo, // $7
-        sms_charge, // $8
-        maintenace_charge, // $9
-        vat_rate_percent, // $10
-        addition_savings_registration_charge, // $11
-        addition_loan_registration_charge, // $12
-        allow_back_dated_transaction, // $13
-        allow_future_transaction, // $14
-        set_accounting_year_end, // $15
-        personal_account_overdrawn, // $16
-        schedule_maintenace_charge, // $17
-        sms_charge_members, // $18
-        minimum_credit_amount, // $19
-        minimum_credit_amount_penalty, // $20
-        personal_transaction_prefix, // $21
-        loan_transaction_prefix, // $22
-        savings_transaction_prefix, // $23
-        gl_transaction_prefix, // $24
-        savings_account_prefix, // $25
-        personal_account_prefix, // $26
-        loan_account_prefix, // $27
-        asset_account_prefix, // $28
-        cash_account_prefix, // $29
-        current_assets_account_prefix, // $30
-        expense_account_prefix, // $31
-        income_account_prefix, // $32
-        equity_retained_earnings_account_prefix, // $33
-        equity_does_not_close_prefix, // $34
-        inventory_account_prefix, // $35
-        other_asset_account_prefix, // $36
-        cost_of_sales_account_prefix, // $37
-        fixed_asset_account_prefix, // $38
-        other_current_asset_account_prefix, // $39
-        accounts_payable_account_prefix, // $40
-        accounts_receivable_account_prefix, // $41
-        accumulated_depreciation_account_prefix, // $42
-        liabilities_account_prefix, // $43
-        other_current_liabilities_account_prefix, // $44
-        long_term_liabilities_account_prefix, // $45
-        equity_account_prefix, // $46
-        default_sms_charge_account, // $47
-        default_asset_account, // $48
-        default_cash_account, // $49
-        default_current_assets_account, // $50
-        default_expense_account, // $51
-        default_income_account, // $52
-        default_equity_retained_earnings_account, // $53
-        default_equity_does_not_close_account, // $54
-        default_inventory_account, // $55
-        default_other_asset_account, // $56
-        default_cost_of_sales_account, // $57
-        default_fixed_asset_account, // $58
-        default_other_current_asset_account, // $59
-        default_accounts_payable_account, // $60
-        default_accounts_receivable_account, // $61
-        default_accumulated_depreciation_account, // $62
-        default_liabilities_account, // $63
-        default_other_current_liabilities_account, // $64
-        default_long_term_liabilities_account, // $65
-        default_equity_account, // $66
-        default_tax_account, // $67
-        default_excess_account, // $68
-        idToUpdate, // $69
+        company_name,
+        sms_sender_id,
+        phone,
+        mobile,
+        email,
+        address,
+        logo,
+        sms_charge,
+        maintenace_charge,
+        vat_rate_percent,
+        addition_savings_registration_charge,
+        addition_loan_registration_charge,
+        allow_back_dated_transaction,
+        allow_future_transaction,
+        set_accounting_year_end,
+        personal_account_overdrawn,
+        schedule_maintenace_charge,
+        sms_charge_members,
+        minimum_credit_amount,
+        minimum_credit_amount_penalty,
+        personal_transaction_prefix,
+        loan_transaction_prefix,
+        savings_transaction_prefix,
+        gl_transaction_prefix,
+        savings_account_prefix,
+        personal_account_prefix,
+        loan_account_prefix,
+        asset_account_prefix,
+        cash_account_prefix,
+        current_assets_account_prefix,
+        expense_account_prefix,
+        income_account_prefix,
+        equity_retained_earnings_account_prefix,
+        equity_does_not_close_prefix,
+        inventory_account_prefix,
+        other_asset_account_prefix,
+        cost_of_sales_account_prefix,
+        fixed_asset_account_prefix,
+        other_current_asset_account_prefix,
+        accounts_payable_account_prefix,
+        accounts_receivable_account_prefix,
+        accumulated_depreciation_account_prefix,
+        liabilities_account_prefix,
+        other_current_liabilities_account_prefix,
+        long_term_liabilities_account_prefix,
+        equity_account_prefix,
+        default_sms_charge_account,
+        default_asset_account,
+        default_cash_account,
+        default_current_assets_account,
+        default_expense_account,
+        default_income_account,
+        default_equity_retained_earnings_account,
+        default_equity_does_not_close_account,
+        default_inventory_account,
+        default_other_asset_account,
+        default_cost_of_sales_account,
+        default_fixed_asset_account,
+        default_other_current_asset_account,
+        default_accounts_payable_account,
+        default_accounts_receivable_account,
+        default_accumulated_depreciation_account,
+        default_liabilities_account,
+        default_other_current_liabilities_account,
+        default_long_term_liabilities_account,
+        default_equity_account,
+        default_tax_account,
+        default_excess_account,
+        idToUpdate,
       ];
-
+      // return console.log('started here', updateQuery, updateValues)
       await pg.query(updateQuery, updateValues);
 
       // RECORD THE ACTIVITY
@@ -471,7 +471,7 @@ const organizationsettings = async (req, res) => {
       return res.status(StatusCodes.OK).json({
         status: true,
         message: `${company_name} successfully updated`,
-        statuscode: StatusCodes.OK,
+        statuscode: StatusCodes.OK, 
         data: { id: idToUpdate },
         errors: [],
       });
