@@ -9,6 +9,7 @@ const { getLoanAccountDetails } = require('../controllers/loan/accounts/getaccou
 const { addCollateral, addOrUpdateCollateral } = require('../controllers/loan/collateral/manage');
 const { getCollateral } = require('../controllers/loan/collateral/getcollateral');
 const { approveDeclineCollateral } = require('../controllers/loan/collateral/manageapproval');
+const { approveDeclineLoanProduct } = require('../controllers/loan/product/manageapproval');
 const router = express.Router();
 
 
@@ -19,8 +20,11 @@ router.route('/fee')
     .get(getLoanFees)
 
 router.route('/product')
-    .post(manageLoanProduct)
-    .get(getLoanProducts)
+.post(manageLoanProduct)
+.get(getLoanProducts)
+
+router.route('/approvedeclineproduct')
+    .post(approveDeclineLoanProduct)
 
 router.route('/account')
     .post(manageLoanAccount)

@@ -350,7 +350,7 @@ const manageLoanProduct = async (req, res) => {
                         productofficer = COALESCE($13, productofficer), 
                         defaultpenaltyid = COALESCE($14, defaultpenaltyid), 
                         registrationcharge = COALESCE($15, registrationcharge),
-                        status = COALESCE($16, status),
+                        status = COALESCE($16, 'PENDING APPROVAL'),
                         eligibilityproductcategory = COALESCE($17, eligibilityproductcategory),
                         eligibilityproduct = COALESCE($18, eligibilityproduct),
                         eligibilityaccountage = COALESCE($19, eligibilityaccountage),
@@ -363,7 +363,7 @@ const manageLoanProduct = async (req, res) => {
                         membership = COALESCE($26, membership),
                         seperateinterest = COALESCE($27, seperateinterest)
                        WHERE id = $28 RETURNING *`,
-                values: [productname, description, interestmethod, interestrate, interestratetype, repaymentsettings, repaymentfrequency, numberofrepayments, duration, durationcategory, currency, excludebranch, productofficer, defaultpenaltyid, registrationcharge, status, eligibilityproductcategory, eligibilityproduct, eligibilityaccountage == "" ? 0 : eligibilityaccountage, eligibilityminbalance == "" ? 0 : eligibilityminbalance, eligibilitytype, maximumloan == "" ? 0 : maximumloan, minimumloan == "" ? 0 : minimumloan, eligibilityminimumloan == "" ? 0 : eligibilityminimumloan, eligibilityminimumclosedaccounts == "" ? 0 : eligibilityminimumclosedaccounts, membership, seperateinterest, id]
+                values: [productname, description, interestmethod, interestrate, interestratetype, repaymentsettings, repaymentfrequency, numberofrepayments, duration, durationcategory, currency, excludebranch, productofficer, defaultpenaltyid, registrationcharge, "PENDING APPROVAL", eligibilityproductcategory, eligibilityproduct, eligibilityaccountage == "" ? 0 : eligibilityaccountage, eligibilityminbalance == "" ? 0 : eligibilityminbalance, eligibilitytype, maximumloan == "" ? 0 : maximumloan, minimumloan == "" ? 0 : minimumloan, eligibilityminimumloan == "" ? 0 : eligibilityminimumloan, eligibilityminimumclosedaccounts == "" ? 0 : eligibilityminimumclosedaccounts, membership, seperateinterest, id]
             };
             const { rows: updatedLoanProductRows } = await pg.query(updateLoanProductQuery);
             loanProduct = updatedLoanProductRows[0];
