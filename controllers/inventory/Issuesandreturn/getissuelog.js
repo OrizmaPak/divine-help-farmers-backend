@@ -13,7 +13,7 @@ const getissuelog = async (req, res) => {
         WHERE Inventory.transactiondesc LIKE '%Issue%'
     `;
     let params = [];
-
+ 
     if (startdate && enddate) {
         query += ` AND Inventory.transactiondate BETWEEN $1 AND $2`;
         params.push(startdate, enddate);

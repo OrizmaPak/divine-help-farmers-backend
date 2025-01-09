@@ -1,0 +1,56 @@
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T22:15:23.596Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T22:15:24.681Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T22:15:25.628Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T22:15:28.119Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T22:15:31.120Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T22:15:32.218Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T22:47:55.153Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T22:47:58.947Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T22:47:59.760Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T22:48:00.653Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T22:48:02.818Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T22:48:04.938Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T22:48:06.027Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T22:59:06.753Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T22:59:10.945Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T22:59:20.366Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T22:59:23.182Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T22:59:23.937Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T22:59:24.806Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T22:59:26.878Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T22:59:28.851Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T22:59:29.873Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T23:00:32.881Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:00:36.675Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T23:00:42.682Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:00:45.637Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T23:01:05.455Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T23:01:09.363Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:01:15.228Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:01:35.987Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:02:49.759Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:03:28.495Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:05:21.617Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:05:29.957Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:05:37.013Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T23:05:37.943Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T23:05:38.999Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T23:05:41.479Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T23:05:43.650Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:05:56.205Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T23:05:57.069Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T23:05:58.081Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:05:59.270Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:06:01.994Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:06:09.229Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:07:25.640Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:07:32.813Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:07:39.030Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:07:44.264Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:10:20.010Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:10:26.997Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:10:32.989Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:10:46.277Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:10:53.902Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully with search", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:13:16.582Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully with search", "module": "LOAN_ACCOUNT", "date": "2025-01-09T23:13:23.067Z"}
