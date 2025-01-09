@@ -9,7 +9,7 @@ const activityMiddleware = async (res, userid, message, module) => {
   const filePath = path.join(__dirname, '../activities', `${date}.txt`); // Use __dirname for absolute path
 
   try {
-    // Ensure the directory exists
+    // Ensure the directory exists 
     await fs.mkdir(path.dirname(filePath), { recursive: true });
 
     // Append the activity to the file
