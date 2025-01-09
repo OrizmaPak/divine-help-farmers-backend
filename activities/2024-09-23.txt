@@ -1,2 +1,0 @@
-{"userid": "12", "message": "Logged in Successfully  on a  device", "module": "AUTH", "date": "2024-09-23T01:43:56.871Z"}
-{"userid": "12", "message": "Inventory with ISSUES retrieved successfully", "module": "ISSUE_LOG", "date": "2024-09-23T01:44:33.399Z"}

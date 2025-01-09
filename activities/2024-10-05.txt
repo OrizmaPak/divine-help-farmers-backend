@@ -1,8 +1,0 @@
-{"userid": "12", "message": "Logged in Successfully  on a  device", "module": "AUTH", "date": "2024-10-05T05:08:26.780Z"}
-{"userid": "12", "message": "Savings Product 1 Product created", "module": "PRODUCT", "date": "2024-10-05T05:18:32.238Z"}
-{"userid": "12", "message": "Thrift Product updated", "module": "PRODUCT", "date": "2024-10-05T05:28:53.108Z"}
-{"userid": "12", "message": "An unexpected error occurred fetching savings products", "module": "SAVINGSPRODUCT", "date": "2024-10-05T07:15:31.732Z"}
-{"userid": "12", "message": "An unexpected error occurred fetching savings products", "module": "SAVINGSPRODUCT", "date": "2024-10-05T07:16:25.539Z"}
-{"userid": "12", "message": "An unexpected error occurred fetching savings products", "module": "SAVINGSPRODUCT", "date": "2024-10-05T07:17:31.629Z"}
-{"userid": "12", "message": "Savings products fetched successfully", "module": "SAVINGSPRODUCT", "date": "2024-10-05T07:18:07.790Z"}
-{"userid": "12", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2024-10-05T07:19:30.176Z"}

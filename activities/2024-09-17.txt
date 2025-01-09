@@ -1,4 +1,0 @@
-{"userid": "12", "message": "Logged in Successfully  on a  device", "module": "AUTH", "date": "2024-09-17T00:49:09.516Z"}
-{"userid": "12", "message": "Logged in Successfully  on a  device", "module": "AUTH", "date": "2024-09-17T00:59:37.073Z"}
-{"userid": "12", "message": "Logged in Successfully  on a  device", "module": "AUTH", "date": "2024-09-17T07:07:23.161Z"}
-{"userid": "12", "message": "Logged in Successfully  on a  device", "module": "AUTH", "date": "2024-09-17T08:34:44.978Z"}
