@@ -20,7 +20,7 @@ async function uploadToGoogleDrive(req, res) {
         return req;
     }
 
-    // Iterate over each file and upload to Cloudinary
+    // Iterate over each file and upload to Cloudinary 
     for (let file of uploadedFiles) {
         console.log('Processing file:', file.originalname);
         try {

@@ -88,7 +88,7 @@ async function uploadToGoogleDrive1(req, res) {
     // Iterate over each file and upload to Google Drive
     for (let file of uploadedFiles) {
         try {
-            // Construct the file path
+            // Construct the file path 
             const filePath = path.join(__dirname, '..', file.path);
 
             // Upload the file to Google Drive

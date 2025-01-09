@@ -3,7 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
 const getStockLedger = async (req, res) => {
-    try {
+    try { 
         // Destructure the request query
         const { itemid, startdate, enddate, branch, department } = req.query;
 
