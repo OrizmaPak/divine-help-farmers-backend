@@ -10,6 +10,7 @@ const { addCollateral, addOrUpdateCollateral } = require('../controllers/loan/co
 const { getCollateral } = require('../controllers/loan/collateral/getcollateral');
 const { approveDeclineCollateral } = require('../controllers/loan/collateral/manageapproval');
 const { approveDeclineLoanProduct } = require('../controllers/loan/product/manageapproval');
+const { updateDisbursementRef } = require('../controllers/loan/accounts/disbursements');
 const router = express.Router();
 
 
@@ -39,6 +40,8 @@ router.route('/collateral')
 
 router.route('/approvedeclinecollateral')
     .post(approveDeclineCollateral)
-     
+
+router.route('/disbursementref')
+     .post(updateDisbursementRef)
 
 module.exports = router;

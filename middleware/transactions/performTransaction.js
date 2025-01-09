@@ -4,7 +4,7 @@ const saveTransactionMiddleware = require("./transaction");
 async function performTransaction(from, to) {
     const res = {
         status: (code) => ({
-            json: (data) => console.log('Response:', code, data)
+            json: (data) => console.log('Response:', code, data) 
         })
     };
 

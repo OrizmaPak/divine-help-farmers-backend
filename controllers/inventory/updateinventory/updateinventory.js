@@ -90,11 +90,12 @@ const updateinventory = async (req, res) => {
                     data[key] = maxIdDepartment[0][key];
                 }
             }
-
+ 
             // Ensure image fields use database values if not provided
             const imageFields = ['imageone', 'imagetwo', 'imagethree'];
             imageFields.forEach(field => {
-                if (!data[field]) {
+                if (data[field] == "") {
+                    console.log('image', data[field]);
                     data[field] = maxIdDepartment[0][field];
                 }
             });
