@@ -2,9 +2,16 @@ const { makePaymentAndCloseAccount, handleCreditRedirectToPersonnalAccount, save
 
 const loanCredit = async (client, req, res, next, loanAccountNumber, credit, description, ttype, transactionStatus,  ) => {
     try {
-        // Begin transaction
+        await applyMinimumCreditAmountPenalty(client, req, res, req.orgSettings);
 
         const loanAccount = req.body.loanaccount;
+
+        if(!loanAccount.disbursementref){
+            await handleCreditRedirectToPersonalAccount(client, req, res, next, loanAccountNumber, credit, "No recorded disbursement on this account", ttype, transactionStatus, whichaccount);
+            await client.query('COMMIT');
+            return next();
+        }
+        // Begin transaction
 
         // Check if the loan account is closed
         if (loanAccount.dateclosed) {
@@ -53,7 +60,7 @@ const loanCredit = async (client, req, res, next, loanAccountNumber, credit, des
                 transactiondesc: 'Loan credit transaction',
                 whichaccount: req.body.whichaccount
             }, req);
-        } else if (totalAmountLeft === credit) {
+        } else if (totalAmountLeft == credit) {
             // Make the payment and close the account using helper function
             await makePaymentAndCloseAccount(client, loanAccountNumber, credit, description, ttype, transactionStatus, loanAccount);
         } else if (totalAmountLeft < credit) {

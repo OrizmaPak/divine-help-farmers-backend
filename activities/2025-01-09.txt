@@ -1,0 +1,324 @@
+{"userid": "1", "message": "Logged in Successfully  on a  device", "module": "AUTH", "date": "2025-01-09T01:46:52.815Z"}
+{"userid": "1", "message": "No savings products found", "module": "SAVINGSPRODUCT", "date": "2025-01-09T01:47:46.557Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2025-01-09T01:47:46.990Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T01:47:47.403Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T01:47:48.535Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T01:47:50.449Z"}
+{"userid": "1", "message": "No savings products found", "module": "SAVINGSPRODUCT", "date": "2025-01-09T01:48:16.982Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T01:48:17.932Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T01:48:38.209Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T01:48:39.045Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T01:48:42.691Z"}
+{"userid": "1", "message": "No savings products found", "module": "SAVINGSPRODUCT", "date": "2025-01-09T01:48:52.937Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T01:48:53.842Z"}
+{"userid": "1", "message": "Shares Product created", "module": "PRODUCT", "date": "2025-01-09T01:51:24.324Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T01:51:25.236Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T01:51:26.062Z"}
+{"userid": "1", "message": "Frequency overrides fetched successfully", "module": "FREQUENCY_OVERRIDE", "date": "2025-01-09T01:51:37.480Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T01:52:12.374Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T01:52:13.241Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T01:52:21.489Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T01:52:22.338Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T01:53:58.617Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2025-01-09T01:53:58.879Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T01:54:00.101Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T01:54:02.077Z"}
+{"userid": "undefined", "message": "Savings account created with ID: 1", "module": "ACCOUNT", "date": "2025-01-09T01:55:55.794Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2025-01-09T01:55:56.833Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2025-01-09T01:56:06.557Z"}
+{"userid": "1", "message": "Savings account updated with ID: 1", "module": "ACCOUNT", "date": "2025-01-09T01:56:28.911Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2025-01-09T01:56:29.876Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2025-01-09T01:56:34.616Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2025-01-09T01:56:38.780Z"}
+{"userid": "1", "message": "Savings account updated with ID: 1", "module": "ACCOUNT", "date": "2025-01-09T01:56:51.840Z"}
+{"userid": "1", "message": "Accounts fetched successfully", "module": "ACCOUNT", "date": "2025-01-09T01:56:52.807Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T01:57:34.690Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T01:57:34.694Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:01:31.326Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:01:31.341Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:02:47.205Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:02:47.208Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:03:57.586Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:03:57.588Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:04:22.792Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:04:22.795Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:08:02.091Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:08:02.095Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:08:03.375Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:08:03.378Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:19:22.275Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:19:22.280Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:19:23.581Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:19:23.583Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:29:17.526Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:29:17.533Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:29:19.008Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:29:19.025Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:33:33.595Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:33:33.597Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:33:35.033Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:35:59.410Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:35:59.441Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:36:00.825Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:36:01.281Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:36:12.818Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:36:12.820Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:36:14.110Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:36:14.570Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:37:06.391Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:37:06.394Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:37:07.743Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:37:08.200Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:38:03.548Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:38:03.551Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:38:04.871Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:38:05.319Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:41:16.768Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:41:16.771Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:41:18.029Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:41:18.469Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:47:38.626Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:47:38.630Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:47:40.392Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:47:40.849Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:47:41.264Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:53:33.152Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:53:33.158Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:53:34.906Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:53:35.350Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:53:35.793Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T02:56:04.017Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T02:56:04.022Z"}
+{"userid": "1", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:56:06.146Z"}
+{"userid": "1", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T02:56:06.609Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T02:56:07.023Z"}
+{"userid": "1", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T03:06:52.564Z"}
+{"userid": "1", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T03:06:52.570Z"}
+{"userid": "1", "message": "Debit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T03:06:53.993Z"}
+{"userid": "1", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T03:06:53.995Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T03:15:12.162Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T03:15:12.166Z"}
+{"userid": "0", "message": "Debit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T03:15:13.770Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T03:15:13.772Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T03:17:23.503Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T03:17:23.542Z"}
+{"userid": "0", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2025-01-09T03:17:25.485Z"}
+{"userid": "0", "message": "Transaction committed after invalid personal account number", "module": "TRANSACTION", "date": "2025-01-09T03:17:25.626Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T03:22:13.560Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T03:22:13.567Z"}
+{"userid": "0", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2025-01-09T03:22:15.509Z"}
+{"userid": "0", "message": "Transaction committed after invalid personal account number", "module": "TRANSACTION", "date": "2025-01-09T03:22:15.638Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T03:29:59.381Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T03:29:59.384Z"}
+{"userid": "0", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2025-01-09T03:30:01.360Z"}
+{"userid": "0", "message": "Transaction committed after invalid personal account number", "module": "TRANSACTION", "date": "2025-01-09T03:30:01.487Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T03:35:32.473Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T03:35:32.478Z"}
+{"userid": "0", "message": "Transaction committed after redirecting to default excess account", "module": "TRANSACTION", "date": "2025-01-09T03:35:34.331Z"}
+{"userid": "0", "message": "Transaction committed after invalid personal account number", "module": "TRANSACTION", "date": "2025-01-09T03:35:34.491Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T04:25:28.482Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:25:32.311Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T04:25:33.074Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:25:33.947Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:25:35.946Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:25:37.888Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T04:25:38.887Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:26:16.489Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T04:26:17.269Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:26:18.198Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:26:20.180Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:26:22.193Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:26:51.620Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T04:26:52.422Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:26:53.336Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:26:55.459Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:26:57.573Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:27:32.142Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T04:27:32.905Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:27:33.783Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:27:35.843Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:27:37.858Z"}
+{"userid": "1", "message": "An unexpected error occurred fetching loan accounts", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:29:17.149Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T04:29:18.010Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:29:19.088Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:29:21.176Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:29:23.319Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:30:12.270Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T04:30:13.118Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:30:14.084Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:30:16.246Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:30:18.383Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:31:46.227Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T04:31:46.997Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:31:47.963Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:31:48.964Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:31:49.864Z"}
+{"userid": "1", "message": "Branches fetched successfully", "module": "BRANCH", "date": "2025-01-09T04:31:53.628Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:31:54.832Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:32:25.713Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:32:26.670Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:32:37.767Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:32:38.705Z"}
+{"userid": "1", "message": "An unexpected error occurred while managing the loan account", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:32:59.775Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:35:01.028Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:35:01.983Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:35:06.396Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:37:14.567Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:37:15.463Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:38:29.299Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:38:30.242Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:38:34.163Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:38:55.936Z"}
+{"userid": "1", "message": "Savings products, deductions, and interest fetched successfully", "module": "SAVINGSPRODUCT", "date": "2025-01-09T04:38:56.726Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:38:57.679Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:38:59.757Z"}
+{"userid": "1", "message": "Users fetched successfully", "module": "USER", "date": "2025-01-09T04:39:01.897Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:39:58.047Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:39:58.948Z"}
+{"userid": "1", "message": "An unexpected error occurred while managing the loan account", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:42:21.127Z"}
+{"userid": "1", "message": "An unexpected error occurred while managing the loan account", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:43:55.366Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:44:15.957Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:44:17.195Z"}
+{"userid": "1", "message": "An unexpected error occurred while managing the loan account", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:44:21.514Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:44:33.886Z"}
+{"userid": "1", "message": "Loan products fetched successfully", "module": "LOAN_PRODUCT", "date": "2025-01-09T04:44:34.794Z"}
+{"userid": "1", "message": "Loan account created successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:44:38.389Z"}
+{"userid": "1", "message": "Loan accounts fetched successfully", "module": "LOAN_ACCOUNT", "date": "2025-01-09T04:44:41.319Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T04:46:44.335Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T04:46:44.338Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T04:46:45.057Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T04:54:49.610Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T04:54:49.613Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:16:13.644Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:16:13.650Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:17:13.719Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:17:13.734Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:19:03.713Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:19:03.718Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:21:01.985Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:21:01.990Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:21:31.592Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:21:31.596Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:22:05.053Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:22:05.056Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:23:57.194Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:23:57.200Z"}
+{"userid": "0", "message": "GL Account Credit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T09:23:58.634Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:26:07.359Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:26:07.375Z"}
+{"userid": "0", "message": "Penalty transaction saved", "module": "TRANSACTION", "date": "2025-01-09T09:26:09.482Z"}
+{"userid": "0", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T09:26:09.952Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T09:26:10.416Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:44:04.454Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:44:04.457Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T09:44:39.667Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T09:44:39.670Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T09:44:40.413Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T10:05:43.282Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T10:05:43.286Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T10:05:44.064Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T10:07:05.493Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T10:07:05.497Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T10:07:06.531Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T10:43:10.806Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T10:43:10.815Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T10:43:11.586Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T10:43:43.585Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T10:43:43.588Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T10:43:44.452Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T10:45:07.053Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T10:45:07.055Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T10:45:07.832Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T10:53:54.099Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T10:53:54.404Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T10:53:55.195Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T10:58:53.961Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T10:58:53.965Z"}
+{"userid": "0", "message": "GL Account Credit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T10:58:55.628Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T10:58:55.797Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T10:58:56.000Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T10:58:56.002Z"}
+{"userid": "0", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T10:58:58.023Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T10:58:58.542Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:05:29.317Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:05:29.318Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:05:30.148Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:05:30.351Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:05:30.359Z"}
+{"userid": "0", "message": "Pending deposit charge transaction saved", "module": "TRANSACTION", "date": "2025-01-09T11:05:32.026Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:05:32.459Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:06:36.570Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:06:36.574Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:06:37.779Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:06:38.059Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:06:38.061Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:08:00.585Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:08:00.590Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:08:01.993Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:08:02.156Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:08:02.158Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:09:11.982Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:09:11.984Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:09:12.789Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:09:12.965Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:09:12.972Z"}
+{"userid": "0", "message": "GL Account Credit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:09:14.519Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:12:19.307Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:12:19.309Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:12:20.137Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:12:20.309Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:12:20.311Z"}
+{"userid": "0", "message": "GL Account Credit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:12:21.834Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:16:56.158Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:16:56.177Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:16:57.026Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:16:57.221Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:16:57.245Z"}
+{"userid": "0", "message": "GL Account Credit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:16:58.819Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:16:58.826Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:41:12.962Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:41:12.967Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:41:13.979Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:41:14.210Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:41:14.212Z"}
+{"userid": "0", "message": "GL Account Credit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:41:16.296Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:41:16.305Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:45:39.093Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:45:39.099Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:45:40.373Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:45:41.221Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:45:41.595Z"}
+{"userid": "0", "message": "GL Account Debit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:45:43.845Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:45:43.847Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:53:37.003Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:53:37.009Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:53:37.854Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:53:37.995Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:53:37.996Z"}
+{"userid": "0", "message": "GL Account Debit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:53:39.478Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:53:39.482Z"}
+{"userid": "0", "message": "Transaction performed successfully", "module": "TRANSACTION", "date": "2025-01-09T11:53:39.637Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:54:23.173Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:54:23.181Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T11:54:24.059Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T11:54:24.255Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T11:54:24.256Z"}
+{"userid": "0", "message": "GL Account Debit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:54:25.784Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T11:54:25.796Z"}
+{"userid": "0", "message": "Transaction performed successfully", "module": "TRANSACTION", "date": "2025-01-09T11:54:25.955Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T12:03:35.997Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T12:03:36.000Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T12:03:37.448Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T12:03:37.613Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T12:03:37.615Z"}
+{"userid": "0", "message": "GL Account Debit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T12:03:39.106Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T12:03:39.108Z"}
+{"userid": "0", "message": "Transaction performed successfully", "module": "TRANSACTION", "date": "2025-01-09T12:03:39.256Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T12:08:23.410Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T12:08:23.413Z"}
+{"userid": "0", "message": "Attempting to perform transaction", "module": "TRANSACTION", "date": "2025-01-09T12:08:24.359Z"}
+{"userid": "0", "message": "Transaction started", "module": "TRANSACTION", "date": "2025-01-09T12:08:24.527Z"}
+{"userid": "0", "message": "Attempting to save transaction", "module": "TRANSACTION", "date": "2025-01-09T12:08:24.533Z"}
+{"userid": "0", "message": "GL Account Debit transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T12:08:26.232Z"}
+{"userid": "0", "message": "Transaction saved successfully", "module": "TRANSACTION", "date": "2025-01-09T12:08:26.246Z"}
+{"userid": "0", "message": "Transaction performed successfully", "module": "TRANSACTION", "date": "2025-01-09T12:08:26.417Z"}

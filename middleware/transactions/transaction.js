@@ -19,12 +19,59 @@ const { savingsDebit } = require('./savings/debit');
 const { personalCredit } = require('./personal/credit');
 const { personalDebit } = require('./personal/debit');
 const { loanCredit } = require('./loan/credit');
+const { loanDebit } = require('./loan/debit');
+const { glAccountCredit } = require('./gl/credit');
+const { glAccountDebit } = require('./gl/debit');
 
 // Middleware function to save a transaction
 const saveTransactionMiddleware = async (req, res, next) => {
+    if(!req.user){
+        req.user = {
+            id: 0,
+            firstname: 'system',
+            lastname: 'automation',
+            othernames: '',
+            image: '',        
+            email: 'divinehelpfarmers@gmail.com',
+            phone: '08132186025',
+            country: '',
+            state: '',
+            emailverified: null,
+            address: '',
+            role: 'SUPERADMIN',
+            permissions: null,
+            userpermissions: '',
+            officeaddress: null,
+            image2: null,
+            gender: null,
+            occupation: null,
+            lga: null,
+            town: null,
+            maritalstatus: null,
+            spousename: null,
+            stateofresidence: null,
+            lgaofresidence: null,
+            nextofkinfullname: null,
+            nextofkinphone: null,
+            nextofkinrelationship: null,
+            nextofkinaddress: null,
+            nextofkinofficeaddress: null,
+            nextofkinoccupation: null,
+            dateofbirth: '1996-02-28T23:00:00.000Z',
+            branch: 0,
+            registrationpoint: 0,
+            dateadded: '2025-01-02T14:53:29.478Z',
+            lastupdated: '2025-01-08T23:39:43.559Z',
+            status: 'ACTIVE',
+            createdby: 0
+          }
+    }
+    console.log('entering saveTransactionMiddleware', req.user)
     let user = req.user; // Get the user from the request
     const client = pg; // Use the pg client for database operations
+    console.log('wanting to enter the try block')
     try {
+        console.log('entered the try block')
         await client.query('BEGIN'); // Start a transaction
         await activityMiddleware(req, req.user.id, 'Transaction started', 'TRANSACTION'); // Log the start of a transaction
 
@@ -89,6 +136,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
         // Validate the account number and status
         const savingsAccountQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
         const loanAccountQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
+        const glAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
         let parsedAccountNumber = accountnumber;
         if (isNaN(accountnumber)) {
             parsedAccountNumber = parseInt(accountnumber, 10);
@@ -98,6 +146,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
         }
         const accountResult = await client.query(savingsAccountQuery, [parsedAccountNumber]);
         const loanAccountResult = await client.query(loanAccountQuery, [parsedAccountNumber]);
+        const glAccountResult = await client.query(glAccountQuery, [parsedAccountNumber]);
         if (accountResult.rowCount !== 0) {
             whichaccount = 'SAVINGS'; // Set account type to SAVINGS
         } else if (accountnumber.startsWith(orgSettings.personal_account_prefix)) {
@@ -128,13 +177,15 @@ const saveTransactionMiddleware = async (req, res, next) => {
             const loanaccountuser = loanAccountResult.rows[0]; // Save the user data in loanaccountuser variable
             req.body.loanaccountnumber = loanaccountuser.accountnumber;
             req.body.loanaccount = loanaccountuser;
+        } else if (glAccountResult.rowCount !== 0) {
+            whichaccount = 'GLACCOUNT'; // Set account type to GLACCOUNT
         }
         // Establish the personal account number
         req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${user.phone}`;
         req.body.phone = user.phone;
         personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`;
 
-        if (accountResult.rowCount === 0 && !accountnumber.startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0) {
+        if (accountResult.rowCount === 0 && !accountnumber.startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0 && glAccountResult.rowCount === 0) {
             // If account number is invalid, save the transaction as failed
             await saveFailedTransaction(client, req, res, 'Invalid account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
             await client.query('COMMIT'); // Commit the transaction
@@ -300,6 +351,13 @@ const saveTransactionMiddleware = async (req, res, next) => {
         // Handle transactions for loan accounts
         if (whichaccount === 'LOAN') {
             await loanCredit(client, req, res, next, req.body.loanaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            await loanDebit(client, req, res, next, req.body.loanaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
+        }
+
+        // Handle transactions for gl accounts
+        if (whichaccount === 'GLACCOUNT') {
+            await glAccountCredit(client, req, res, next, req.body.accountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            await glAccountDebit(client, req, res, next, req.body.accountnumber, debit, description, ttype, transactionStatus, whichaccount);
         }
         
         // Log activity for successful transaction save

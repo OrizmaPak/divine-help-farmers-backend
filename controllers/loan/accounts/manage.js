@@ -274,7 +274,7 @@ const manageLoanAccount = async (req, res) => {
         if(!accountnumber){
             // Check if the user already has an account for this loan product
             const userAccountsQuery = {
-                text: 'SELECT COUNT(*) FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2 AND member = $3',
+                text: 'SELECT COUNT(*) FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2 AND member = $3 AND (dateclosed IS NULL)',
                 values: [userid, loanproduct, member]
             };
             const { rows: userAccountsRows } = await pg.query(userAccountsQuery);
@@ -290,7 +290,7 @@ const manageLoanAccount = async (req, res) => {
                     errors: []
                 });
             }
-            }
+        }
 
         // Check if the account officer exists
         if (accountofficer) {
@@ -459,19 +459,19 @@ const manageLoanAccount = async (req, res) => {
                     });
                 }
 
-                if (!loanProduct.duration) {
-                    errors.push({
-                        field: 'duration',
-                        message: 'Duration not set in loan product'
-                    });
-                }
+                // if (!loanProduct.duration) {
+                //     errors.push({
+                //         field: 'duration',
+                //         message: 'Duration not set in loan product'
+                //     });
+                // }
 
-                if (!loanProduct.durationcategory) {
-                    errors.push({
-                        field: 'durationcategory',
-                        message: 'Duration category not set in loan product'
-                    });
-                }
+                // if (!loanProduct.durationcategory) {
+                //     errors.push({
+                //         field: 'durationcategory',
+                //         message: 'Duration category not set in loan product'
+                //     });
+                // }
 
                 if (!loanProduct.interestmethod) {
                     errors.push({

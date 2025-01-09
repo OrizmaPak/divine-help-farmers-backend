@@ -21,7 +21,7 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
             await savePendingTransaction(client, accountnumber, 0, chargeAmount, await generateNewReference(client, accountnumber, req, res), 'Deposit Charge', 'CHARGE', 'Deposit Charge', 'PENDING', whichaccount, req);
             await activityMiddleware(req, req.user.id, 'Pending deposit charge transaction saved', 'TRANSACTION');
         }
-
+        console.log('it left the charge area')
         // 7. Savings Product Rules - Allow Deposit
         if (credit > 0 && !savingsProduct.allowdeposit) {
             console.log("Deposits not allowed on this product, redirecting transaction.");
@@ -392,9 +392,18 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
             // return next();
         }
 
+        console.log('its saving without a problem')
+        await saveTransaction(client, res, {
+            accountnumber,
+            credit,
+            reference: await generateNewReference(client, accountnumber, req, res),
+            description,
+            ttype,
+            status: transactionStatus,
+            whichaccount
+        }, req);
         
-        
-        
+        // return next();
         
         
 
@@ -413,6 +422,7 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
         //     new Date(), // Set the value date to now when transaction becomes active
         //     whichaccount
         // ]);
+        // return next();
 
         //  // 8. Handle Deposit Charge
         //  if (credit > 0 && savingsProduct.depositcharge) {

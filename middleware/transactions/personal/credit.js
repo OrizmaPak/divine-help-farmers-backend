@@ -1,8 +1,9 @@
-const { saveTransaction } = require("../../../utils/transactionHelper");
+const { saveTransaction, applyMinimumCreditAmountPenalty } = require("../../../utils/transactionHelper");
 
 
 async function personalCredit(client, req, res, next, accountnumber, credit, description, ttype, transactionStatus, whichaccount) {
     if (credit > 0) {
+        await applyMinimumCreditAmountPenalty(client, req, res, req.orgSettings);
         await saveTransaction(client, res, {
             accountnumber: req.body.personalaccountnumber,
             credit,

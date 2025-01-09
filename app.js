@@ -64,7 +64,7 @@ app.use('/node/api/v1/glaccounts', authMiddleware, glaccountsRouter);
 app.use('/node/api/v1/members', authMiddleware, memberRouter);
 app.use('/node/api/v1/savings', authMiddleware, savingsRouter);
 app.use('/node/api/v1/loan', authMiddleware, loanRouter);
-app.use('/node/api/v1/payment', authMiddleware, transactionMiddleware, paymentRouter);
+app.use('/node/api/v1/payment',  transactionMiddleware, paymentRouter);
 app.use('/node/api/v1/transactions', authMiddleware, transactionsRouter); 
 app.use('/node/api/v1/purchases', authMiddleware, purchasesRouter);
 app.use('/node/api/v1/incomings', incomingsRouter);

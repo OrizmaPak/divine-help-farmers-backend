@@ -4,7 +4,7 @@ const { activityMiddleware } = require('../middleware/activity');
 
 // Function to save failed transaction with reason for rejection
 const saveFailedTransaction = async (client, req, res, reasonForRejection, transactionReference, whichaccount) => {
-    transactionReference = await generateNewReference(client, req.body.accountnumber, req, res);
+    transactionReference = await generateNewReference(client, req.body.accountnumber, req);
     const createdBy = req.user.id || req.body.createdby || 0;
     let userid = 0;
 
@@ -71,7 +71,7 @@ const savePendingTransaction = async (client, accountnumber, credit, debit, tran
     // }
 
     const valuedate = status === 'ACTIVE' ? new Date() : null;
-    const newReference = await generateNewReference(client, accountnumber, req, res);
+    const newReference = await generateNewReference(client, accountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14)`,
         [accountnumber, credit, debit, newReference, description, ttype, status, reasonForRejection, req.body.whichaccount, createdBy, req.body.currency, userid, valuedate, req.body.tfrom]
@@ -117,7 +117,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
         // }
 
         const finalValuedate = status === 'ACTIVE' ? new Date() : null;
-        const newReference = await generateNewReference(client, accountnumber, req, res);
+        const newReference = await generateNewReference(client, accountnumber, req);
         await client.query(
             `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14, $15)`,
             [accountnumber, credit, debit, newReference, description, ttype, status, transactiondate, req.body.whichaccount, finalValuedate, transactiondesc, createdBy, currency, userid, tfrom]
@@ -132,7 +132,8 @@ const saveTransaction = async (client, res, transactionData, req) => {
 
 // Helper function for calculating charges
 const calculateCharge = (product, amount) => {
-    if (product.depositchargetype === 'PERCENTAGE') {
+    // console.log(product, product.depositechargetype, product.depositcharge, amount)
+    if (product.depositechargetype === 'PERCENTAGE') {
         return (product.depositcharge / 100) * amount;
     }
     return product.depositcharge;
@@ -140,7 +141,7 @@ const calculateCharge = (product, amount) => {
 
 
 const applyMinimumCreditAmountPenalty = async (client, req, res, orgSettings) => {
-    if (req.body.credit < orgSettings.minimum_credit_amount) {
+    if (req.body.credit < orgSettings.minimum_credit_amount && req.body.type != 'CHARGE') {
         const penaltyAmount = orgSettings.minimum_credit_amount_penalty;
         const defaultIncomeAccountNumber = orgSettings.default_income_account;
         const incomeAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
@@ -187,7 +188,7 @@ const calculateTax = (transaction) => {
 };
 
 // Example of generating a new reference
-const generateNewReference = async (client, accountnumber, req, res) => {
+const generateNewReference = async (client, accountnumber, req) => {
     // prefix|'L'link|timestamp|identifier
     let prefix = '';
     let identifier = '';
@@ -297,7 +298,7 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
     // save the transaction as redirect 
     console.log('credit', credit, req.body.credit)
     let status = req.body.status === 'REJECTED' ? 'REJECTED' : 'REDIRECTED';
-    const newReference = await generateNewReference(client, req.body.accountnumber, req, res);
+    const newReference = await generateNewReference(client, req.body.accountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13)`,
         [req.body.accountnumber, credit ? credit : req.body.credit, 0, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
@@ -323,7 +324,7 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
         req.body.transactiondesc += `Phone number not provided. Personal account could not be found, redirected again to company's excess account.|`;
     }
     status = req.body.status === 'REJECTED' ? 'REJECTED' : 'ACTIVE';
-    const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req, res);
+    const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13)`,
         [req.body.personalaccountnumber, credit ? credit : req.body.credit, 0, newPersonalReference, req.body.description, req.body.ttype, status, `Credit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
@@ -348,7 +349,7 @@ const handleRedirection = async (client, req, res, accountuser, reference, trans
     // save the transaction as redirect 
     console.log('credit', credit, req.body.credit)
     let status = req.body.status === 'REJECTED' ? 'REJECTED' : 'REDIRECTED';
-    const newReference = await generateNewReference(client, req.body.accountnumber, req, res);
+    const newReference = await generateNewReference(client, req.body.accountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13)`,
         [req.body.accountnumber, credit ? credit : req.body.credit, debit ? debit : req.body.debit, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
@@ -378,7 +379,7 @@ const handleRedirection = async (client, req, res, accountuser, reference, trans
         req.body.transactiondesc += `Phone number not provided. Personal account could not be found, redirected again to company's excess account.|`;
     }
     status = req.body.status === 'REJECTED' ? 'REJECTED' : 'ACTIVE';
-    const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req, res);
+    const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13)`,
         [req.body.personalaccountnumber, credit ? credit : req.body.credit,  debit ? debit : req.body.debit, newPersonalReference, req.body.description, req.body.ttype, status, `Credit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
@@ -403,7 +404,7 @@ const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountus
     // save the transaction as redirect 
     console.log('debit', debit, req.body.debit)
     let status = req.body.status === 'REJECTED' ? 'REJECTED' : 'REDIRECTED';
-    const newReference = await generateNewReference(client, req.body.accountnumber, req, res);
+    const newReference = await generateNewReference(client, req.body.accountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13)`,
         [req.body.accountnumber, 0, debit ? debit : req.body.debit, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
@@ -446,7 +447,7 @@ const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountus
         status = 'ACTIVE';
     }
     
-    const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req, res);
+    const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13)`,
         [req.body.personalaccountnumber, 0, debit ? debit : req.body.debit, newPersonalReference, req.body.description, req.body.ttype, status, `Debit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
