@@ -2,4 +2,4 @@
 .env
 .vercel
 utils/dhf-image-to-text-3668508aa74e.json
-.activities
+/activities
