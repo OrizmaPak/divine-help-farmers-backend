@@ -1,6 +1,5 @@
 const { saveTransaction } = require("../../../utils/transactionHelper");
 const { activityMiddleware } = require("../../activity");
-const { performTransaction } = require("../performTransaction");
 
 async function glAccountCredit(client, req, res, next, glAccountNumber, credit, description, ttype, transactionStatus, whichaccount) {
     if (credit > 0) {

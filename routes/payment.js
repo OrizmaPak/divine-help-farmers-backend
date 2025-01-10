@@ -1,6 +1,6 @@
 const express = require('express');
 const { handleTransaction } = require('../controllers/payments/transaction');
-const { performTransaction } = require('../middleware/transactions/performTransaction');
+const { performTransaction, getTransactionx } = require('../middleware/transactions/performTransaction');
 const router = express.Router();
 
 
@@ -10,7 +10,7 @@ router.route('/')
     .post(handleTransaction)
 
 router.route('/inner')
-    .post(performTransaction)
+    .post(getTransactionx)
 
 
     

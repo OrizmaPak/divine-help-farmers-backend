@@ -1,23 +1,14 @@
 const { StatusCodes } = require('http-status-codes');
-const { saveFailedTransaction, calculateWithdrawalLimit, savePendingTransaction, saveTransaction, calculateCharge, generateNewReference, handleCreditRedirectToPersonnalAccount, handleDebitRedirectToPersonnalAccount } = require('../../../utils/transactionHelper');
+const { saveFailedTransaction, savePendingTransaction, saveTransaction, generateNewReference, handleDebitRedirectToPersonnalAccount, calculateChargedebit, calculateWithdrawalLimit, applyWithdrawalCharge } = require('../../../utils/transactionHelper.js');
+// const transactionhelper = require('../../../utils/transactionHelper.js');
 const { activityMiddleware } = require('../../activity');
+const path = require('path');
 
-async function applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount) {
-    const chargeAmount = calculateCharge(req.savingsProduct, debit); // Calculate the charge amount
-    const transactionParams = {
-        accountnumber: accountnumber,
-        debit: chargeAmount,
-        description: 'Withdrawal Charge',
-        reference: await generateNewReference(client, accountnumber, req, res),
-        status: 'PENDING',
-        ttype: 'CHARGE',
-        whichaccount: whichaccount
-    };
-    await saveTransaction(client, res, transactionParams, req); // Call the saveTransaction function
-    await activityMiddleware(req, req.user.id, 'Pending withdrawal charge transaction saved', 'TRANSACTION'); // Log activity
-}
+
 
 async function savingsDebit(client, req, res, next, accountnumber, debit, description, ttype, transactionStatus, savingsProduct, whichaccount, accountuser){
+    const resolveedpath = path.resolve(__dirname, '../../../utils/transactionHelper.js');
+    console.log('resolveedpath', resolveedpath)
     if (debit > 0) {
     
         // 9. Debit and Balance Check
@@ -29,7 +20,21 @@ async function savingsDebit(client, req, res, next, accountnumber, debit, descri
         // Check if the transaction description is not 'CHARGE'
         if (ttype !== 'CHARGE' && ttype !== 'PENALTY') {
             // Check if the debit amount exceeds the withdrawal limit
-            const withdrawalLimit = calculateWithdrawalLimit(savingsProduct, currentBalance);
+            // console.log(savingsProduct, currentBalance)
+            let withdrawalLimit;
+            try {
+                withdrawalLimit = await calculateWithdrawalLimit(savingsProduct, currentBalance);
+            } catch (error) {
+                console.error('Error calculating withdrawal limit:', error);
+                req.transactionError = {
+                    status: StatusCodes.INTERNAL_SERVER_ERROR,
+                    message: 'Error calculating withdrawal limit.',
+                    errors: [error.message],
+                };
+                return next();
+            }
+
+            console.log('what id the withdrawal limit', withdrawalLimit)    
 
             if (!savingsProduct.allowwithdrawal) { 
                 const reasonForRejection = 'Withdrawals are not allowed for this savings product';
@@ -85,6 +90,10 @@ async function savingsDebit(client, req, res, next, accountnumber, debit, descri
                 const isWithinPeriod = today >= new Date(startDate) && today <= new Date(endDate);
 
                 if (isWithinPeriod) {
+                    // Check if there is a withdrawal charge applicable
+            if (req.savingsproduct.withdrawalcharges > 0) {
+                await applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount);
+            }
                     const transactionParams = {
                         accountnumber: accountnumber,
                         debit: debit,
@@ -120,10 +129,10 @@ async function savingsDebit(client, req, res, next, accountnumber, debit, descri
                             message: 'Transaction redirected due to withdrawal control window restriction for bank transactions.',
                             errors: ['Withdrawal not allowed outside control window for bank transactions.'],
                         };
-                        // Collect debit charge if applicable
-                        if (savingsProduct.withdrawalcharges > 0) {
-                            await applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount);
-                        }
+                        // // Collect debit charge if applicable
+                        // if (savingsProduct.withdrawalcharges > 0) {
+                        //     await applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount);
+                        // }
                         return next();
                     }
                 }
@@ -132,8 +141,22 @@ async function savingsDebit(client, req, res, next, accountnumber, debit, descri
             if (savingsProduct.withdrawalcharges > 0) {
                 await applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount);
             }
+            // Debit transaction logic
+            const transactionParams = {
+                accountnumber: accountnumber,
+                debit: debit,
+                reference: await generateNewReference(client, accountnumber, req, res),
+                description: description,
+                ttype: ttype,
+                status: transactionStatus,
+                valuedate: new Date(), // Set the value date to now when transaction becomes active
+                whichaccount: whichaccount
+            };
+            await saveTransaction(client, res, transactionParams, req);
+            await activityMiddleware(req, req.user.id, 'Debit transaction saved successfully', 'TRANSACTION'); // Log activity
+            return next();
         }
-
+        
         // Debit transaction logic
         const transactionParams = {
             accountnumber: accountnumber,
@@ -147,6 +170,7 @@ async function savingsDebit(client, req, res, next, accountnumber, debit, descri
         };
         await saveTransaction(client, res, transactionParams, req);
         await activityMiddleware(req, req.user.id, 'Debit transaction saved successfully', 'TRANSACTION'); // Log activity
+        return next();
         
         // const debitTransaction = debitTransactionResult.rows[0];
 

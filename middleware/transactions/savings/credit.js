@@ -1,5 +1,5 @@
 const { StatusCodes } = require('http-status-codes');
-const { saveFailedTransaction, savePendingTransaction, handleCreditRedirectToPersonalAccount, calculateCharge, generateNewReference, handleCreditRedirectToPersonnalAccount, saveTransaction, applyMinimumCreditAmountPenalty } = require('../../../utils/transactionHelper');
+const { saveFailedTransaction, savePendingTransaction, handleCreditRedirectToPersonalAccount, calculateCharge, generateNewReference, handleCreditRedirectToPersonnalAccount, saveTransaction, applyMinimumCreditAmountPenalty, applySavingsCharge } = require('../../../utils/transactionHelper');
 const { activityMiddleware } = require('../../activity');
 const { getTransactionPeriod, generateNextDates } = require('../../../utils/datecode');
 
@@ -16,10 +16,7 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
         // 8. Handle Deposit Charge
         if (credit > 0 && savingsProduct.depositcharge) {
             console.log("Handling deposit charge for credit:", credit);
-            const chargeAmount = calculateCharge(savingsProduct, credit);
-            console.log("Calculated charge amount:", chargeAmount);
-            await savePendingTransaction(client, accountnumber, 0, chargeAmount, await generateNewReference(client, accountnumber, req, res), 'Deposit Charge', 'CHARGE', 'Deposit Charge', 'PENDING', whichaccount, req);
-            await activityMiddleware(req, req.user.id, 'Pending deposit charge transaction saved', 'TRANSACTION');
+            await applySavingsCharge(client, req, res, accountnumber, credit, whichaccount);
         }
         console.log('it left the charge area')
         // 7. Savings Product Rules - Allow Deposit

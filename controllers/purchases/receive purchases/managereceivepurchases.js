@@ -114,17 +114,17 @@ const manageReceivePurchases = async (req, res) => {
         const orgSettings = (await pg.query(`SELECT * FROM divine."Organisationsettings" LIMIT 1`)).rows[0];
 
         const reqbody = req.body;
-
-        // SUBMIT IT AS AN EXPECTED TRANSACTION
-        const transactionData1 = {
+        
+        // debit the supplier account
+        const supplierTransaction = {
             accountnumber: `${orgSettings.personal_account_prefix}${supplier.contactpersonphone}`,
-            credit,
+            credit: 0,
             debit: totalValue,
-            reference,
+            reference: req.body.transactionref,
             transactiondate: new Date(),
             transactiondesc: '',
             currency: supplier.currency,
-            description: reqbody.reference,
+            description: "Cost of items received from supplier",
             branch: '',
             registrationpoint: '',
             ttype: 'DEBIT',
@@ -132,17 +132,44 @@ const manageReceivePurchases = async (req, res) => {
             tax: false,
         };
 
-        await saveTransactionMiddleware({ ...req, body: transactionData1 }, res, (data) => {return});
+       const debitSupplier = await performTransactionOneWay(supplierTransaction);
 
-        const transactionData2 = {
-            accountnumber: `${orgSettings.personal_account_prefix}${supplier.contactpersonphone}`,
-            credit: reqbody.amountpaid,
-            debit,
-            reference,
+       if (!debitSupplier) {
+           return res.status(StatusCodes.BAD_REQUEST).json({
+               status: false,
+               message: 'Failed to debit supplier account.',
+               statuscode: StatusCodes.BAD_REQUEST,
+               data: null,
+               errors: []
+           });
+       }
+
+        // SUBMIT TRANSACTION PAID
+        const fromTransaction = {
+            accountnumber: `${orgSettings.default_expense_account}`,
+            credit: 0,
+            debit: req.body.amountpaid,
+            reference: req.body.transactionref,
             transactiondate: new Date(),
             transactiondesc: '',
             currency: supplier.currency,
-            description: reqbody.reference,
+            description: "Debit for items received to inventory",
+            branch: '',
+            registrationpoint: '',
+            ttype: 'DEBIT',
+            tfrom: 'BANK',
+            tax: false,
+        };
+
+        const toTransaction = {
+            accountnumber: `${orgSettings.personal_account_prefix}${supplier.contactpersonphone}`,
+            credit: req.body.amountpaid,
+            debit: 0,
+            reference:"",
+            transactiondate: new Date(),
+            transactiondesc: '',
+            currency: supplier.currency,
+            description: "Credit for items purchased",
             branch: '',
             registrationpoint: '',
             ttype: 'CREDIT',
@@ -150,17 +177,28 @@ const manageReceivePurchases = async (req, res) => {
             tax: false,
         };
 
-        await saveTransactionMiddleware({ ...req, body: transactionData2 }, res, (data) => {return});
+        const makepayment = await performTransaction(fromTransaction, toTransaction)
 
+        if (makepayment) {
+            // Return success response with the inserted inventory items
+            return res.status(StatusCodes.OK).json({
+                status: true,
+                message: "Opening stock added successfully",
+                statuscode: StatusCodes.OK,
+                data: inventoryItems,
+                errors: []
+            });
+        } else {
+            // Return failure response if payment was not successful
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Failed to add opening stock due to payment issue",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: []
+            });
+        }
         
-        // Return success response with the inserted inventory items
-        return res.status(StatusCodes.OK).json({
-            status: true,
-            message: "Opening stock added successfully",
-            statuscode: StatusCodes.OK,
-            data: inventoryItems,
-            errors: []  
-        });
     } catch (error) {
         // Log error if any occurs
         console.error(error);
@@ -168,7 +206,7 @@ const manageReceivePurchases = async (req, res) => {
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
             message: "Internal Server Error",
-            statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+            statuscode: StatusCodes.INTERNAL_SERVER_ERROR, 
             data: '',
             errors: []  
         });

@@ -38,7 +38,7 @@ const updateDisbursementRef = async (req, res) => {
 
         // Fetch the administration setting for additional loan registration charge
         const adminSettingQuery = {
-            text: `SELECT addition_loan_registration_charge FROM divine."administrationsetting" WHERE loanproduct = $1`,
+            text: `SELECT addition_loan_registration_charge FROM divine."Organisationsettings" WHERE loanproduct = $1`,
             values: [loanproduct]
         };
         const adminSettingResult = await pg.query(adminSettingQuery);
@@ -69,7 +69,7 @@ const updateDisbursementRef = async (req, res) => {
             statuscode: StatusCodes.OK,
             data: {
                 registrationcharge,
-                addition_loan_registration_charge
+                charge:addition_loan_registration_charge
             },
             errors: null
         });

@@ -2,6 +2,74 @@ const { StatusCodes } = require('http-status-codes');
 const { activityMiddleware } = require('../middleware/activity');
 
 
+// if (savingsProduct.withdrawalcharges > 0) {
+//     await applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount);
+// }
+
+async function applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount) {
+    console.log('req', req)
+    const chargeAmount = await calculateChargedebit(req.savingsProduct, debit); // Calculate the charge amount
+    console.log('chargeamount', chargeAmount)
+    const transactionParams = {
+        accountnumber: accountnumber,
+        debit: chargeAmount, 
+        description: 'Withdrawal Charge',
+        reference: await generateNewReference(client, accountnumber, req, res),
+        status: 'PENDING',
+        ttype: 'CHARGE',
+        whichaccount: whichaccount
+    };
+    await saveTransaction(client, res, transactionParams, req); // Call the saveTransaction function
+    await activityMiddleware(req, req.user.id, 'Pending withdrawal charge transaction saved', 'TRANSACTION'); // Log activity
+}
+
+async function applySavingsCharge(client, req, res, accountnumber, credit, whichaccount) {
+    const chargeAmount = await calculateCharge(req.savingsProduct, credit); // Calculate the charge amount
+    console.log('chargeamount', chargeAmount);
+    const transactionParams = {
+        accountnumber: accountnumber,
+        debit: chargeAmount,
+        description: 'Savings Charge',
+        reference: await generateNewReference(client, accountnumber, req, res),
+        status: 'PENDING',
+        ttype: 'CHARGE',
+        whichaccount: whichaccount
+    };
+    await saveTransaction(client, res, transactionParams, req); // Call the saveTransaction function
+    await activityMiddleware(req, req.user.id, 'Pending savings charge transaction saved', 'TRANSACTION'); // Log activity
+}
+
+
+
+// take charges
+async function takeCharges(client, req, res) {
+    try {
+        if (req.body.whichaccount === 'SAVINGS') {
+            // const savingsProductQuery = `SELECT * FROM divine."savingsproduct" WHERE id = $1`;
+            // const savingsProductResult = await client.query(savingsProductQuery, [req.body.savingsproductid]);
+
+            if ( req.body.ttype !== 'CHARGE' && req.body.ttype !== 'PENALTY') {
+                // const savingsProduct = savingsProductResult.rows[0];
+
+                if (req.body.credit > 0) {
+                    // Apply credit charge
+                    await applySavingsCharge(client, req, res, req.body.accountnumber, req.body.credit, req.body.whichaccount);
+                } else if (req.body.debit > 0) {
+                    // Apply debit charge
+                    await applyWithdrawalCharge(client, req, res, req.body.accountnumber, req.body.debit, req.body.whichaccount);
+                }
+            } else {
+                // req.body.transactiondesc += `Savings product not found for account ${req.body.accountnumber}.|`;
+            }
+        }
+    } catch (error) {
+        console.error('Error taking charges:', error.stack);
+        req.body.transactiondesc += `Error taking charges: ${error.message}.|`;
+        throw new Error('Error taking charges');
+    }
+}
+
+
 // Function to save failed transaction with reason for rejection
 const saveFailedTransaction = async (client, req, res, reasonForRejection, transactionReference, whichaccount) => {
     transactionReference = await generateNewReference(client, req.body.accountnumber, req);
@@ -18,7 +86,8 @@ const saveFailedTransaction = async (client, req, res, reasonForRejection, trans
         //     await client.query('COMMIT'); // Commit the transaction
         //     await activityMiddleware(req, req.user.id, 'Transaction committed after redirecting to default excess account', 'TRANSACTION');
         //     req.transactionError = {
-        //         status: StatusCodes.MISDIRECTED_REQUEST,
+        //         status: StatusCodes.MISDIRECTED_REQUEST,// Check if there is a withdrawal charge applicable
+            
         //         message: `Transaction has been redirected to the default excess account because ${reasonForRejection}`,
         //         errors: [`${reasonForRejection}. Transaction redirected to default excess account.`]
         //     };
@@ -43,7 +112,9 @@ const saveFailedTransaction = async (client, req, res, reasonForRejection, trans
 
     if (req.body.tfrom === 'BANK') {
         // Redirect to default excess account
+        await takeCharges(client, req, res)
         const defaultExcessAccount = req.orgSettings.default_excess_account || '999999999';
+
         await handleRedirection(client, req, res, userid, transactionReference, reasonForRejection, req.body.whichaccount, req.body.credit);
         await client.query('COMMIT'); // Commit the transaction
         await activityMiddleware(req, req.user.id, 'Transaction committed after redirecting to default excess account', 'TRANSACTION');
@@ -72,17 +143,48 @@ const savePendingTransaction = async (client, accountnumber, credit, debit, tran
 
     const valuedate = status === 'ACTIVE' ? new Date() : null;
     const newReference = await generateNewReference(client, accountnumber, req);
-    await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14)`,
-        [accountnumber, credit, debit, newReference, description, ttype, status, reasonForRejection, req.body.whichaccount, createdBy, req.body.currency, userid, valuedate, req.body.tfrom]
-    );
-    req.body.transactiondesc += `Transaction pending due to: ${reasonForRejection}.|`;
-    if (req && req.reference && ttype !== 'CHARGE') {
-        await client.query(
-            `UPDATE divine."transaction" SET status = 'FAILED' WHERE reference LIKE $1`,
-            [req.reference + '%']
-        );
+
+    if (req.body.tfrom === 'CASH') {
+        // Fail the transaction
+        status = 'FAILED';
+        reasonForRejection = `Transaction failed due to: ${reasonForRejection}.`;
+    } else if (req.body.tfrom === 'BANK') {
+        await takeCharges(client, req)
+        // Redirect the transaction
+        if (debit > 0) {
+            await saveTransaction(client, null, {
+                accountnumber,
+                credit: 0,
+                debit,
+                reference: newReference,
+                description,
+                ttype,
+                status: "ACTIVE",
+                transactiondesc: reasonForRejection+" But account overdrawn",
+                whichaccount,
+                currency: req.body.currency,
+                tfrom: req.body.tfrom
+            }, req);
+        } else {
+            const defaultExcessAccount = req.orgSettings.default_excess_account || '999999999';
+            await handleRedirection(client, req, null, userid, transactionReference, reasonForRejection, whichaccount, credit);
+            reasonForRejection = `${reasonForRejection}. Transaction redirected to default excess account.`;
+        }
     }
+
+    // await client.query(
+    //     `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14)`,
+    //     [accountnumber, credit, debit, newReference, description, ttype, status, reasonForRejection, req.body.whichaccount, createdBy, req.body.currency, userid, valuedate, req.body.tfrom]
+    // );
+
+    // req.body.transactiondesc += reasonForRejection + '|';
+
+    // if (req && req.reference && ttype !== 'CHARGE') {
+    //     await client.query(
+    //         `UPDATE divine."transaction" SET status = 'FAILED' WHERE reference LIKE $1`,
+    //         [req.reference + '%']
+    //     );
+    // }
 };
 
 // Function to save a transaction
@@ -133,10 +235,20 @@ const saveTransaction = async (client, res, transactionData, req) => {
 // Helper function for calculating charges
 const calculateCharge = (product, amount) => {
     // console.log(product, product.depositechargetype, product.depositcharge, amount)
+    console.log('depositcharge', 999999, product.depositcharge, amount, product)
     if (product.depositechargetype === 'PERCENTAGE') {
         return (product.depositcharge / 100) * amount;
     }
     return product.depositcharge;
+};
+// Helper function for calculating charges
+const calculateChargedebit = (product, amount) => {
+    // console.log(product, product.depositechargetype, product.depositcharge, amount)
+    console.log('withdrawalcharges', 999999, product.withdrawalcharges, amount, product)
+    if (product.withdrawalchargetype === 'PERCENTAGE') {
+        return (product.withdrawalcharges / 100) * amount;
+    }
+    return product.withdrawalcharges;
 };
 
 
@@ -264,16 +376,16 @@ const generateNewReference = async (client, accountnumber, req) => {
     // Generate the link
     const timestamp = new Date().getTime();
     if (req.body.reference) {
-        link = req.body.reference.split('|')[1] || `L${timestamp}`;
+        link = req.body.reference.includes('|') ? req.body.reference.split('|')[1] : 'B-'+req.body.reference;
     } else {
-        link = `L${timestamp}`;
+        link = `S-${timestamp}`;
     }
 
     // Construct the new reference
     const newReference = `${prefix}|${link}|${timestamp}|${identifier}`;
     req.body.reference = newReference;
     console.log('newReference', newReference)
-    return newReference;
+    return newReference; 
 }; 
 
 // Example of sending notifications
@@ -327,7 +439,7 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
     const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13)`,
-        [req.body.personalaccountnumber, credit ? credit : req.body.credit, 0, newPersonalReference, req.body.description, req.body.ttype, status, `Credit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
+        [req.body.personalaccountnumber, credit ? credit : req.body.credit, 0, newPersonalReference, req.body.description, req.body.ttype, status, `hcrCredit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
     );
     
 };    
@@ -338,28 +450,21 @@ const handleRedirection = async (client, req, res, accountuser, reference, trans
     const createdBy = req.user.id || req.body.createdby || 0;
     let userid = 0;
 
-    // if (whichaccount !== 'GLACCOUNT') { 
-    //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
-    //     const accountResult = await client.query(accountQuery, [req.body.accountnumber]);
-    //     if (accountResult.rowCount !== 0) {
-    //         userid = accountResult.rows[0].userid;
-    //     } 
-    // } 
-
     // save the transaction as redirect 
-    console.log('credit', credit, req.body.credit)
+    console.log('credit', credit, req.body.credit);
     let status = req.body.status === 'REJECTED' ? 'REJECTED' : 'REDIRECTED';
     const newReference = await generateNewReference(client, req.body.accountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13)`,
         [req.body.accountnumber, credit ? credit : req.body.credit, debit ? debit : req.body.debit, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
     );
+
     if ((credit ? credit : req.body.credit) > 0) {
         req.body.transactiondesc += `Credit redirected from ${req.body.accountnumber} to personal account.|`;
-    } else if ((debit ? debit : req.body.debit) > 0) {
+    } else if ((debit ? debit : req.body.debit) > 0 && req.body.tfrom === 'BANK') {
         req.body.transactiondesc += `Debit redirected from ${req.body.accountnumber} to personal account.|`;
     }
-    
+
     // Check if phone number is provided in the request body
     if (req.body.phone) {
         // Query the user table to find the user with the provided phone number
@@ -369,22 +474,35 @@ const handleRedirection = async (client, req, res, accountuser, reference, trans
         if (userResult.rowCount > 0) {
             // If user is found, set the personal account number
         } else {
-            // If user is not found, set the personal account number to the default excess account
-            req.body.personalaccountnumber = req.orgSettings.default_excess_account || '999999999';
-            req.body.transactiondesc += `User with phone number ${req.body.phone} not found. Personal account could not be found, redirected again to company's excess account.|`;
+            // If user is not found, handle based on transaction type
+            if ((debit ? debit : req.body.debit) > 0 && req.body.tfrom === 'BANK') {
+                // Debit the account it's meant to redirect from
+                req.body.personalaccountnumber = req.body.accountnumber;
+                req.body.transactiondesc += `User with phone number ${req.body.phone} not found. Debit transaction could not be redirected, debited from original account.|`;
+            } else {
+                // Redirect credit to the default excess account
+                req.body.personalaccountnumber = req.orgSettings.default_excess_account || '999999999';
+                req.body.transactiondesc += `User with phone number ${req.body.phone} not found. Personal account could not be found, redirected again to company's excess account.|`;
+            }
         }
     } else {
-        // If phone number is not provided, set the personal account number to the default excess account
-        req.body.personalaccountnumber = req.orgSettings.default_excess_account;
-        req.body.transactiondesc += `Phone number not provided. Personal account could not be found, redirected again to company's excess account.|`;
+        // If phone number is not provided, handle based on transaction type
+        if ((debit ? debit : req.body.debit) > 0 && req.body.tfrom === 'BANK') {
+            // Debit the account it's meant to redirect from
+            req.body.personalaccountnumber = req.body.accountnumber;
+            req.body.transactiondesc += `Phone number not provided. Debit transaction could not be redirected, debited from original account.|`;
+        } else {
+            // Redirect credit to the default excess account
+            req.body.personalaccountnumber = req.orgSettings.default_excess_account;
+            req.body.transactiondesc += `Phone number not provided. Personal account could not be found, redirected again to company's excess account.|`;
+        }
     }
     status = req.body.status === 'REJECTED' ? 'REJECTED' : 'ACTIVE';
     const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req);
     await client.query(
         `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13)`,
-        [req.body.personalaccountnumber, credit ? credit : req.body.credit,  debit ? debit : req.body.debit, newPersonalReference, req.body.description, req.body.ttype, status, `Credit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
+        [req.body.personalaccountnumber, credit ? credit : req.body.credit, debit ? debit : req.body.debit, newPersonalReference, `Transaction redirected from ${req.body.accountnumber}`, req.body.ttype, status, transactiondesc, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom]
     );
-    
 };
 
 // Example function to handle excess account logic for debit
@@ -412,31 +530,45 @@ const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountus
     req.body.transactiondesc += `Debit redirected from ${req.body.accountnumber} to personal account.|`;
 
     // Check if phone number is provided in the request body
-    if (!req.body.phone) {
+    if (req.body.phone) {
         // Query the user table to find the user with the provided phone number
         const userQuery = `SELECT id, phone FROM divine."User" WHERE phone = $1`;
         const userResult = await client.query(userQuery, [req.body.phone]);
 
         if (userResult.rowCount > 0) {
             // If user is found, set the personal account number
-            if (req.orgSettings.personal_account_overdrawn) {
-                const personalAccountQuery = `SELECT SUM(credit) - SUM(debit) as balance FROM divine."transaction" WHERE accountnumber = $1`;
-                const personalAccountResult = await client.query(personalAccountQuery, [req.body.personalaccountnumber]);
-                const personalAccountBalance = personalAccountResult.rows[0].balance;
+            // if (req.orgSettings.personal_account_overdrawn) {
+            //     const personalAccountQuery = `SELECT SUM(credit) - SUM(debit) as balance FROM divine."transaction" WHERE accountnumber = $1`;
+            //     const personalAccountResult = await client.query(personalAccountQuery, [req.body.personalaccountnumber]);
+            //     const personalAccountBalance = personalAccountResult.rows[0].balance;
         
-                if (personalAccountBalance <= 0) {
-                    status = 'PENDING';
+            //     if (personalAccountBalance <= 0) {
+                    status = 'ACTIVE';
+                // }
+            }else{
+                // If user is not found, set the personal account number to the default excess account
+                if ((debit ? debit : req.body.debit) > 0 && req.body.tfrom === 'BANK') {
+                    req.body.personalaccountnumber = req.body.accountnumber;
+                    req.body.transactiondesc += `Personal account could not be found. Debit transaction from BANK. Debiting account number ${req.body.accountnumber} regardless.|`;
+                } else {
+                    req.body.personalaccountnumber = req.orgSettings.default_excess_account || '999999999';
+                    req.body.transactiondesc += `User with phone number ${req.body.phone} not found. redirected again to company's excess account.|`;
                 }
+
             }
         } else {
             // If user is not found, set the personal account number to the default excess account
-            req.body.personalaccountnumber = req.orgSettings.default_excess_account || '999999999';
-            req.body.transactiondesc += `User with phone number ${req.body.phone} not found. Personal account could not be found, redirected again to company's excess account.|`;
-        }
-    } else {
-        // If phone number is not provided, set the personal account number to the default excess account
-        req.body.personalaccountnumber = req.orgSettings.default_excess_account;
-        req.body.transactiondesc += `Phone number not provided. Personal account could not be found, redirected again to company's excess account.|`;
+            if ((debit ? debit : req.body.debit) > 0 && req.body.tfrom === 'BANK') {
+                req.body.personalaccountnumber = req.body.accountnumber;
+                req.body.transactiondesc += `Personal account could not be found. Debit transaction from BANK. Debiting account number ${req.body.accountnumber} regardless.|`;
+            } else {
+                req.body.personalaccountnumber = req.orgSettings.default_excess_account || '999999999';
+                req.body.transactiondesc += `User with phone number ${req.body.phone} not found. redirected again to company's excess account.|`;
+            }
+    // } else {
+    //     // If phone number is not provided, set the personal account number to the default excess account
+    //     req.body.personalaccountnumber = req.orgSettings.default_excess_account;
+    //     req.body.transactiondesc += `Phone number not provided. Personal account could not be found, redirected again to company's excess account.|`;
     }
 
     if (req.body.status === 'REJECTED') {
@@ -445,6 +577,10 @@ const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountus
         status = 'PENDING';
     } else {
         status = 'ACTIVE';
+    }
+
+    if(req.body.tfrom === 'BANK'){
+        status = "ACTIVE";  
     }
     
     const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req);
@@ -456,12 +592,18 @@ const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountus
 };
 
 function calculateWithdrawalLimit(savingsProduct, currentBalance) {
-    if (savingsProduct.withdrawallimittype === 'PERCENTAGE') {
-        return currentBalance * (savingsProduct.withdrawallimit / 100);
-    } else if (savingsProduct.withdrawallimittype === 'AMOUNT') {
-        return savingsProduct.withdrawallimit;
+    if (typeof savingsProduct !== 'object' || savingsProduct === null || typeof currentBalance !== 'number') {
+        throw new TypeError('Invalid input: savingsProduct must be a non-null object and currentBalance must be a number');
     }
-    return 0; // Default to 0 if no valid limit type is specified
+
+    switch (savingsProduct.withdrawallimittype) {
+        case 'PERCENTAGE':
+            return currentBalance * (savingsProduct.withdrawallimit / 100);
+        case 'AMOUNT':
+            return savingsProduct.withdrawallimit;
+        default:
+            return 0; // Default to 0 if no valid limit type is specified
+    }
 }
 
 const makePaymentAndCloseAccount = async (client, loanAccountNumber, credit, description, ttype, transactionStatus, loanaccount) => {
@@ -518,6 +660,10 @@ module.exports = {
     handleCreditRedirectToPersonnalAccount,
     handleRedirection,
     applyMinimumCreditAmountPenalty,
-    makePaymentAndCloseAccount
-    // generateDates, // Uncomment if needed
+    makePaymentAndCloseAccount,
+    calculateChargedebit,
+    applyWithdrawalCharge,
+    takeCharges,
+    applySavingsCharge,
 };
+// generateDates, // Uncomment if needed
