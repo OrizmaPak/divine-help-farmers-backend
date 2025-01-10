@@ -16,44 +16,44 @@ const updateDisbursementRef = async (req, res) => {
     }
 
     try {
-        // Fetch the loan product and registration charge using the account number
-        const loanAccountQuery = {
-            text: `SELECT loanproduct, registrationcharge FROM divine."loanaccounts" WHERE accountnumber = $1`,
-            values: [accountnumber]
-        };
-        const loanAccountResult = await pg.query(loanAccountQuery);
+        // // Fetch the loan product and registration charge using the account number
+        // const loanAccountQuery = {
+        //     text: `SELECT loanproduct, registrationcharge FROM divine."loanaccounts" WHERE accountnumber = $1`,
+        //     values: [accountnumber]
+        // };
+        // const loanAccountResult = await pg.query(loanAccountQuery);
 
-        // If no loan account found, return 404
-        if (loanAccountResult.rowCount === 0) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                status: false,
-                message: "Loan account not found",
-                statuscode: StatusCodes.NOT_FOUND,
-                data: null,
-                errors: ["Loan account not found"]
-            });
-        }
+        // // If no loan account found, return 404
+        // if (loanAccountResult.rowCount === 0) {
+        //     return res.status(StatusCodes.NOT_FOUND).json({
+        //         status: false,
+        //         message: "Loan account not found",
+        //         statuscode: StatusCodes.NOT_FOUND,
+        //         data: null,
+        //         errors: ["Loan account not found"]
+        //     });
+        // }
 
-        const { loanproduct, registrationcharge } = loanAccountResult.rows[0];
+        // const { loanproduct, registrationcharge } = loanAccountResult.rows[0];
 
-        // Fetch the administration setting for additional loan registration charge
-        const adminSettingQuery = {
-            text: `SELECT addition_loan_registration_charge FROM divine."Organisationsettings" WHERE loanproduct = $1`,
-            values: [loanproduct]
-        };
-        const adminSettingResult = await pg.query(adminSettingQuery);
+        // // Fetch the administration setting for additional loan registration charge
+        // const adminSettingQuery = {
+        //     text: `SELECT addition_loan_registration_charge FROM divine."Organisationsettings" WHERE loanproduct = $1`,
+        //     values: [loanproduct]
+        // };
+        // const adminSettingResult = await pg.query(adminSettingQuery);
 
-        if (adminSettingResult.rowCount === 0) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                status: false,
-                message: "Administration setting not found for the loan product",
-                statuscode: StatusCodes.NOT_FOUND,
-                data: null,
-                errors: ["Administration setting not found for the loan product"]
-            });
-        }
+        // if (adminSettingResult.rowCount === 0) {
+        //     return res.status(StatusCodes.NOT_FOUND).json({
+        //         status: false,
+        //         message: "Administration setting not found for the loan product",
+        //         statuscode: StatusCodes.NOT_FOUND,
+        //         data: null,
+        //         errors: ["Administration setting not found for the loan product"]
+        //     });
+        // }
 
-        const { addition_loan_registration_charge } = adminSettingResult.rows[0];
+        // const { addition_loan_registration_charge } = adminSettingResult.rows[0];
 
         // Update the disbursement reference for the given loan account
         const updateQuery = {
@@ -63,14 +63,15 @@ const updateDisbursementRef = async (req, res) => {
         await pg.query(updateQuery);
 
         // Successfully updated the disbursement reference
+        // charge:addition_loan_registration_charge
+        // {
+        //     registrationcharge,
+        // },
         return res.status(StatusCodes.OK).json({
             status: true,
             message: "Disbursement reference updated successfully",
             statuscode: StatusCodes.OK,
-            data: {
-                registrationcharge,
-                charge:addition_loan_registration_charge
-            },
+            data: null,
             errors: null
         });
 
