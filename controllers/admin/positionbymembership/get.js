@@ -126,4 +126,4 @@ const getdefinedmembershipposition = async (req, res) => {
 
 module.exports = {
   getdefinedmembershipposition
-};
+};  
