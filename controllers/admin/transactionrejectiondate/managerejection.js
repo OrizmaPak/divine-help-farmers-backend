@@ -23,8 +23,8 @@ const managerejection = async (req, res) => {
 
         // Determining the query based on the presence of id
         if (id) {
-            query = `UPDATE divine."Rejecttransactiondate" SET rejectiondate = $1, reason = $2 WHERE id = $3`;
-            params = [rejectiondate, reason, id];
+            query = `UPDATE divine."Rejecttransactiondate" SET rejectiondate = COALESCE($1, rejectiondate), reason = COALESCE($2, reason), status = COALESCE($3, status) WHERE id = $4`;
+            params = [rejectiondate, reason, req.body.status, id];
         } else {
             // Checking if rejection date already exists
             const rejectionDateExists = await pg.query(`SELECT * FROM divine."Rejecttransactiondate" WHERE rejectiondate = $1`, [rejectiondate]);

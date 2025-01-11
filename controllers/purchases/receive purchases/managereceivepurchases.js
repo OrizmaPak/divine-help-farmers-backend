@@ -3,6 +3,7 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { v4: uuidv4 } = require('uuid');
 const { activityMiddleware } = require("../../../middleware/activity");
+const { performTransactionOneWay, performTransaction } = require("../../../middleware/transactions/performTransaction");
 
 // Function to handle opening stock request for multiple items
 const manageReceivePurchases = async (req, res) => {
@@ -27,29 +28,54 @@ const manageReceivePurchases = async (req, res) => {
         // Initialize an array to hold all the inventory items to be inserted
         const inventoryItems = [];
 
-        if(reference){  
-            await pg.query(
-                `DELETE FROM divine."Inventory" WHERE reference = $1`,
-                [reference]
-            );
-        };
+        // if(reference){  
+        //     await pg.query(
+        //         `DELETE FROM divine."Inventory" WHERE reference = $1`,
+        //         [reference]
+        //     );
+        // };
+
+        if (!req.body[`supplier`]) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: `Supplier is required`,
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: '',
+                errors: [`Supplier is required`]
+            });
+        }
+
+        // Confirm that the supplier exists
+        const supplierQuery = await pg.query(`SELECT * FROM divine."Supplier" WHERE id = $1`, [req.body[`supplier`]]);
+        if (!supplierQuery.rows[0]) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: `Supplier with ID ${req.body[`supplier`]} does not exist`,
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: '',
+                errors: [`Supplier with ID ${req.body[`supplier`]} does not exist`]
+            });
+        }
+
+        const supplier = supplierQuery.rows[0]
 
         // Loop through each item based on rowsize
         for (let i = 1; i <= rowsize; i++) {
             // Extract id from request body
-            const id = req.body[`id${i}`];
-            // Query to select inventory item by id
-            const inventory = await pg.query(`SELECT * FROM divine."Inventory" WHERE id = $1`, [id]);
+            const itemid = req.body[`itemid${i}`];
+            // Query to select inventory item by itemid
+            const inventory = await pg.query(`SELECT * FROM divine."Inventory" WHERE itemid = $1 AND status = 'ACTIVE'`, [itemid]);
 
+            console.log('inventory', inventory.rows)
             // Check if inventory item is not found
             if (!inventory.rows[0]) {
                 // Return error response if inventory item not found
                 return res.status(StatusCodes.OK).json({
                     status: false,
-                    message: `Inventory item ${id} not found`,
+                    message: `Inventory item ${itemid} not found`,
                     statuscode: StatusCodes.OK,
                     data: '',
-                    errors: [`Inventory item ${id} not found`]  
+                    errors: [`Inventory item ${itemid} not found`]  
                 });
             }
 
@@ -58,16 +84,71 @@ const manageReceivePurchases = async (req, res) => {
             // Clone the inventory item to modify its properties
             const clonedInventory = { ...inventory.rows[0] };
 
+            const refinstance = new Date().getTime().toString();
+
+            // Ensure qty, cost, department, and branch have values from the request body
+            if (!req.body[`qty${i}`]) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: `Quantity for item ${itemid} is required`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: '',
+                    errors: [`Quantity for item ${itemid} is required`]
+                });
+            }
+
+            if (!req.body[`cost${i}`]) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: `Cost for item ${itemid} is required`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: '',
+                    errors: [`Cost for item ${itemid} is required`]
+                });
+            }
+
+            if (!req.body[`department`]) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: `Department for item ${itemid} is required`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: '',
+                    errors: [`Department for item ${itemid} is required`]
+                });
+            }
+
+            if (!req.body[`branch`]) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: `Branch for item ${itemid} is required`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: '',
+                    errors: [`Branch for item ${itemid} is required`]
+                });
+            }
+
+            // Confirm that the branch exists
+            const branchQuery = await pg.query(`SELECT * FROM divine."Branch" WHERE id = $1`, [req.body[`branch`]]);
+            if (!branchQuery.rows[0]) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: `Branch with ID ${req.body[`branch`]} does not exist`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: '',
+                    errors: [`Branch with ID ${req.body[`branch`]} does not exist`]
+                });
+            }
+
             // Update cloned inventory properties with request body values if provided
-            clonedInventory.qty = req.body[`qty${i}`] || clonedInventory.qty;
+            clonedInventory.qty = req.body[`qty${i}`];
             clonedInventory.cost = req.body[`cost${i}`] || clonedInventory.cost;
-            clonedInventory.department = req.body[`department`] || clonedInventory.department;
-            clonedInventory.branch = req.body[`branch`] || clonedInventory.branch;
+            clonedInventory.department = req.body[`department`];
+            clonedInventory.branch = req.body[`branch`];
             clonedInventory.transactiondate = req.body[`transactiondate${i}`] || new Date(); // Set transaction date to current date
-            clonedInventory.transactiondesc = req.body[`transactiondesc${i}`] || ''; // Set transaction description
-            clonedInventory.transactionref = req.body[`transactionref`] || ''; // Set transaction description
-            clonedInventory.supplier = req.body[`supplier`] || ''; // Set transaction description
-            clonedInventory.reference = reference.split('||')[0].replaceAll('PO', 'RP')+'||'+req.body['supplier'] || `RP-${new Date().getTime().toString()}||${req.body[`supplier`]}`; // Use provided reference or generate new one
+            clonedInventory.transactiondesc = (req.body[`transactiondesc${i}`] ?? '') + 'Received from supplier'; // Set transaction description
+            clonedInventory.transactionref = req.body[`transactionref`] && req.body[`transactionref`].replaceAll('PO-', 'RP-') ||  `RP-${refinstance}`; // Set transaction description
+            clonedInventory.supplier = req.body[`supplier`]; // Set transaction description
+            clonedInventory.reference = reference.includes('||') ? reference.split('||')[0].replaceAll('PO', 'RP') + '||' + req.body['supplier']+'||'+req.body['paymentref']??null : `RP-${new Date().getTime().toString()}||${req.body[`supplier`]}||${req.body[`paymentref`]??null}`; // Use provided reference or generate new one
             clonedInventory.createdby = user.id; // Set created by to the current user
 
             // Add the cloned inventory item to the array
@@ -80,10 +161,10 @@ const manageReceivePurchases = async (req, res) => {
                 itemid, itemname, department, branch, units, cost, price, pricetwo, 
                 beginbalance, qty, minimumbalance, "group", applyto, itemclass, 
                 composite, compositeid, description, imageone, imagetwo, imagethree, 
-                status, "reference", transactiondate, transactiondesc, createdby, dateadded
+                status, "reference", transactiondate, transactiondesc, transactionref, createdby, dateadded
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
-                $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26
+                $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
             )`, [
                 item.itemid, item.itemname, item.department, 
                 item.branch, item.units, item.cost, 
@@ -93,7 +174,7 @@ const manageReceivePurchases = async (req, res) => {
                 item.compositeid, item.description, item.imageone, 
                 item.imagetwo, item.imagethree, 'ACTIVE', 
                 item.reference, item.transactiondate, item.transactiondesc, 
-                item.createdby, new Date()
+                item.transactionref, user.id, new Date()
             ]);
 
             // Log activity for opening stock
@@ -109,7 +190,7 @@ const manageReceivePurchases = async (req, res) => {
         // GET TOTAL VALUE OF ITEMS
         const totalValue = inventoryItems.reduce((acc, item) => acc + item.qty * item.cost, 0);
         // get the supplier
-        const supplier = (await pg.query(`SELECT * FROM divine."Supplier" WHERE supplier = $1`, [req.body['supplier']])).rows[0];
+        
         // get the organisation settings
         const orgSettings = (await pg.query(`SELECT * FROM divine."Organisationsettings" LIMIT 1`)).rows[0];
 
@@ -120,7 +201,7 @@ const manageReceivePurchases = async (req, res) => {
             accountnumber: `${orgSettings.personal_account_prefix}${supplier.contactpersonphone}`,
             credit: 0,
             debit: totalValue,
-            reference: req.body.transactionref,
+            reference: req.body.paymentref,
             transactiondate: new Date(),
             transactiondesc: '',
             currency: supplier.currency,
@@ -149,7 +230,7 @@ const manageReceivePurchases = async (req, res) => {
             accountnumber: `${orgSettings.default_expense_account}`,
             credit: 0,
             debit: req.body.amountpaid,
-            reference: req.body.transactionref,
+            reference: req.body.paymentref,
             transactiondate: new Date(),
             transactiondesc: '',
             currency: supplier.currency,
@@ -179,11 +260,29 @@ const manageReceivePurchases = async (req, res) => {
 
         const makepayment = await performTransaction(fromTransaction, toTransaction)
 
+        if (reference) {
+            try {
+                await pg.query(
+                    `DELETE FROM divine."Inventory" WHERE reference = $1`,
+                    [reference]
+                );
+            } catch (error) {
+                console.error('Error deleting purchase order:', error);
+                return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                    status: false,
+                    message: "Failed to delete purchase order",
+                    statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    data: null,
+                    errors: []
+                });
+            }
+        }
+
         if (makepayment) {
             // Return success response with the inserted inventory items
             return res.status(StatusCodes.OK).json({
                 status: true,
-                message: "Opening stock added successfully",
+                message: "Inventory Received successfully",
                 statuscode: StatusCodes.OK,
                 data: inventoryItems,
                 errors: []

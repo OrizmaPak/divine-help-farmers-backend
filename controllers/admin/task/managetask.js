@@ -137,10 +137,11 @@ const manageTask = async (req, res) => {
                     branch = COALESCE($5, branch),
                     startdate = COALESCE($6, startdate),
                     enddate = COALESCE($7, enddate),
-                    taskstatus = COALESCE($8, taskstatus)
-                    WHERE id = $9
+                    taskstatus = COALESCE($8, taskstatus),
+                    status = COALESCE($9, status)
+                    WHERE id = $10
                     RETURNING *
-                `, [title, description, priority, assignedto, branch, startdate, enddate, taskstatus, id]);
+                `, [title, description, priority, assignedto, branch, startdate, enddate, taskstatus, status, id]);
 
                 if (!updatedTask) {
                     return res.status(StatusCodes.NOT_FOUND).json({

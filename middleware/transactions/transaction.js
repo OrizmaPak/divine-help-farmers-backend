@@ -169,6 +169,8 @@ const saveTransactionMiddleware = async (req, res, next) => {
                     }; 
                     req.body.transactiondesc += 'Invalid personal or savings account number.|';
                 }
+                req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${supplierResult.rows[0].contactpersonphone}`;
+                personnalaccount = `${orgSettings.personal_account_prefix}${supplierResult.rows[0].contactpersonphone}`;
             }
             whichaccount = 'PERSONAL'; // Set account type to PERSONAL
             const accountuser = userResult.rows[0]; // Save the user data in accountuser variable
@@ -181,9 +183,13 @@ const saveTransactionMiddleware = async (req, res, next) => {
             whichaccount = 'GLACCOUNT'; // Set account type to GLACCOUNT
         }
         // Establish the personal account number
-        req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${user.phone}`;
+        if (!req.body['personalaccountnumber']) {
+            req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${user.phone}`;
+        }
         req.body.phone = user.phone;
-        personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`;
+        if (!personnalaccount) {
+            personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`;
+        }
 
         if (accountResult.rowCount === 0 && accountnumber && !accountnumber.startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0 && glAccountResult.rowCount === 0) {
             // If account number is invalid, save the transaction as failed

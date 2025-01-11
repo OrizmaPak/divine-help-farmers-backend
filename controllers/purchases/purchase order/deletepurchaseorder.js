@@ -31,7 +31,7 @@ const deletePurchaseOrder = async (req, res) => {
             return res.status(StatusCodes.NOT_FOUND).json({
                 status: false,
                 message: "No inventory items found with the given transaction reference",
-                statuscode: StatusCodes.NOT_FOUND,
+                statuscode: StatusCodes.NOT_FOUND, 
                 data: null,
                 errors: ["No inventory items found with the given transaction reference"]
             });
@@ -43,10 +43,10 @@ const deletePurchaseOrder = async (req, res) => {
             status: true,
             message: "Purchase order deleted successfully",
             statuscode: StatusCodes.OK,
-            data: null,
+            data: null, 
             errors: []
-        });
-    } catch (error) {
+        }); 
+    } catch (error) { 
         console.error('Unexpected Error:', error);
         await activityMiddleware(req, user.id, 'An unexpected error occurred deleting purchase order', 'PURCHASE ORDER');
 

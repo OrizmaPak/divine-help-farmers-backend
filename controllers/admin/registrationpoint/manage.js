@@ -71,6 +71,21 @@ const manageRegistrationPoint = async (req, res) => {
                 errors: []
             });
         } else { // Update existing registration point
+            if (status && status.toLowerCase() === 'deleted') {
+                const { rows: usersInRegistrationPoint } = await pg.query(`
+                    SELECT * FROM divine."User" WHERE registrationpoint = $1
+                `, [id]);
+
+                if (usersInRegistrationPoint.length > 0) {
+                    return res.status(StatusCodes.BAD_REQUEST).json({
+                        status: false,
+                        message: "All users must be removed from the registration point before it can be deleted",
+                        statuscode: StatusCodes.BAD_REQUEST,
+                        data: null,
+                        errors: []
+                    });
+                }
+            }
             const { rows: [updatedRegistrationPoint] } = await pg.query(`
                 UPDATE divine."Registrationpoint"
                 SET registrationpoint = COALESCE($1, registrationpoint),

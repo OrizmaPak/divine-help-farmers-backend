@@ -1,4 +1,5 @@
 const { saveTransaction } = require("../../../utils/transactionHelper");
+const { activityMiddleware } = require("../../activity");
 
 
 async function personalDebit(client, req, res, next, accountnumber, debit, description, ttype, transactionStatus, whichaccount) {
@@ -26,7 +27,7 @@ async function personalDebit(client, req, res, next, accountnumber, debit, descr
                 debit,
                 description,
                 ttype,
-                status: 'PENDING',
+                status: 'ACTIVE',
                 whichaccount
             }, req);
             req.body.transactiondesc += `Transaction is pending due to insufficient balance. Current balance is ${req.body.currency} ${currentBalance}. Attempted to debit ${req.body.currency} ${debit} from the personal account.|`;

@@ -38,7 +38,7 @@ const getTask = async (req, res) => {
             t.assignedto
             FROM divine."Task" t
             LEFT JOIN divine."Branch" b ON t.branch = b.id::text
-            WHERE 1=1
+            WHERE t.status = 'ACTIVE'
         `;
         let params = [];
 

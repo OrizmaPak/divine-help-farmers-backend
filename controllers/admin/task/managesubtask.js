@@ -70,6 +70,20 @@ const manageSubtask = async (req, res) => {
 
         let assignedToIds
 
+        assignedToIds = assignedto ? assignedto.split("||").map(id => id.trim()) : [];
+        for (let id of assignedToIds) {
+            const { rows: [user] } = await pg.query(`SELECT id FROM divine."User" WHERE id = $1`, [id]);
+            if (!user) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: `Assigned to user with ID ${id} does not exist`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+        };
+
        if(!id){ // Check if start date and end date are within task's start and end date
         // if (new Date(startdate) < new Date(taskExists.startdate) || new Date(enddate) > new Date(taskExists.enddate)) {
         //     return res.status(StatusCodes.BAD_REQUEST).json({
@@ -139,10 +153,17 @@ const manageSubtask = async (req, res) => {
             }
             // Send mail to assignedto
             if (assignedto) {
+                console.log('assignedto', assignedToIds)   
                 assignedToIds.forEach(async id => {
                     const { rows: [user] } = await pg.query(`SELECT email FROM divine."User" WHERE id = $1`, [id]);
                     if (user) {
-                        sendEmail(user.email, `Subtask updated: ${title}`, `The subtask ${title} has been updated. New details: Title: ${title}, Start Date: ${startdate}, End Date: ${enddate}, Description: ${description}, Task Status: ${taskstatus}.`);
+                        console.log('email', user.email)
+                       await sendEmail({
+                           to: user.email,
+                           subject: `Subtask updated: ${title}`,
+                           text: `The subtask ${title} has been updated. New details: Title: ${title}, Start Date: ${startdate}, End Date: ${enddate}, Description: ${description}, Task Status: ${taskstatus}.`,
+                           html: `The subtask ${title} has been updated. New details: Title: ${title}, Start Date: ${startdate}, End Date: ${enddate}, Description: ${description}, Task Status: ${taskstatus}.`
+                       });
                     }
                 });
             }

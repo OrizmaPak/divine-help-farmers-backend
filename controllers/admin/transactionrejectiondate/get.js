@@ -4,7 +4,7 @@ const pg = require("../../../db/pg");
 const getTransactionRejectionDate = async (req, res) => {
     try {
         let query = {
-            text: `SELECT * FROM divine."Rejecttransactiondate"`,
+            text: `SELECT * FROM divine."Rejecttransactiondate" WHERE status = 'ACTIVE'`,
             values: []
         };
 
