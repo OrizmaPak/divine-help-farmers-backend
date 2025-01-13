@@ -84,6 +84,18 @@ const manageCashierLimit = async (req, res) => {
             }
         } else {
             // Create new cashier limit
+            // const minIntValue = -2147483648;
+            // const maxIntValue = 2147483647;
+
+            // if (depositlimit < minIntValue || depositlimit > maxIntValue || withdrawallimit < minIntValue || withdrawallimit > maxIntValue) {
+            //     return res.status(StatusCodes.BAD_REQUEST).json({
+            //         status: false,
+            //         message: `Deposit limit and withdrawal limit must be within the range of a 32-bit integer (${minIntValue} to ${maxIntValue})`,
+            //         statuscode: StatusCodes.BAD_REQUEST,
+            //         data: null,
+            //         errors: []
+            //     });
+            // }
             console.log([cashier, depositlimit, withdrawallimit, 'ACTIVE', new Date().getTime(), req.user.id])
             const { rows: [newCashierLimit] } = await pg.query(`INSERT INTO divine."Cashierlimit" (cashier, depositlimit, withdrawallimit, status, dateadded, createdby) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`, [cashier, depositlimit, withdrawallimit, 'ACTIVE', new Date(), req.user.id]);
             return res.status(StatusCodes.CREATED).json({
