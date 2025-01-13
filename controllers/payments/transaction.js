@@ -45,7 +45,7 @@ const handleTransaction = async (req, res) => {
             await pg.query('COMMIT');
             return respondWithSuccess('Transaction saved to excess account.', req.body.reference);
         } else {
-            await pg.end();
+            await pg.query('ROLLBACK');
             return respondWithError(StatusCodes.INTERNAL_SERVER_ERROR, 'Internal error, please contact support.');
         }
     }
