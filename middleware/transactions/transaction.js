@@ -65,9 +65,10 @@ const saveTransactionMiddleware = async (req, res, next) => {
             status: 'ACTIVE',
             createdby: 0
           }
-    }
-    console.log('entering saveTransactionMiddleware', req.user)
-    let user = req.user; // Get the user from the request
+        }
+        console.log('entering saveTransactionMiddleware', req.user)
+        console.log('entering saveTransactionMiddleware', req.body)
+        let user = req.user; // Get the user from the request
     const client = pg; // Use the pg client for database operations
     console.log('wanting to enter the try block')
     try {

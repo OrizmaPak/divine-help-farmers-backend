@@ -38,7 +38,7 @@ const handleTransaction = async (req, res) => {
     }
 
     if (!req.body.reference) {
-        if (req.body.tfrom === 'BANK') {
+        if (req.body.tfrom == 'BANK') {
             const excessAccountNumber = req.orgSettings.default_excess_account;
             req.body.transactiondesc += `Original Account Number: ${req.body.accountnumber}, Description: ${req.body.description}, Branch: ${req.body.branch}, Registration Point: ${req.body.registrationpoint}`;
             await saveTransaction(pg, req, res, excessAccountNumber, req.body.credit, req.body.debit, req.body.description, req.body.ttype, 'PENDING', 'EXCESS', req.user.id);
@@ -65,3 +65,6 @@ const handleTransaction = async (req, res) => {
 module.exports = {
     handleTransaction
 };
+
+
+ 
