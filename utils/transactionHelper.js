@@ -7,9 +7,9 @@ const { activityMiddleware } = require('../middleware/activity');
 // }
 
 async function applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount) {
-    console.log('req', req)
+    console.log('req', req);
     const chargeAmount = await calculateChargedebit(req.savingsProduct, debit); // Calculate the charge amount
-    console.log('chargeamount', chargeAmount)
+    console.log('chargeamount', chargeAmount);
     const transactionParams = {
         accountnumber: accountnumber,
         debit: chargeAmount, 
@@ -21,6 +21,19 @@ async function applyWithdrawalCharge(client, req, res, accountnumber, debit, whi
     };
     await saveTransaction(client, res, transactionParams, req); // Call the saveTransaction function
     await activityMiddleware(req, req.user.id, 'Pending withdrawal charge transaction saved', 'TRANSACTION'); // Log activity
+
+    // Credit the charge amount to the organisation's default income account
+    const incomeAccountParams = {
+        accountnumber: req.orgSettings.default_income_account,
+        credit: chargeAmount,
+        description: 'Withdrawal Charge Income',
+        reference: transactionParams.reference,
+        status: 'PENDING',
+        ttype: 'INCOME',
+        whichaccount: 'INCOME'
+    };
+    await saveTransaction(client, res, incomeAccountParams, req); // Save the income transaction
+    await activityMiddleware(req, req.user.id, 'Withdrawal charge credited to default income account', 'TRANSACTION');
 }
 
 async function applySavingsCharge(client, req, res, accountnumber, credit, whichaccount) {
@@ -37,6 +50,19 @@ async function applySavingsCharge(client, req, res, accountnumber, credit, which
     };
     await saveTransaction(client, res, transactionParams, req); // Call the saveTransaction function
     await activityMiddleware(req, req.user.id, 'Pending savings charge transaction saved', 'TRANSACTION'); // Log activity
+
+    // Credit the charge amount to the organisation's default income account
+    const incomeAccountParams = {
+        accountnumber: req.orgSettings.default_income_account,
+        credit: chargeAmount,
+        description: 'Savings Charge Income',
+        reference: transactionParams.reference,
+        status: 'PENDING',
+        ttype: 'INCOME',
+        whichaccount: 'INCOME'
+    };
+    await saveTransaction(client, res, incomeAccountParams, req); // Save the income transaction
+    await activityMiddleware(req, req.user.id, 'Savings charge credited to default income account', 'TRANSACTION');
 }
 
 
@@ -74,7 +100,7 @@ async function takeCharges(client, req, res) {
 const saveFailedTransaction = async (client, req, res, reasonForRejection, transactionReference, whichaccount) => {
     transactionReference = await generateNewReference(client, req.body.accountnumber, req);
     const createdBy = req.user.id || req.body.createdby || 0;
-    let userid = 0;
+    let userid = req.user.id;
 
     req.body.transactiondesc += `Transaction failed due to: ${reasonForRejection}.|`;
 
@@ -131,7 +157,7 @@ const saveFailedTransaction = async (client, req, res, reasonForRejection, trans
 // Function to save pending transaction with reason for pending
 const savePendingTransaction = async (client, accountnumber, credit, debit, transactionReference, description, ttype, reasonForRejection, status, whichaccount, req) => {
     const createdBy = req.user.id || req.body.createdby || 0;
-    let userid = 0;
+    let userid = req.user.id;
 
     // if (whichaccount !== 'GLACCOUNT') {
     //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
@@ -208,7 +234,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
         } = transactionData;
 
         const createdBy = req.user.id || req.body.createdby || 0;
-        let userid = 0;
+        let userid = req.user.id;
 
         // if (whichaccount !== 'GLACCOUNT') {
         //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
@@ -397,7 +423,7 @@ const sendNotification = async (user, transaction) => {
 const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountuser, reference, transactiondesc, whichaccount, credit) => {
     // Implement logic for handling excess accounts
     const createdBy = req.user.id || req.body.createdby || 0;
-    let userid = 0;
+    let userid = req.user.id;
 
     // if (whichaccount !== 'GLACCOUNT') {
     //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
@@ -406,7 +432,7 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
     //         userid = accountResult.rows[0].userid;
     //     } 
     // } 
-
+ 
     // save the transaction as redirect 
     console.log('credit', credit, req.body.credit)
     let status = req.body.status === 'REJECTED' ? 'REJECTED' : 'REDIRECTED';
@@ -448,7 +474,7 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
 const handleRedirection = async (client, req, res, accountuser, reference, transactiondesc, whichaccount, credit, debit) => {
     // Implement logic for handling excess accounts
     const createdBy = req.user.id || req.body.createdby || 0;
-    let userid = 0;
+    let userid = req.user.id;
 
     // save the transaction as redirect 
     console.log('credit', credit, req.body.credit);
@@ -509,7 +535,7 @@ const handleRedirection = async (client, req, res, accountuser, reference, trans
 const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountuser, reference, transactiondesc, whichaccount, debit) => {
     // Implement logic for handling excess accounts
     const createdBy = req.user.id || req.body.createdby || 0;
-    let userid = 0;
+    let userid = req.user.id;
 
     // if (whichaccount !== 'GLACCOUNT') {
     //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;

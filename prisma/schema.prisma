@@ -269,6 +269,7 @@ model Organisationsettings {
   default_equity_account                      Float?
   default_tax_account                         Float?
   default_excess_account                      Float?
+  default_allocation_account                  Float? @default(0)
   status                                      String @default("ACTIVE")
 }
 

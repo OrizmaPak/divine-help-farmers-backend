@@ -2,15 +2,15 @@ const { activityMiddleware } = require("../activity");
 const saveTransactionMiddleware = require("./transaction");
 
 // for performing two way transaction
-async function performTransaction(from, to) {
+async function performTransaction(from, to, fromuser=0, touser=0) {
     // Restructure the 'from' and 'to' transactions to include 'user' and 'body'
     const fromTransaction = {
-        user: { id: 0 },
+        user: { id: fromuser },
         body: { ...from }
     };
 
     const toTransaction = {
-        user: { id: 0 },
+        user: { id: touser },
         body: { ...to }
     };
 
@@ -23,17 +23,17 @@ async function performTransaction(from, to) {
 
     try {
         // Step 1: Log the transaction attempt in the activity
-        await activityMiddleware(fromTransaction, 0, 'Attempting to perform transaction', 'TRANSACTION');
+        await activityMiddleware(fromTransaction, fromuser, 'Attempting to perform transaction', 'TRANSACTION');
 
         // Step 2: Save the 'from' transaction
         await saveTransactionMiddleware(fromTransaction, res, () => {
-            console.log('From Transaction Reference:', fromTransaction.body.reference);
+            console.log('From Transaction Reference:', fromTransaction.body.reference, fromTransaction.body);
         });
 
         // Check if 'from' transaction generated a reference
         if (!fromTransaction.body.reference) {
             console.error('From transaction did not generate a reference.');
-            return false;
+            return { status: false, reference: [] };
         }
 
         // Step 3: Assign the 'from' reference to the 'to' transaction
@@ -69,13 +69,13 @@ async function performTransaction(from, to) {
             // Log the rollback activity
             await activityMiddleware(reversalTransaction, 0, 'Rolled back the from transaction due to failure in to transaction', 'TRANSACTION_ROLLBACK');
 
-            return false;
+            return { status: false, reference: [] };
         }
 
         // Step 6: Log the successful transaction in the activity
         await activityMiddleware(fromTransaction, 0, 'Transaction performed successfully', 'TRANSACTION');
 
-        return true;
+        return { status: true, reference: [fromTransaction.body.reference, toTransaction.body.reference] };
 
     } catch (error) {
         console.error('Error performing transaction:', error);
@@ -83,7 +83,7 @@ async function performTransaction(from, to) {
         // Log the error in the activity
         await activityMiddleware(fromTransaction, 0, 'Error performing transaction', 'TRANSACTION_ERROR');
 
-        return false;
+        return { status: false, reference: [] };
     }
 }
 
@@ -114,13 +114,13 @@ async function performTransactionOneWay(transaction) {
         // Check if transaction generated a reference
         if (!transactionData.body.reference) {
             console.error('Transaction did not generate a reference.');
-            return false;
+            return { status: false, reference: [] };
         }
 
         // Step 3: Log the successful transaction in the activity
         await activityMiddleware(transactionData, 0, 'Transaction performed successfully', 'TRANSACTION');
 
-        return true;
+        return { status: true, reference: [transactionData.body.reference] };
 
     } catch (error) {
         console.error('Error performing transaction:', error);
@@ -128,7 +128,7 @@ async function performTransactionOneWay(transaction) {
         // Log the error in the activity
         await activityMiddleware(transactionData, 0, 'Error performing transaction', 'TRANSACTION_ERROR');
 
-        return false;
+        return { status: false, reference: [] };
     }
 }
 
@@ -141,14 +141,14 @@ const fromTransaction = {
     accountnumber: "1000000001",
     credit: 0,
     debit: 5000,
-    reference: "987654321234567890098765434567",
+    reference: "",
     transactiondate: new Date(),
     transactiondesc: 'Payment for services',
     currency: 'NGN',
     description: 'Payment reference',
     branch: 'Main',
     registrationpoint: 'Online',
-    ttype: 'CHARGE', // Original transaction type
+    ttype: 'DEBIT', // Original transaction type
     tfrom: 'BANK',
     tax: false,
 };

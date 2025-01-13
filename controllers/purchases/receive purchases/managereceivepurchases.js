@@ -195,6 +195,26 @@ const manageReceivePurchases = async (req, res) => {
         const orgSettings = (await pg.query(`SELECT * FROM divine."Organisationsettings" LIMIT 1`)).rows[0];
 
         const reqbody = req.body;
+
+        
+        const userAllocationBalanceQuery = `
+            SELECT COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) AS balance 
+            FROM divine."transaction" 
+            WHERE accountnumber = $1 AND userid = $2
+        `;
+        
+        const userAllocationBalanceResult = await pg.query(userAllocationBalanceQuery, [orgSettings.default_allocation_account, req.user.id]);
+        const userAllocationBalance = userAllocationBalanceResult.rows[0].balance;
+
+        if (userAllocationBalance < req.body.amountpaid) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: 'Insufficient funds allocated to the you.',
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: []
+            });
+        }
         
         // debit the supplier account
         const supplierTransaction = {
@@ -225,9 +245,10 @@ const manageReceivePurchases = async (req, res) => {
            });
        }
 
+
         // SUBMIT TRANSACTION PAID
         const fromTransaction = {
-            accountnumber: `${orgSettings.default_expense_account}`,
+            accountnumber: `${orgSettings.default_allocation_account}`,
             credit: 0,
             debit: req.body.amountpaid,
             reference: req.body.paymentref,
@@ -248,7 +269,7 @@ const manageReceivePurchases = async (req, res) => {
             debit: 0,
             reference:"",
             transactiondate: new Date(),
-            transactiondesc: '',
+            transactiondesc: '', 
             currency: supplier.currency,
             description: "Credit for items purchased",
             branch: '',

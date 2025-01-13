@@ -23,6 +23,7 @@ const loanRouter = require('./routes/loan');
 const paymentRouter = require('./routes/payment');
 const transactionsRouter = require('./routes/transactions');
 const purchasesRouter = require('./routes/purchases');
+const expenseRouter = require('./routes/expense');
 const incomingsRouter = require('./routes/incomings');
 const aiRouter = require('./routes/ai');
 
@@ -64,17 +65,20 @@ app.use('/node/api/v1/glaccounts', authMiddleware, glaccountsRouter);
 app.use('/node/api/v1/members', authMiddleware, memberRouter);
 app.use('/node/api/v1/savings', authMiddleware, savingsRouter);
 app.use('/node/api/v1/loan', authMiddleware, loanRouter);
-app.use('/node/api/v1/payment',  transactionMiddleware, paymentRouter);
+app.use('/node/api/v1/payment', authMiddleware, transactionMiddleware, paymentRouter);
+app.use('/node/api/v1/payment2', transactionMiddleware, paymentRouter);
 app.use('/node/api/v1/transactions', authMiddleware, transactionsRouter); 
 app.use('/node/api/v1/purchases', authMiddleware, purchasesRouter);
-app.use('/node/api/v1/incomings', incomingsRouter);
+app.use('/node/api/v1/expense', authMiddleware, expenseRouter);
+
+app.use('/node/api/v1/incomings', incomingsRouter); 
 app.use('/node/api/v1/ai', aiRouter);
 
 app.get('/node/', (req, res) => {
     res.send('Welcome to the divine help farmers backend!');
 });
 app.use('/node/*', (req, res) => {
-    res.send('wild card handled this route');
+    res.send(`wild card handled this route: ${req.protocol}://${req.get('host')}${req.originalUrl}`);
 });
 
 

@@ -81,10 +81,11 @@ const organizationsettings = async (req, res) => {
       default_equity_account = null,
       default_tax_account = null,
       default_excess_account = null,
+      default_allocation_account = null, 
     } = req.body;
 
     const user = req.user;
-
+ 
     // Basic validation
     const errors = [];
 
@@ -159,6 +160,7 @@ const organizationsettings = async (req, res) => {
       default_equity_account,
       default_tax_account,
       default_excess_account,
+      default_allocation_account, 
     ];
 
     for (const account of defaultAccounts) {
@@ -199,7 +201,7 @@ const organizationsettings = async (req, res) => {
           default_equity_does_not_close_account, default_inventory_account, default_other_asset_account, default_cost_of_sales_account,
           default_fixed_asset_account, default_other_current_asset_account, default_accounts_payable_account, default_accounts_receivable_account,
           default_accumulated_depreciation_account, default_liabilities_account, default_other_current_liabilities_account, default_long_term_liabilities_account,
-          default_equity_account, default_tax_account, default_excess_account
+          default_equity_account, default_tax_account, default_excess_account, default_allocation_account
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
           $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
@@ -207,7 +209,7 @@ const organizationsettings = async (req, res) => {
           $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
           $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
           $51, $52, $53, $54, $55, $56, $57, $58, $59, $60,
-          $61, $62, $63, $64, $65, $66, $67, $68
+          $61, $62, $63, $64, $65, $66, $67, $68, $69
         ) RETURNING id
       `;
 
@@ -280,6 +282,7 @@ const organizationsettings = async (req, res) => {
         parseNumber(default_equity_account, null),
         parseNumber(default_tax_account, null),
         parseNumber(default_excess_account, null),
+        parseNumber(default_allocation_account, null), 
       ];
 
       const { rows } = await pg.query(insertQuery, insertValues);
@@ -382,8 +385,9 @@ const organizationsettings = async (req, res) => {
           default_long_term_liabilities_account = COALESCE($65, default_long_term_liabilities_account),
           default_equity_account = COALESCE($66, default_equity_account),
           default_tax_account = COALESCE($67, default_tax_account),
-          default_excess_account = COALESCE($68, default_excess_account)
-        WHERE id = $69
+          default_excess_account = COALESCE($68, default_excess_account),
+          default_allocation_account = COALESCE($69, default_allocation_account)
+        WHERE id = $70
       `;
 
       const updateValues = [
@@ -455,6 +459,7 @@ const organizationsettings = async (req, res) => {
         default_equity_account,
         default_tax_account,
         default_excess_account,
+        default_allocation_account, 
         idToUpdate,
       ];
       // return console.log('started here', updateQuery, updateValues)

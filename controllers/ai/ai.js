@@ -29,6 +29,31 @@ async function generateText(prompt) {
   }
 }
 
+// Function to generate text using OpenAI
+async function generateTextwithClient(prompt, req) {
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 150,
+      temperature: 0.7, 
+    });
+
+    // Check if the response contains valid data 
+    if (response.choices && response.choices.length > 0) {
+      console.log('Headers in ai:', req.headers);
+      return response.choices[0].message.content.trim();
+    } else {
+      return 'AI failed to respond'
+      throw new Error("No response from the model");
+    }
+  } catch (error) {
+    return 'AI failed to respond'
+    console.error("Error with OpenAI API:", error.response ? error.response.data : error.message);
+    throw new Error("Failed to generate text");
+  }
+}
+
 // Controller to handle the API request
 const generateTextController = async (req, res) => {
   try {
@@ -843,6 +868,7 @@ module.exports = {
   generateTextController,
   generateText,
   generateDateCodeController,
-  generateSentenceController
+  generateSentenceController,
+  generateTextwithClient
 };
  

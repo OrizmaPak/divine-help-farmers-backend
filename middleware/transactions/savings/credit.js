@@ -13,6 +13,7 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
         // apply check for minimum credit and penalty
         await applyMinimumCreditAmountPenalty(client, req, res, req.orgSettings);
 
+
         // 8. Handle Deposit Charge
         if (credit > 0 && savingsProduct.depositcharge) {
             console.log("Handling deposit charge for credit:", credit);
@@ -388,6 +389,8 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
             // req.body.transactiondesc += 'All compulsory deposits handled successfully.|';
             // return next();
         }
+
+        transactionStatus = 'ACTIVE';
 
         console.log('its saving without a problem')
         await saveTransaction(client, res, {
