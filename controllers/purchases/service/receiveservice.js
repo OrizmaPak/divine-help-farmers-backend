@@ -120,10 +120,10 @@ const manageReceiveService = async (req, res) => {
         const orgSettings = organisationData.rows[0];
 
         if (req.body.reference) {
-            // await pg.query(
-            //     `DELETE FROM divine."Service" WHERE reference = $1`,
-            //     [req.body.reference]
-            // );
+            await pg.query(
+                `DELETE FROM divine."Service" WHERE reference = $1`,
+                [req.body.reference]
+            );
         } 
 
         console.log('checking supplier', validSupplier)

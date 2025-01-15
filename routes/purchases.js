@@ -10,6 +10,7 @@ const { getServices } = require('../controllers/purchases/service/getserviceorde
 const { saveOrUpdateServices } = require('../controllers/purchases/service/serviceorder');
 const { manageReceiveService } = require('../controllers/purchases/service/receiveservice');
 const { getServicesReceived } = require('../controllers/purchases/service/getservicereceived');
+const { deleteServiceOrder } = require('../controllers/purchases/service/deleteserviceorder');
 const router = express.Router();
 
 
@@ -35,6 +36,7 @@ router.route('/serviceorder')
 router.route('/service')
     .post(manageReceiveService)
     .get(getServicesReceived) 
+    .delete(deleteServiceOrder)
 
 
     
