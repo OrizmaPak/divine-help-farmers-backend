@@ -3,6 +3,7 @@ const allocateExpenditure = require('../controllers/expenses/allocate/allocateex
 const getTransactionsAndBalance = require('../controllers/expenses/allocate/getallocateexpenditure');
 const approveDeclineAllocation = require('../controllers/expenses/allocate/approvedeclineallocation');
 const { getAllPayables } = require('../controllers/expenses/payables/allpayables');
+const { processSupplierPayout } = require('../controllers/expenses/supplierpayout/supplierpay');
 const router = express.Router();
 
 
@@ -17,6 +18,9 @@ router.route('/approvedeclineallocation')
 
 router.route('/allpayables')
     .get(getAllPayables)
+
+router.route('/payout')
+    .post(processSupplierPayout)
 
 
 
