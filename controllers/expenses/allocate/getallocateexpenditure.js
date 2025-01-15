@@ -98,7 +98,7 @@ const getTransactionsAndBalance = async (req, res) => {
     // - We only sum "ACTIVE" rows for the balance
     // - We still JSON_AGG all rows into "transactions"
     const transactionsQuery = `
-      SELECT
+      SELECT 
         sub.userid,
         SUM(
           CASE WHEN sub.status = 'ACTIVE' THEN sub.credit ELSE 0 END
@@ -158,9 +158,17 @@ const getTransactionsAndBalance = async (req, res) => {
             u.firstname || ' ' || COALESCE(u.othernames, '') || ' ' || u.lastname
           )
           ELSE 'Unknown User'
-        END AS fullname
+        END AS fullname,
+        CASE 
+          WHEN cu.id IS NOT NULL 
+          THEN (
+            cu.firstname || ' ' || COALESCE(cu.othernames, '') || ' ' || cu.lastname
+          )
+          ELSE 'Unknown User'
+        END AS createdbyname
       FROM divine."transaction" t
       LEFT JOIN divine."User" u ON t.userid = u.id
+      LEFT JOIN divine."User" cu ON t.createdby = cu.id
       WHERE ${conditionsNotActive.join(" AND ")}
       ORDER BY t.dateadded DESC
     `;
@@ -293,113 +301,3 @@ const getTransactionsAndBalance = async (req, res) => {
 };
 
 module.exports = getTransactionsAndBalance;
-
-
-
-  
-
-
-
- 
-
-
-
-
-
-
-
-// const { StatusCodes } = require("http-status-codes");
-// const pg = require("../../../db/pg");
-// const { activityMiddleware } = require("../../../middleware/activity");
-
-// const getTransactionsAndBalance = async (req, res) => {
-//     const user = req.user;
-
-//     try {
-//         const { page = 1, limit = process.env.DEFAULT_LIMIT } = req.query;
-
-//         // Fetch organization settings
-//         const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings"`;
-//         const orgSettingsResult = await pg.query(orgSettingsQuery);
-
-//         if (orgSettingsResult.rows.length === 0) {
-//             await activityMiddleware(req, user.id, 'Organization settings not found', 'EXPENDITURE_ALLOCATION');
-//             return res.status(StatusCodes.NOT_FOUND).json({
-//                 status: false,
-//                 message: "Organization settings not found",
-//                 statuscode: StatusCodes.NOT_FOUND,
-//                 data: null,
-//                 errors: []
-//             });
-//         }
-
-//         const orgSettings = orgSettingsResult.rows[0];
-
-//         // Get all transactions grouped by userid and calculate balance
-//         const transactionsQuery = `
-//             SELECT 
-//                 userid, 
-//                 SUM(credit) - SUM(debit) AS balance,
-//                 ARRAY_AGG(ROW(credit, debit, transactiondate, description)) AS transactions
-//             FROM divine."transaction"
-//             WHERE accountnumber = $1
-//             GROUP BY userid
-//             LIMIT $2 OFFSET $3
-//         `;
-//         const transactionsResult = await pg.query(transactionsQuery, [orgSettings.default_allocation_account, limit, (page - 1) * limit]);
-
-//         // Fetch user names for each userid
-//         const userIds = transactionsResult.rows.map(row => row.userid);
-//         const userNamesQuery = `
-//             SELECT id, firstname, lastname, othernames 
-//             FROM divine."User"
-//             WHERE id = ANY($1)
-//         `;
-//         const userNamesResult = await pg.query(userNamesQuery, [userIds]);
-
-//         const userNamesMap = userNamesResult.rows.reduce((acc, row) => {
-//             const fullName = `${row.firstname} ${row.othernames ? row.othernames + ' ' : ''}${row.lastname}`;
-//             acc[row.userid] = fullName;
-//             return acc;
-//         }, {});
-
-//         // Construct response data
-//         console.log('transactionsResult', transactionsResult.rows)
-//         const data = transactionsResult.rows.map(row => ({
-//             userid: row.userid,
-//             fullname: userNamesMap[row.userid] || 'Unknown User',
-//             balance: row.balance,
-//             transactions: row.transactions.map(([credit, debit, transactiondate, description]) => ({
-//                 credit, debit, transactiondate, description
-//             }))
-//         }));
-
-//         await activityMiddleware(req, user.id, 'Transactions and balances fetched successfully', 'EXPENDITURE_ALLOCATION');
-
-//         return res.status(StatusCodes.OK).json({
-//             status: true,
-//             message: "Transactions and balances fetched successfully",
-//             statuscode: StatusCodes.OK,
-//             data: data,
-//             pagination: {
-//                 total: data.length,
-//                 pages: Math.ceil(data.length / limit),
-//                 page: Number(page),
-//                 limit: Number(limit)
-//             },
-//             errors: []
-//         });
-//     } catch (error) {
-//         console.error('Error fetching transactions and balances:', error);
-//         await activityMiddleware(req, user.id, 'Error fetching transactions and balances', 'EXPENDITURE_ALLOCATION');
-//         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-//             status: false,
-//             message: "Internal Server Error",
-//             statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
-//             data: null,
-//             errors: [error.message]
-//         });
-//     }
-// };
-
-// module.exports = getTransactionsAndBalance;

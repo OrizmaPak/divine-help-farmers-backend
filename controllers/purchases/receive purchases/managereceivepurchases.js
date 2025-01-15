@@ -200,7 +200,7 @@ const manageReceivePurchases = async (req, res) => {
         const userAllocationBalanceQuery = `
             SELECT COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) AS balance 
             FROM divine."transaction" 
-            WHERE accountnumber = $1 AND userid = $2
+            WHERE accountnumber = $1 AND userid = $2 AND status = 'ACTIVE'
         `;
         
         const userAllocationBalanceResult = await pg.query(userAllocationBalanceQuery, [orgSettings.default_allocation_account, req.user.id]);
@@ -209,11 +209,11 @@ const manageReceivePurchases = async (req, res) => {
         if (userAllocationBalance < req.body.amountpaid) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: 'Insufficient funds allocated to the you.',
+                message: 'Insufficient funds allocated to the you. Contact your administrator for more funds to be allocated or pay '+userAllocationBalance+' and pay the balance later',
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
                 errors: []
-            });
+            });  
         }
         
         // debit the supplier account
@@ -255,7 +255,7 @@ const manageReceivePurchases = async (req, res) => {
             transactiondate: new Date(),
             transactiondesc: '',
             currency: supplier.currency,
-            description: "Debit for items received to inventory",
+            description: `Debit for items received to inventory from ${supplier.supplier}`,
             branch: '',
             registrationpoint: '',
             ttype: 'DEBIT',
@@ -271,7 +271,7 @@ const manageReceivePurchases = async (req, res) => {
             transactiondate: new Date(),
             transactiondesc: '', 
             currency: supplier.currency,
-            description: "Credit for items purchased",
+            description: `Credit for items purchased by ${user.firstname} ${user.lastname} to balance ${formatCurrency(Number(totalValue)-Number(req.body.amountpaid))}`,
             branch: '',
             registrationpoint: '',
             ttype: 'CREDIT',
@@ -279,7 +279,7 @@ const manageReceivePurchases = async (req, res) => {
             tax: false,
         };
 
-        const makepayment = await performTransaction(fromTransaction, toTransaction)
+        const makepayment = await performTransaction(fromTransaction, toTransaction, user.id, user.id);
 
         if (reference) {
             try {
@@ -288,7 +288,7 @@ const manageReceivePurchases = async (req, res) => {
                     [reference]
                 );
             } catch (error) {
-                console.error('Error deleting purchase order:', error);
+                console.error('Error deleting purchase order:', error); 
                 return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                     status: false,
                     message: "Failed to delete purchase order",

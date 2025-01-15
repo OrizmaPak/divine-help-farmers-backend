@@ -5,6 +5,7 @@ const { activityMiddleware } = require("../../../middleware/activity");
 
 const allocateExpenditure = async (req, res) => {
     try {
+        const user = req.user;
         const { userid, amount, description } = req.body;
 
         // Validate input
@@ -156,10 +157,21 @@ const allocateExpenditure = async (req, res) => {
             // Update the status to PENDING for the 'to' transaction reference
             const updateStatusQuery = `
                 UPDATE divine."transaction"
-                SET status = 'PENDING'
+                SET status = 'PENDING', createdby = $2
                 WHERE reference = $1
             `;
-            await pg.query(updateStatusQuery, [toReference]);
+            const updateStatusResult = await pg.query(updateStatusQuery, [toReference, user.id]);
+            if (updateStatusResult.rowCount === 0) {
+                throw new Error('Failed to update transaction status to PENDING');
+            }
+            await pg.query(updateStatusQuery, [toReference, user.id]);
+             
+            const updateCreatedByQuery = `
+                UPDATE divine."transaction" 
+                SET createdby = $2
+                WHERE reference = $1
+            `;
+            await pg.query(updateCreatedByQuery, [fromReference, user.id]);
 
             await activityMiddleware(req, 0, `Expenditure allocated successfully to ${fullName}(${userid}) for ${description} with amount ${amount}`, 'EXPENDITURE_ALLOCATION');
             return res.status(StatusCodes.OK).json({

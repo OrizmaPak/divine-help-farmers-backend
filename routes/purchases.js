@@ -6,6 +6,10 @@ const { managePurchaseOrder } = require('../controllers/purchases/purchase order
 const { deletePurchaseOrder } = require('../controllers/purchases/purchase order/deletepurchaseorder');
 const { manageReceivePurchases } = require('../controllers/purchases/receive purchases/managereceivepurchases');
 const { getReceivePurchases } = require('../controllers/purchases/receive purchases/getreceivepurchases');
+const { getServices } = require('../controllers/purchases/service/getserviceorder');
+const { saveOrUpdateServices } = require('../controllers/purchases/service/serviceorder');
+const { manageReceiveService } = require('../controllers/purchases/service/receiveservice');
+const { getServicesReceived } = require('../controllers/purchases/service/getservicereceived');
 const router = express.Router();
 
 
@@ -14,6 +18,7 @@ const router = express.Router();
 router.route('/supplier')
     .post(manageSupplier)
     .get(getSupplier)
+
 router.route('/order')
     .post(managePurchaseOrder)
     .get(getPurchaseOrder)
@@ -22,6 +27,14 @@ router.route('/order')
 router.route('/purchase')
     .post(manageReceivePurchases)
     .get(getReceivePurchases)
+
+router.route('/serviceorder')
+    .post(saveOrUpdateServices)
+    .get(getServices)
+
+router.route('/service')
+    .post(manageReceiveService)
+    .get(getServicesReceived) 
 
 
     

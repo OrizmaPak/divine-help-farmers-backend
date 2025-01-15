@@ -690,3 +690,20 @@ model collateral {
   createdby          Int 
   status             String   @default("ACTIVE")
 }
+
+model Service {
+  id                 Int      @id @default(autoincrement())
+  supplier           Int
+  servicetype        String  // "LOGISTICS", "IT", "NETWORK", "OTHER", "MAINTENANCE"
+  description        String
+  amount             Float?
+  amountfrom         Float?
+  amountto           Float?
+  servicestartdate   DateTime?  @default(now())
+  serviceenddate     DateTime?  @default(now())
+  branch             Int
+  dateadded          DateTime @default(now())
+  createdby          Int
+  reference          String @default("")
+  status             String   @default("ACTIVE")
+}

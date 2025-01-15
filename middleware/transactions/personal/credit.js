@@ -11,7 +11,7 @@ async function personalCredit(client, req, res, next, accountnumber, credit, des
             debit: 0, // Assuming debit is 0 for credit transactions
             description,
             ttype,
-            status: transactionStatus,
+            status: req.body.tfrom != "BANK" ? transactionStatus : "ACTIVE",
             whichaccount
         }, req);
         req.body.transactiondesc += `An amount of ${req.body.currency} ${credit} has been successfully credited to the personal account.|`;
@@ -19,7 +19,7 @@ async function personalCredit(client, req, res, next, accountnumber, credit, des
         await activityMiddleware(req, req.user.id, 'Transaction saved successfully', 'TRANSACTION'); // Log activity
     }
 }
-
+ 
 module.exports = {
-    personalCredit
+    personalCredit  
 };
