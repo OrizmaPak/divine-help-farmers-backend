@@ -68,8 +68,7 @@ const getAccounts = async (req, res) => {
         const limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10);
         const offset = (page - 1) * limit;
 
-        // Ensure ORDER BY is placed before LIMIT and OFFSET
-        query.text += ` ORDER BY s.transactiondate ASC LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;
+        query.text += ` LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;
         query.values.push(limit, offset);
 
         const result = await pg.query(query);
@@ -113,3 +112,4 @@ const getAccounts = async (req, res) => {
 };
 
 module.exports = { getAccounts };
+   

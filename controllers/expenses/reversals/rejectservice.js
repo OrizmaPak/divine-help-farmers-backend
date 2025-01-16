@@ -23,10 +23,31 @@ const rejectService = async (req, res) => {
             });
         }
 
+        if (service.status !== "ACTIVE") {
+            await activityMiddleware(req, user.id, 'Service not active', 'SERVICE_REJECTION');
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "This Service has not been paid for.",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["Service with the given ID is not active"]
+            });
+        }
+
         // Clone the service object
         const clonedService = { ...service };
 
         // Update the clone with the negative amount and new issue
+        if (Math.abs(amount) > Math.abs(clonedService.amount)) {
+            await activityMiddleware(req, user.id, 'Amount exceeds original service amount', 'SERVICE_REJECTION');
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "The rejection amount cannot exceed the original service amount",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["Rejection amount exceeds original service amount"]
+            });
+        }
         clonedService.amount = -Math.abs(amount);
         clonedService.issue = issue;
 

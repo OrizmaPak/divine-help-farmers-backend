@@ -97,7 +97,7 @@ const getaccountTransactions = async (req, res) => {
         query.text += whereClause;
 
         // Add LIMIT and OFFSET for pagination
-        query.text += ` ORDER BY "dateadded" DESC, "id" ASC LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;
+        query.text += ` ORDER BY "dateadded" ASC, "id" ASC LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;
         query.values.push(limit, offset);
         valueIndex += 2;
 

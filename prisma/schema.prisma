@@ -694,7 +694,7 @@ model collateral {
 
 model Service {
   id                 Int      @id @default(autoincrement())
-  serviceid          Int      @default(autoincrement())
+  serviceid          String      @default(uuid())
   supplier           Int
   staff              Int?
   servicetype        String  // "LOGISTICS", "IT", "NETWORK", "OTHER", "MAINTENANCE"
