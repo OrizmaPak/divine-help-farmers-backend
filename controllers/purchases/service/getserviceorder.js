@@ -19,7 +19,7 @@ const getServices = async (req, res) => {
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
-                    whereClause += ` WHERE `;
+                    whereClause += ` AND `;
                 }
                 whereClause += `"${key}" = $${valueIndex}`;
                 query.values.push(req.query[key]);
@@ -34,7 +34,7 @@ const getServices = async (req, res) => {
             if (whereClause) {
                 whereClause += ` AND servicestartdate >= $${valueIndex} AND serviceenddate <= $${valueIndex + 1}`;
             } else {
-                whereClause += ` WHERE servicestartdate >= $${valueIndex} AND serviceenddate <= $${valueIndex + 1}`;
+                whereClause += ` AND servicestartdate >= $${valueIndex} AND serviceenddate <= $${valueIndex + 1}`;
             }
             query.values.push(startdate, enddate);
             valueIndex += 2;
@@ -42,7 +42,7 @@ const getServices = async (req, res) => {
             if (whereClause) {
                 whereClause += ` AND servicestartdate >= $${valueIndex}`;
             } else {
-                whereClause += ` WHERE servicestartdate >= $${valueIndex}`;
+                whereClause += ` AND servicestartdate >= $${valueIndex}`;
             }
             query.values.push(startdate);
             valueIndex++;
@@ -50,13 +50,15 @@ const getServices = async (req, res) => {
             if (whereClause) {
                 whereClause += ` AND serviceenddate <= $${valueIndex}`;
             } else {
-                whereClause += ` WHERE serviceenddate <= $${valueIndex}`;
+                whereClause += ` AND serviceenddate <= $${valueIndex}`;
             }
             query.values.push(enddate);
             valueIndex++;
         }
 
         query.text += whereClause;
+
+        console.log(query.text);
 
         const result = await pg.query(query);
         const services = result.rows;
