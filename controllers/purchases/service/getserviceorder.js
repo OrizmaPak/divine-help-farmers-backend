@@ -21,13 +21,13 @@ const getServices = async (req, res) => {
                 } else {
                     whereClause += ` AND `;
                 }
-                whereClause += `"${key}" = $${valueIndex}`;
+                whereClause += `"${key}" = $${valueIndex}`; 
                 query.values.push(req.query[key]);
                 valueIndex++;
             }
         });
 
-        // Add startdate and enddate filtering
+        // Add startdate and enddate filtering 
         const startdate = req.query.startdate;
         const enddate = req.query.enddate;
         if (startdate && enddate) {

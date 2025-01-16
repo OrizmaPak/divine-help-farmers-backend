@@ -1,6 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { performTransactionOneWay } = require("../../../middleware/transactions/performTransaction");
 
 const rejectService = async (req, res) => {
     const { id, amount, staff, issue } = req.body;
