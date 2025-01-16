@@ -271,7 +271,7 @@ const manageReceivePurchases = async (req, res) => {
             transactiondate: new Date(),
             transactiondesc: '', 
             currency: supplier.currency,
-            description: `Credit for items purchased by ${user.firstname} ${user.lastname} to balance ${formatCurrency(Number(totalValue)-Number(req.body.amountpaid))}`,
+            description: `Credit for items purchased by ${user.firstname} ${user.lastname} to balance ${(Number(totalValue) - Number(req.body.amountpaid)).toLocaleString()}`,
             branch: '',
             registrationpoint: '',
             ttype: 'CREDIT',

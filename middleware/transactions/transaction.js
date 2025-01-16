@@ -152,7 +152,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
             whichaccount = 'SAVINGS'; // Set account type to SAVINGS
         } else if (accountnumber && accountnumber.startsWith(orgSettings.personal_account_prefix)) {
             const phoneNumber = accountnumber.substring(orgSettings.personal_account_prefix.length);
-            const userQuery = `SELECT * FROM divine."User" WHERE phone = $1`;
+            const userQuery = `SELECT * FROM divine."User" WHERE phone = $1::text`;
             const userResult = await client.query(userQuery, [phoneNumber]);
             if (userResult.rowCount === 0) {
                 // If not found in User table, check the Supplier table
@@ -172,9 +172,13 @@ const saveTransactionMiddleware = async (req, res, next) => {
                 }
                 req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${supplierResult.rows[0].contactpersonphone}`;
                 personnalaccount = `${orgSettings.personal_account_prefix}${supplierResult.rows[0].contactpersonphone}`;
+            }else{
+                const accountuser = userResult.rows[0]; // Save the user data in accountuser variable
+                console.log('accountuser', accountuser)
+                req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${accountuser.phone}`;
+                personnalaccount = `${orgSettings.personal_account_prefix}${accountuser.phone}`;
             }
             whichaccount = 'PERSONAL'; // Set account type to PERSONAL
-            const accountuser = userResult.rows[0]; // Save the user data in accountuser variable
         } else if (loanAccountResult.rowCount !== 0) {
             whichaccount = 'LOAN'; // Set account type to LOAN
             const loanaccountuser = loanAccountResult.rows[0]; // Save the user data in loanaccountuser variable
@@ -183,7 +187,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
         } else if (glAccountResult.rowCount !== 0) {
             whichaccount = 'GLACCOUNT'; // Set account type to GLACCOUNT
         }
-        // Establish the personal account number
+        // Establish the personal account number  
         if (!req.body['personalaccountnumber']) {
             req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${user.phone}`;
         }

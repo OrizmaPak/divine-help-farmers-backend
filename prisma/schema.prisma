@@ -366,6 +366,7 @@ model Inventory {
   issue              String?
   issuetype          String?
   supplier           String?
+  staff             String? @default("")
   returned           Boolean @default(false)
   status             String @default("ACTIVE")
   dateadded          DateTime
@@ -693,10 +694,13 @@ model collateral {
 
 model Service {
   id                 Int      @id @default(autoincrement())
+  serviceid          Int      @default(autoincrement())
   supplier           Int
+  staff              Int?
   servicetype        String  // "LOGISTICS", "IT", "NETWORK", "OTHER", "MAINTENANCE"
   description        String
   amount             Float?
+  currency           String? @default("NGN")
   amountfrom         Float?
   amountto           Float?
   servicestartdate   DateTime?  @default(now())
@@ -704,6 +708,7 @@ model Service {
   branch             Int
   dateadded          DateTime @default(now())
   createdby          Int
+  issue              String?
   reference          String @default("")
   status             String   @default("ACTIVE")
 }

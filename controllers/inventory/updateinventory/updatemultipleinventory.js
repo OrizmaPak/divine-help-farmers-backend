@@ -21,7 +21,7 @@ const updatemultipleinventory = async (req, res) => {
 
     // Handle file uploads if any
     if (req.files) {
-        await uploadToGoogleDrive(req, res);
+        await uploadToGoogleDrive(req, res); 
     }
     console.log('update inventory2');
 

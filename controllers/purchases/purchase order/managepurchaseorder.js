@@ -42,12 +42,12 @@ const managePurchaseOrder = async (req, res) => {
             const itemid = req.body[`itemid${i}`];
             // Query to select inventory item by itemid
             const inventory = await pg.query(`SELECT * FROM divine."Inventory" WHERE itemid = $1`, [itemid]);
-
+ 
             // Check if inventory item is not found
             if (!inventory.rows[0]) {
                 // Return error response if inventory item not found
                 return res.status(StatusCodes.OK).json({
-                    status: false,
+                    status: false, 
                     message: `Inventory item ${itemid} not found`,
                     statuscode: StatusCodes.OK,
                     data: '',

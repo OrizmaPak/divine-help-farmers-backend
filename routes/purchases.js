@@ -32,7 +32,7 @@ router.route('/purchase')
 router.route('/serviceorder')
     .post(saveOrUpdateServices)
     .get(getServices)
-    .delete(deleteServiceOrder)
+    .delete(deleteServiceOrder) 
 
 router.route('/service')
     .post(manageReceiveService)

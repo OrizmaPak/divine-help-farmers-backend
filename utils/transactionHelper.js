@@ -400,7 +400,7 @@ const generateNewReference = async (client, accountnumber, req) => {
     }
 
     // Generate the link
-    const timestamp = new Date().getTime();
+    const timestamp = Number(String(new Date().getTime()+Math.random()).replace('.',''));
     if (req.body.reference) {
         link = req.body.reference.includes('|') ? req.body.reference.split('|')[1] : 'B-'+req.body.reference;
     } else {

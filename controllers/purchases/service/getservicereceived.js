@@ -59,7 +59,17 @@ const getServicesReceived = async (req, res) => {
         query.text += whereClause;
 
         const result = await pg.query(query);
-        const services = result.rows;
+        const services = result.rows.reduce((acc, service) => {
+            const existingServiceIndex = acc.findIndex(s => s.serviceid === service.serviceid);
+            if (existingServiceIndex !== -1) {
+                // If a service with the same serviceid exists, add the amounts
+                acc[existingServiceIndex].amount += service.amount;
+            } else {
+                // Otherwise, add the service to the accumulator
+                acc.push(service);
+            }
+            return acc;
+        }, []);
 
         // Group services by reference
         const groupedServices = services.reduce((acc, service) => {
