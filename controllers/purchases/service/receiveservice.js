@@ -63,6 +63,9 @@ const manageReceiveService = async (req, res) => {
             const description = req.body[`description${i+1}`];
             const servicestartdate = req.body[`servicestartdate${i+1}`];
             const serviceenddate = req.body[`serviceenddate${i+1}`];
+            const otherdetails = req.body[`otherdetails${i+1}`];
+
+
 
             if (!validServiceTypes.includes(serviceType)) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -74,20 +77,20 @@ const manageReceiveService = async (req, res) => {
                 });
             }
 
-            if (!description || !servicestartdate || !serviceenddate) {
+            if (!description || !servicestartdate || !serviceenddate || !otherdetails) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: "Description, service start date, and service end date must be provided",
+                    message: "Description, service start date, otherdetails and service end date must be provided",
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: []
                 });
             } 
 
-            if (req.body[`amount${i+1}`] && req.body[`amountto${i+1}`] && req.body[`amount${i+1}`] > req.body[`amountto${i+1}`]) {
+            if (req.body[`amount${i+1}`] && req.body[`amountto${i+1}`] && Number(req.body[`amount${i+1}`]) > Number(req.body[`amountto${i+1}`])) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: `Amount for service cannot exceed the specified amountto value`,
+                    message: `Amount for service cannot exceed the specified amountto value;  you inputed ${req.body[`amount${i+1}`]} and this is your amount to ${req.body[`amountto${i+1}`]} `,
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: []
@@ -98,11 +101,11 @@ const manageReceiveService = async (req, res) => {
 
             // Insert new service
             const insertQuery = `
-                INSERT INTO divine."Service" (supplier, servicetype, description, amount, amountfrom, amountto, 
+                INSERT INTO divine."Service" (supplier, servicetype, description, otherdetails, amount, amountfrom, amountto, 
                     servicestartdate, serviceenddate, branch, dateadded, createdby, status, reference)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10, $11, $12)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), $11, $12, $13)
             `;
-            await pg.query(insertQuery, [supplier, serviceType, description, req.body[`amount${i+1}`], req.body[`amountfrom${i+1}`], req.body[`amountto${i+1}`], servicestartdate, serviceenddate, branch, user.id, 'ACTIVE', reference.replaceAll('SO-', 'RS-')]);
+            await pg.query(insertQuery, [supplier, serviceType, description, otherdetails, req.body[`amount${i+1}`], req.body[`amountfrom${i+1}`], req.body[`amountto${i+1}`], servicestartdate, serviceenddate, branch, user.id, 'ACTIVE', reference.replaceAll('SO-', 'RS-')]);
         }
 
         const organisationData = await pg.query('SELECT * FROM divine."Organisationsettings"');

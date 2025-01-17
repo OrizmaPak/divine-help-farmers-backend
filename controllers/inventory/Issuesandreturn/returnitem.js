@@ -134,7 +134,7 @@ const updateReturnItem = async (req, res) => {
         // Update the inventory item with the new status and supplier information
         const updateResult = await pg.query(
             `UPDATE divine."Inventory" 
-             SET status = $1, 
+             SET transactiondesc = $1, 
                  supplier = $2, 
                  staff = $4 
              WHERE id = $3`,

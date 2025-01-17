@@ -4,7 +4,7 @@ const { activityMiddleware } = require("../../../middleware/activity"); // Added
 
 const getreturneditems = async (req, res) => {
     const { startdate, enddate } = req.query;
-    let query = `SELECT * FROM divine."Inventory" WHERE status = 'RETURNED' AND transactiondesc LIKE '%Returned%'`;
+    let query = `SELECT * FROM divine."Inventory" WHERE status = 'ACTIVE' AND transactiondesc = 'RETURNED ITEMS'`;
     let params = [];
 
     if (startdate && enddate) {

@@ -3,6 +3,7 @@ const { getTransactions } = require('../controllers/transactions/get');
 const { getBalance } = require('../controllers/transactions/getbalance');
 const { getaccountTransactions } = require('../controllers/transactions/getanaccount');
 const { getAccountType } = require('../controllers/transactions/collections/getaccounttype');
+const { processCollection } = require('../controllers/transactions/collections/collections');
 const router = express.Router();
 
 
@@ -19,6 +20,9 @@ router.route('/balance')
 
 router.route('/getaccounttype')
     .get(getAccountType)
+
+router.route('/collection')
+    .post(processCollection)
 
 
      

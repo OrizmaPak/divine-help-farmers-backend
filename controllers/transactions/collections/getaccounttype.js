@@ -82,7 +82,7 @@ const getAccountType = async (req, res) => {
                 FROM divine."loanaccounts" sa
                 JOIN divine."User" u ON sa.userid = u.id
                 WHERE sa.accountnumber = $1
-            `, [accountnumber.slice(personal_account_prefix.length)]);
+            `, [accountnumber]);
             
             if (accountDetails.length === 0) {
                 return res.status(StatusCodes.NOT_FOUND).json({
@@ -114,7 +114,7 @@ const getAccountType = async (req, res) => {
             accountname = accountDetails[0].fullname;
             accountnumber = `${personal_account_prefix}${accountnumber}`
 
-        }
+        } 
 
         await activityMiddleware(req, user.id, 'Account type retrieved successfully', 'ACCOUNT_TYPE');
 

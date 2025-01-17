@@ -542,6 +542,8 @@ model transaction {
   updateddated              DateTime?
   transactiondate           DateTime?
   transactiondesc           String?
+  transactionref            String? @default("")
+  cashref                   String? @default("")
   updatedby                 Int?
   ttype                     String? // "CHARGES" or "INTEREST" or "DEDUCTION" or "WITHDRAWAL" or "DEPOSIT" or "CASH"
   tfrom                     String? // "BANK" or "CASH"
@@ -550,6 +552,26 @@ model transaction {
   reference                 String?
   whichaccount              String? // "SAVINGS" or "PERSONAL" or "LOAN" or "GLACCCOUNT"
   tax                       Boolean? @default(false)
+}
+
+model banktransaction {
+  id                        Int        @id @default(autoincrement())
+  accountnumber             String
+  userid                    Int @default(0)
+  description               String?
+  debit                     Int?
+  credit                    Int?
+  ttype                     String? // "CHARGES" or "INTEREST" or "DEDUCTION" or "WITHDRAWAL" or "DEPOSIT" or "CASH"
+  tfrom                     String? // "BANK" or "CASH"
+  createdby                 Int @default(0)
+  valuedate                 DateTime?
+  reference                 String?
+  transactiondate           DateTime?
+  transactiondesc           String?
+  transactionref            String?
+  status                    String @default("ACTIVE")
+  whichaccount              String? // "GTBANK" or "WEMA" or "PAYSTACK" or "STERLING" or "FIRSTBANK"
+  rawdata                   String?
 }
 
 model Accounts {
@@ -695,11 +717,12 @@ model collateral {
 
 model Service {
   id                 Int      @id @default(autoincrement())
-  serviceid          String      @default(uuid())
+  serviceid          String   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   supplier           Int
   staff              Int?
   servicetype        String  // "LOGISTICS", "IT", "NETWORK", "OTHER", "MAINTENANCE"
   description        String
+  otherdetails       String? @default("")
   amount             Float?
   currency           String? @default("NGN")
   amountfrom         Float?
