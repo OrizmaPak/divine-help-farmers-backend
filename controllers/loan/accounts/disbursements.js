@@ -57,7 +57,7 @@ const updateDisbursementRef = async (req, res) => {
 
         // Update the disbursement reference for the given loan account
         const updateQuery = {
-            text: `UPDATE divine."loanaccounts" SET disbursementref = $1 WHERE accountnumber = $2`,
+            text: `UPDATE divine."loanaccounts" SET disbursementref = $1, disbursementdate = NOW() WHERE accountnumber = $2`,
             values: [disbursementref, accountnumber]
         };
         await pg.query(updateQuery);

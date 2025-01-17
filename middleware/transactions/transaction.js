@@ -356,20 +356,20 @@ const saveTransactionMiddleware = async (req, res, next) => {
 
         // Handle transactions for personal accounts
         if (whichaccount === 'PERSONAL') {            
-            await personalCredit(client, req, res, next, req.body.personalaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
-            await personalDebit(client, req, res, next, req.body.personalaccountnumber, debit, description, ttype, transactionStatus, whichaccount);
+            if(Number(req.body.credit)>0)await personalCredit(client, req, res, next, req.body.personalaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            if(Number(req.body.debit)>0)await personalDebit(client, req, res, next, req.body.personalaccountnumber, debit, description, ttype, transactionStatus, whichaccount);
         }     
 
         // Handle transactions for loan accounts
         if (whichaccount === 'LOAN') {
-            await loanCredit(client, req, res, next, req.body.loanaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
-            await loanDebit(client, req, res, next, req.body.loanaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            if(Number(req.body.credit)>0)await loanCredit(client, req, res, next, req.body.loanaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            if(Number(req.body.debit)>0)await loanDebit(client, req, res, next, req.body.loanaccountnumber, credit, description, ttype, transactionStatus, whichaccount);
         }
 
         // Handle transactions for gl accounts
         if (whichaccount === 'GLACCOUNT') {
-            await glAccountCredit(client, req, res, next, req.body.accountnumber, credit, description, ttype, transactionStatus, whichaccount);
-            await glAccountDebit(client, req, res, next, req.body.accountnumber, debit, description, ttype, transactionStatus, whichaccount);
+            if(Number(req.body.credit)>0)await glAccountCredit(client, req, res, next, req.body.accountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            if(Number(req.body.debit)>0)await glAccountDebit(client, req, res, next, req.body.accountnumber, debit, description, ttype, transactionStatus, whichaccount);
         }
         
         // Log activity for successful transaction save

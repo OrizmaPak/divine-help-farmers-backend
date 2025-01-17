@@ -45,16 +45,22 @@ const getLoanAccountDetails = async (req, res) => {
 
         // Fetch all transactions for the accountnumber
         const transactionsQuery = {
-            text: `SELECT * FROM divine."transaction" WHERE accountnumber = $1`,
+            text: `SELECT * FROM divine."transaction" WHERE accountnumber = $1 AND status = 'ACTIVE'`,
             values: [accountnumber]
         };
         const transactionsResult = await pg.query(transactionsQuery);
 
         const transactions = transactionsResult.rows;
 
+        console.log('transactions', transactions)
+        
+        let totalBalancePaid = 0;
         // Check if disbursementref has a value
         if (!loanAccount.disbursementref) {
             // If no disbursementref, set payment status to NOT OWED
+            transactions.forEach(transaction => {
+                totalBalancePaid += transaction.credit - transaction.debit;
+            });
             installments.forEach(installment => {
                 installment.paymentstatus = 'NOT OWED';
                 installment.amountpaid = 0;
@@ -62,7 +68,6 @@ const getLoanAccountDetails = async (req, res) => {
             });
         } else {
             // Calculate total balance paid
-            let totalBalancePaid = 0;
             transactions.forEach(transaction => {
                 totalBalancePaid += transaction.credit - transaction.debit;
             });

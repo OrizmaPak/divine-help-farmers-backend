@@ -48,6 +48,7 @@ const getLoanAccount = async (req, res) => {
                 la.interestmethod,
                 la.interestratetype,
                 la.status,
+                la.loanamount,
 
                 CONCAT(u1.firstname, ' ', u1.lastname, ' ', COALESCE(u1.othernames, '')) AS useridname,
                 CONCAT(

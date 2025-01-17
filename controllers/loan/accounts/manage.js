@@ -202,7 +202,7 @@ const manageLoanAccount = async (req, res) => {
             data: null,
             errors: errors
         });
-    }
+    } 
 
     try {
         // Check if the user exists and get the branch from the user table
@@ -222,6 +222,7 @@ const manageLoanAccount = async (req, res) => {
         }
 
         const branch = userRows[0].branch;
+        const phone = userRows[0].phone;
 
         // Check if the loan product exists
         const loanProductQuery = {

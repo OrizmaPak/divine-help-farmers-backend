@@ -658,6 +658,7 @@ model loanaccounts {
       createdby                 Int
       member                    Int? @default(0)
       disbursementref           String? @default("")
+      disbursementdate          DateTime? @default(now())
 }
 
 model loanpaymentschedule {

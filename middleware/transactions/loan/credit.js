@@ -1,4 +1,4 @@
-const { makePaymentAndCloseAccount, handleCreditRedirectToPersonnalAccount, saveTransaction } = require("../../../utils/transactionHelper");
+const { makePaymentAndCloseAccount, handleCreditRedirectToPersonnalAccount, saveTransaction, applyMinimumCreditAmountPenalty } = require("../../../utils/transactionHelper");
 
 const loanCredit = async (client, req, res, next, loanAccountNumber, credit, description, ttype, transactionStatus,  ) => {
     try {
@@ -6,26 +6,36 @@ const loanCredit = async (client, req, res, next, loanAccountNumber, credit, des
 
         const loanAccount = req.body.loanaccount;
 
-        if(!loanAccount.disbursementref){
-            await handleCreditRedirectToPersonalAccount(client, req, res, next, loanAccountNumber, credit, "No recorded disbursement on this account", ttype, transactionStatus, whichaccount);
-            await client.query('COMMIT');
-            return next();
-        }
-        // Begin transaction
+        // if(!loanAccount.disbursementref){
+        //     await handleCreditRedirectToPersonalAccount(client, req, res, next, loanAccountNumber, credit, "No recorded disbursement on this account", ttype, transactionStatus, whichaccount);
+        //     await client.query('COMMIT');
+        //     return next();
+        // }
+        // // Begin transaction
 
-        // Check if the loan account is closed
-        if (loanAccount.dateclosed) {
-            // Redirect the credit to personal account using helper function
-            await handleCreditRedirectToPersonalAccount(client, req, res, next, loanAccountNumber, credit, description, ttype, transactionStatus, whichaccount);
-            await client.query('COMMIT');
-            return next();
-        }
+        // // Check if the loan account is closed
+        // if (loanAccount.dateclosed) {
+        //     // Redirect the credit to personal account using helper function
+        //     await handleCreditRedirectToPersonalAccount(client, req, res, next, loanAccountNumber, credit, description, ttype, transactionStatus, whichaccount);
+        //     await client.query('COMMIT');
+        //     return next();
+        // }
 
-        // Get all the installments of the loan
+        // Get all the installments of the loan 
         const getInstallmentsQuery = {
             text: `SELECT * FROM divine."loanpaymentschedule" WHERE accountnumber = $1 ORDER BY scheduledpaymentdate ASC`,
             values: [loanAccountNumber]
         };
+        // Fetch the sum of credits and debits for the loan account to calculate the balance
+        const balanceQuery = {
+            text: `SELECT SUM(credit) - SUM(debit) as balance FROM divine."transaction" WHERE accountnumber = $1 AND status = 'ACTIVE'`,
+            values: [loanAccountNumber]
+        };
+        const balanceResult = await client.query(balanceQuery);
+        const balance = balanceResult.rows[0].balance || 0;
+
+        // Store the balance in the request body for further processing
+        req.body.balance = balance;
         const installmentsResult = await client.query(getInstallmentsQuery);
         const installments = installmentsResult.rows;
 
@@ -33,17 +43,10 @@ const loanCredit = async (client, req, res, next, loanAccountNumber, credit, des
         let totalAmountLeft = 0;
         let totalamount = 0
         for (const installment of installments) {
-            const { scheduleamount, interestamount, paymentstatus, remainingbalance } = installment;
-            const totalInstallment = scheduleamount + interestamount;
-            totalamount += totalInstallment;
-            if (paymentstatus === 'FULLY PAID') {
-                continue;
-            } else if (paymentstatus === 'PARTLY PAID') {
-                totalAmountLeft += remainingbalance;
-            } else {
-                totalAmountLeft += totalInstallment;
-            }
+            const { scheduleamount, interestamount } = installment;
+            totalamount += scheduleamount + interestamount;
         }
+        totalAmountLeft = totalamount-balance
 
         req.body.totalamount = totalamount
 

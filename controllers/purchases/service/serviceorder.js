@@ -60,9 +60,9 @@ const saveOrUpdateServices = async (req, res) => {
             }
             // Insert new service
             const insertQuery = `
-                INSERT INTO divine."Service" (supplier, servicetype, description, amount, amountfrom, amountto, 
+                INSERT INTO divine."Service" (serviceid, supplier, servicetype, description, amount, amountfrom, amountto, 
                     servicestartdate, serviceenddate, branch, dateadded, createdby, status, reference)
-                VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, NOW(), $8, $9, $10)
+                VALUES (DEFAULT, $1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, NOW(), $8, $9, $10)
             `;
             await pg.query(insertQuery, [supplier, req.body[`servicetype${i+1}`], req.body[`description${i+1}`], req.body[`amount${i+1}`], req.body[`amountfrom${i+1}`], req.body[`amountto${i+1}`], branch, user.id, 'SO', reference]);
         }

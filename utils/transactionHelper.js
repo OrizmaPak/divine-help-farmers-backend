@@ -226,14 +226,14 @@ const saveTransaction = async (client, res, transactionData, req) => {
             ttype = req.body ? req.body.ttype : '',
             status = 'ACTIVE',
             transactiondate = req.body ? req.body.transactiondate || new Date() : new Date(),
-            whichaccount = req.body.whichaccount,
+            // whichaccount = req.body.whichaccount??'',
             valuedate = req.body ? req.body.valuedate || new Date() : new Date(),
             transactiondesc = req.body ? req.body.transactiondesc || '' : '',
             currency = req.body ? req.body.currency : '',
             tfrom = req.body ? req.body.tfrom : ''
         } = transactionData;
 
-        const createdBy = req.user.id || req.body.createdby || 0;
+        const createdBy = (req.user && req.user.id) || (req.body.createdby ?? 0) || 0;
         let userid = req.user.id;
 
         // if (whichaccount !== 'GLACCOUNT') {
