@@ -4,21 +4,18 @@ const pg = require("../../../db/pg");
 const getTransactionRejectionDate = async (req, res) => {
     try {
         let query = {
-            text: `SELECT * FROM divine."Rejecttransactiondate" WHERE status = 'ACTIVE'`,
+            text: `SELECT * FROM divine."Rejecttransactiondate"`,
             values: []
         };
 
         // Dynamically build the WHERE clause based on query parameters
-        let whereClause = '';
-        let valueIndex = 1;
+        let whereClause = ' WHERE "status" = $1';
+        let valueIndex = 2;
+        query.values.push('ACTIVE');
+
         Object.keys(req.query).forEach((key) => {
             if (key !== 'q') {
-                if (whereClause) {
-                    whereClause += ` AND `;
-                } else {
-                    whereClause += ` WHERE `;
-                }
-                whereClause += `"${key}" = $${valueIndex}`;
+                whereClause += ` AND "${key}" = $${valueIndex}`;
                 query.values.push(req.query[key]);
                 valueIndex++;
             }
@@ -37,11 +34,7 @@ const getTransactionRejectionDate = async (req, res) => {
 
             // Generate the dynamic SQL query
             const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
-            if (whereClause) {
-                whereClause += ` AND (${searchConditions})`;
-            } else {
-                whereClause += ` WHERE (${searchConditions})`;
-            }
+            whereClause += ` AND (${searchConditions})`;
             query.values.push(`%${req.query.q}%`);
             valueIndex++;
         }
@@ -97,4 +90,3 @@ const getTransactionRejectionDate = async (req, res) => {
 module.exports = {
     getTransactionRejectionDate
 };
-

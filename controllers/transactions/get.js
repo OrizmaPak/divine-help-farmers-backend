@@ -16,7 +16,7 @@ const getTransactions = async (req, res) => {
         let whereClause = '';  
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
-            if (key !== 'q' && key !== 'startdate' && key !== 'enddate') {
+            if (key !== 'q' && key !== 'startdate' && key !== 'enddate' && key !== 'transactiondate') {
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
@@ -36,7 +36,7 @@ const getTransactions = async (req, res) => {
                 whereClause += ` WHERE `;
             }
             whereClause += `"transactiondate" >= $${valueIndex}`;
-            query.values.push(req.query.startdate);
+            query.values.push(new Date(req.query.startdate).toISOString());
             valueIndex++;
         }
 
@@ -47,7 +47,19 @@ const getTransactions = async (req, res) => {
                 whereClause += ` WHERE `;
             }
             whereClause += `"transactiondate" <= $${valueIndex}`;
-            query.values.push(req.query.enddate);
+            query.values.push(new Date(req.query.enddate).toISOString());
+            valueIndex++;
+        }
+
+        // Add specific transaction date filter if provided
+        if (req.query.transactiondate) {
+            if (whereClause) {
+                whereClause += ` AND `;
+            } else {
+                whereClause += ` WHERE `;
+            }
+            whereClause += `DATE("transactiondate") = $${valueIndex}`;
+            query.values.push(req.query.transactiondate);
             valueIndex++;
         }
 
@@ -86,6 +98,47 @@ const getTransactions = async (req, res) => {
 
         const result = await pg.query(query);
         const transactions = result.rows;
+
+        // Add account names to transactions
+        for (let transaction of transactions) {
+            let accountName = 'Unknown';
+            const { whichaccount, accountnumber } = transaction;
+
+            if (whichaccount === 'PERSONAL') {
+                const { rows: orgSettings } = await pg.query(`SELECT personal_account_prefix FROM divine."Organisationsettings"`);
+                const personalAccountPrefix = orgSettings[0].personal_account_prefix;
+                const phone = accountnumber.replace(personalAccountPrefix, '');
+                const { rows: users } = await pg.query(`SELECT firstname, lastname, othernames FROM divine."User" WHERE phone = $1`, [phone]);
+                if (users.length > 0) {
+                    const { firstname, lastname, othernames } = users[0];
+                    accountName = `${firstname} ${lastname} ${othernames}`.trim();
+                }
+            } else if (whichaccount === 'SAVINGS') {
+                const { rows: savings } = await pg.query(`SELECT userid FROM divine."savings" WHERE accountnumber = $1`, [accountnumber]);
+                if (savings.length > 0) {
+                    const { userid } = savings[0];
+                    const { rows: users } = await pg.query(`SELECT firstname, lastname, othernames FROM divine."User" WHERE id = $1`, [userid]);
+                    if (users.length > 0) {
+                        const { firstname, lastname, othernames } = users[0];
+                        accountName = `${firstname} ${lastname} ${othernames}`.trim();
+                    }
+                }
+            } else if (whichaccount === 'LOAN') {
+                const { rows: loans } = await pg.query(`SELECT userid FROM divine."loanaccounts" WHERE accountnumber = $1`, [accountnumber]);
+                if (loans.length > 0) {
+                    const { userid } = loans[0];
+                    const { rows: users } = await pg.query(`SELECT firstname, lastname, othernames FROM divine."User" WHERE id = $1`, [userid]);
+                    if (users.length > 0) {
+                        const { firstname, lastname, othernames } = users[0];
+                        accountName = `${firstname} ${lastname} ${othernames}`.trim();
+                    }
+                }
+            } else if (whichaccount === 'GLACCOUNT') {
+                accountName = 'SYSTEM AUTOMATION';
+            }
+
+            transaction.accountname = accountName;
+        }
 
         // Get total count for pagination
         const countQuery = {

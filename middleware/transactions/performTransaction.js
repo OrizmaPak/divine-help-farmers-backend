@@ -88,10 +88,10 @@ async function performTransaction(from, to, fromuser=0, touser=0) {
 }
 
 // for performing one way transaction
-async function performTransactionOneWay(transaction) {
+async function performTransactionOneWay(transaction, personel=0) {
     // Restructure the transaction to include 'user' and 'body'
     const transactionData = {
-        user: { id: 0 },
+        user: { id: personel },
         body: { ...transaction }
     };
 
@@ -118,7 +118,7 @@ async function performTransactionOneWay(transaction) {
         }
 
         // Step 3: Log the successful transaction in the activity
-        await activityMiddleware(transactionData, 0, 'Transaction performed successfully', 'TRANSACTION');
+        await activityMiddleware(transactionData, personel, 'Transaction performed successfully', 'TRANSACTION');
 
         return { status: true, reference: [transactionData.body.reference] };
 
@@ -126,7 +126,7 @@ async function performTransactionOneWay(transaction) {
         console.error('Error performing transaction:', error);
 
         // Log the error in the activity
-        await activityMiddleware(transactionData, 0, 'Error performing transaction', 'TRANSACTION_ERROR');
+        await activityMiddleware(transactionData, personel, 'Error performing transaction', 'TRANSACTION_ERROR');
 
         return { status: false, reference: [] };
     }

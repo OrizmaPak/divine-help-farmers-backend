@@ -50,7 +50,7 @@ const processCollection = async (req, res) => {
 
         // Check if the user has a registrationpoint and the role is not 'member'
         const { rows: userCheckData } = await pg.query(`
-            SELECT registrationpoint, role, firstname, lastname, othernames FROM divine."User" WHERE id = $1
+            SELECT * FROM divine."User" WHERE id = $1
         `, [userid]);
 
         if (userCheckData.length === 0) {
@@ -96,12 +96,13 @@ const processCollection = async (req, res) => {
         // Process multiple transactions
         let failedTransactions = [];
 
+
         for (let i = 1; i <= rowsize; i++) {
             const accountnumber = req.body[`accountnumber${i}`];
             const credit = req.body[`credit${i}`];
 
             if (!accountnumber || !credit) {
-                return res.status(StatusCodes.BAD_REQUEST).json({
+                return res.status(StatusCodes.BAD_REQUEST).json({ 
                     status: false,
                     message: `Account number and credit are required for row ${i}`,
                     statuscode: StatusCodes.BAD_REQUEST,
@@ -126,8 +127,8 @@ const processCollection = async (req, res) => {
                 tfrom: 'CASH',
                 tax: false,
             };
-
-            const creditTransaction = await performTransactionOneWay(transaction);
+            
+            const creditTransaction = await performTransactionOneWay(transaction, userCheckData[0].id);
 
             if (!creditTransaction) {
                 failedTransactions.push(i);

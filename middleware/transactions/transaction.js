@@ -211,7 +211,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
         }
 
         // Initialize transaction status and reason for rejection
-        let transactionStatus = 'PENDING';
+        let transactionStatus = 'ACTIVE';
         let reasonForRejection = '';
         let reasonForPending = '';
 
