@@ -21,7 +21,7 @@ const getUserYearlyCollection = async (req, res) => {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Invalid date format. Expected YYYY",
-            statuscode: StatusCodes.BAD_REQUEST,
+            statuscode: StatusCodes.BAD_REQUEST, 
             data: null,
             errors: ["Invalid date format"]
         });

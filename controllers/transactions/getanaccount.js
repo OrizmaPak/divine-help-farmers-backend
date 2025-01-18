@@ -16,7 +16,7 @@ const getaccountTransactions = async (req, res) => {
         // Dynamically build the WHERE clause based on query parameters
         let whereClause = '';  
         let valueIndex = 1;
-        const { startdate, enddate, q, ...filters } = req.query;
+        const { startdate, enddate, q, accountnumber, ...filters } = req.query;
 
         // Add filters
         Object.keys(filters).forEach((key) => {
@@ -31,6 +31,18 @@ const getaccountTransactions = async (req, res) => {
                 valueIndex++;
             }
         });
+
+        // Add account number filter
+        if (accountnumber) {
+            if (whereClause) {
+                whereClause += ` AND `;
+            } else {
+                whereClause += ` WHERE `;
+            }
+            whereClause += `"accountnumber" = $${valueIndex}`;
+            query.values.push(accountnumber);
+            valueIndex++;
+        }
 
         // Add date range filter if provided
         if (startdate) {
@@ -112,14 +124,15 @@ const getaccountTransactions = async (req, res) => {
         // 6. Calculate Balance Brought Forward
         let openingBalance = 0;
 
-        if (startdate) {
+        if (startdate && accountnumber) {
             const openingBalanceQuery = `
                 SELECT 
                     COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) AS opening_balance
-                FROM divine."transaction"
-                WHERE "dateadded" < $1
+                FROM divine."transaction" 
+                WHERE "dateadded" < $1 AND accountnumber = $2 AND status = 'ACTIVE'
             `;
-            const { rows: [balanceRow] } = await pg.query(openingBalanceQuery, [startdate]);
+            const { rows: [balanceRow] } = await pg.query(openingBalanceQuery, [startdate, accountnumber]);
+            console.log(openingBalanceQuery, [startdate, accountnumber], balanceRow)
             openingBalance = parseFloat(balanceRow.opening_balance);
         }
 
@@ -131,10 +144,11 @@ const getaccountTransactions = async (req, res) => {
             SELECT 
                 COALESCE(SUM(credit), 0) AS total_credit, 
                 COALESCE(SUM(debit), 0) AS total_debit
-            FROM divine."transaction"
-            ${whereClause}
+            FROM divine."transaction" 
+            WHERE accountnumber = $1 AND status = 'ACTIVE'
         `;
-        const { rows: [sumRow] } = await pg.query(transactionsSumQuery, sumQueryValues);
+        // sumQueryValues.push(accountnumber);
+        const { rows: [sumRow] } = await pg.query(transactionsSumQuery, [accountnumber]);
         const totalCredit = parseFloat(sumRow.total_credit);
         const totalDebit = parseFloat(sumRow.total_debit);
         currentBalance += (totalCredit - totalDebit);

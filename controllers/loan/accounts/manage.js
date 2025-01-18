@@ -505,7 +505,7 @@ const manageLoanAccount = async (req, res) => {
                 if (accountRows.length === 0) {
                     errors.push({
                         field: 'eligibilityproduct',
-                        message: 'User does not have an account in the specified savings product'
+                        message: 'User does not have an account in the eligibility savings product'
                     });
                 } else {
                     let oldestAccount = accountRows[0];
@@ -620,7 +620,7 @@ const manageLoanAccount = async (req, res) => {
                 }
             }
 
-            if (loanProduct.eligibilityproductcategory === 'LOAN') {
+            if (loanProduct.eligibilityproductcategory == 'LOAN') {
                 // Fetch loan account details
                 const loanAccountQuery = {
                     text: 'SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2 AND member = $3',
