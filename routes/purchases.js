@@ -39,7 +39,7 @@ router.route('/service')
     .post(manageReceiveService)
     .get(getServicesReceived) 
 
-router.route('/rejectedservicereceived')
+router.route('/rejectedservicereceived') 
     .get(getRejectedServicesReceived)
  
 
