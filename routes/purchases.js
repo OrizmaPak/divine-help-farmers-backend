@@ -11,6 +11,7 @@ const { saveOrUpdateServices } = require('../controllers/purchases/service/servi
 const { manageReceiveService } = require('../controllers/purchases/service/receiveservice');
 const { getServicesReceived } = require('../controllers/purchases/service/getservicereceived');
 const { deleteServiceOrder } = require('../controllers/purchases/service/deleteserviceorder');
+const { getRejectedServicesReceived } = require('../controllers/purchases/service/getrejectedservicereceived');
 const router = express.Router();
 
 
@@ -38,6 +39,9 @@ router.route('/service')
     .post(manageReceiveService)
     .get(getServicesReceived) 
 
+router.route('/rejectedservicereceived')
+    .get(getRejectedServicesReceived)
+ 
 
     
 

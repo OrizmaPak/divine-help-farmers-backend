@@ -93,6 +93,7 @@ model User {
   createdby     Int       @default(0)
   sessions      Session[]
   activities    Activity[] 
+  pin          String?   @default("")
 }
 
 model Roles {
@@ -272,7 +273,6 @@ model Organisationsettings {
   default_allocation_account                  Float? @default(0)
   status                                      String @default("ACTIVE")
 }
-
 
 model Rejecttransactiondate {
   id                 Int       @id @default(autoincrement())
@@ -735,4 +735,11 @@ model Service {
   issue              String?
   reference          String @default("")
   status             String   @default("ACTIVE")
+}
+
+model otp {
+  id                 Int       @id @default(autoincrement())
+  userid             Int
+  otp                String
+  created_at         DateTime  @default(now())
 }

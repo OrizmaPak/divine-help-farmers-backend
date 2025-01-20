@@ -7,7 +7,7 @@
     "start": "node app.js",
     "dev": "nodemon app.js",
     "postinstall": "prisma generate"
-  },         
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -20,7 +20,7 @@
     "cloudinary": "^2.5.0",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
-    "dompurify": "^3.1.6", 
+    "dompurify": "^3.1.6",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "express-async-errors": "^3.1.1",
@@ -36,9 +36,11 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.15",
     "openai": "^4.68.4",
+    "otplib": "^12.0.1",
     "pg": "^8.12.0",
     "prisma-enum": "^1.2.0",
     "rate-limiter": "^0.2.0",
+    "speakeasy": "^2.0.0",
     "swagger-ui-express": "^4.1.6",
     "xss-clean": "^0.1.1",
     "yamljs": "^0.3.0"

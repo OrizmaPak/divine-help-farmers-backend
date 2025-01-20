@@ -14,6 +14,10 @@ const { verifyuser } = require('../controllers/auth/verifyuser');
 const { testing } = require('../controllers/sample');
 const { updateuser } = require('../controllers/auth/updateprofile');
 const { checkUser } = require('../controllers/auth/checkuser');
+const { sendOtp } = require('../controllers/auth/sendotp');
+const { resetPassword } = require('../controllers/auth/resetpassword');
+const { verifypasswordaccess } = require('../controllers/auth/verifypasswordaccess');
+const { verifyOtp } = require('../controllers/auth/verifyotp');
 
 
 router.route('/signup').post(signup);
@@ -26,6 +30,10 @@ router.route('/sendverificationmail').post(authMiddleware, sendverificationmail)
 router.route('/signout').get(authMiddleware, signout); 
 router.route('/verifypasswordtoken').get(verifypasswordtoken); 
 router.route('/verifyuser').post(verifyuser); 
+router.route('/resetpassword').post(resetPassword); 
+router.route('/verifypasswordaccess').post(authMiddleware, verifypasswordaccess); 
+router.route('/sendotp').get(authMiddleware, sendOtp); 
+router.route('/verifyotp').post(authMiddleware, verifyOtp); 
 router.route('/testing').post(testing); 
 // CHECK IF USER EXIST
 router.route('/checkuser')

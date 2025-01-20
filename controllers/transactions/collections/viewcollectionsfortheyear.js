@@ -2,33 +2,32 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
-const getUserMonthlyCollection = async (req, res) => {
+const viewCollectionsForTheYear = async (req, res) => {
     const user = req.user;
-    const { date, userid } = req.query;
+    const { date, userid, branch, registrationpoint } = req.query;
 
-    if (!date || !userid) {
+    if (!date) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Date and userid are required",
+            message: "Date is required",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
-            errors: ["Missing date or userid"]
+            errors: ["Missing date"]
         });
     }
 
-    const [year, month] = date.split('-').map(Number);
-    if (!year || !month || month < 1 || month > 12) {
+    const year = Number(date);
+    if (!year || year < 1000 || year > 9999) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Invalid date format. Expected YYYY-MM",
+            message: "Invalid date format. Expected YYYY",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: ["Invalid date format"]
         });
     }
 
-    // Determine number of days in the month
-    const daysInMonth = new Date(year, month, 0).getDate();
+    const monthsInYear = 12;
 
     let results = [];
     let totalNoOfCollections = 0;
@@ -39,44 +38,74 @@ const getUserMonthlyCollection = async (req, res) => {
     let totalPenalty = 0;
 
     try {
-        // Fetch transactions for the user within the specified month
-        const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-        const monthEnd = new Date(Date.UTC(year, month, 1, 0, 0, 0));
-        const monthDataQuery = `
+        const yearStart = new Date(Date.UTC(year, 0, 1, 0, 0, 0));
+        const yearEnd = new Date(Date.UTC(year + 1, 0, 1, 0, 0, 0));
+        let queryConditions = [];
+        let queryParams = [yearStart.toISOString(), yearEnd.toISOString()];
+        let paramIndex = 3;
+
+        if (userid) {
+            queryConditions.push(`userid = $${paramIndex++}`);
+            queryParams.push(userid);
+        }
+
+        const yearDataQuery = `
                 SELECT * FROM divine."transaction"
-                WHERE userid = $1
-                AND transactiondate >= $2
-                AND transactiondate < $3
+                WHERE transactiondate >= $1
+                AND transactiondate < $2
                 AND "cashref" IS NOT NULL
                 AND "cashref" <> ''
                 AND ttype IN ('CREDIT', 'DEBIT')
                 AND status = 'ACTIVE'
+                ${queryConditions.length ? 'AND ' + queryConditions.join(' AND ') : ''}
         `;
-        const monthDataResult = await pg.query(monthDataQuery, [userid, monthStart.toISOString(), monthEnd.toISOString()]);
-        const monthData = monthDataResult.rows;
-        
-        for (let day = 1; day <= daysInMonth; day++) {
-            const currentDate = new Date(Date.UTC(year, month - 1, day));
-            const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-            const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-            
-            // Filter transactions for the current day
-            const dayData = monthData.filter(tx => {
+        const yearDataResult = await pg.query(yearDataQuery, queryParams);
+        const yearData = yearDataResult.rows;
+
+        const userBranchRegPointMap = {};
+
+        for (const tx of yearData) {
+            const userId = tx.userid;
+            if (!userBranchRegPointMap[userId]) {
+                const userQuery = `
+                    SELECT branch, registrationpoint FROM divine."User"
+                    WHERE id = $1
+                `;
+                const { rows: userRows } = await pg.query(userQuery, [userId]);
+                if (userRows.length > 0) {
+                    const { branch, registrationpoint } = userRows[0];
+                    userBranchRegPointMap[userId] = { branch, registrationpoint };
+                }
+            }
+        }
+
+        const filteredYearData = yearData.filter(tx => {
+            const userId = tx.userid;
+            const userDetails = userBranchRegPointMap[userId];
+            if (!userDetails) return false;
+
+            const branchMatch = !branch || userDetails.branch == branch;
+            const regPointMatch = !registrationpoint || userDetails.registrationpoint == registrationpoint;
+
+            return branchMatch && regPointMatch;
+        });
+
+        for (let month = 1; month <= monthsInYear; month++) {
+            const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+            const monthEnd = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+
+            const monthData = filteredYearData.filter(tx => {
                 const txDate = new Date(tx.transactiondate);
-                return txDate >= startOfDay && txDate <= endOfDay;
+                return txDate >= monthStart && txDate < monthEnd;
             });
-            
-            // Calculate number of credit transactions and amount collected
-            const creditTransactions = dayData.filter(tx => tx.ttype === 'CREDIT');
-            console.log('dayData', day, creditTransactions);
+
+            const creditTransactions = monthData.filter(tx => tx.ttype === 'CREDIT');
             const noofcollections = creditTransactions.length;
             const amountcollected = creditTransactions.reduce((sum, tx) => sum + (tx.credit || 0), 0);
 
-            // Calculate total debit amount
-            const debitSum = dayData.filter(tx => tx.ttype === 'DEBIT').reduce((sum, tx) => sum + (tx.debit || 0), 0);
+            const debitSum = monthData.filter(tx => tx.ttype === 'DEBIT').reduce((sum, tx) => sum + (tx.debit || 0), 0);
 
-            // Fetch related bank transactions
-            const transactionRefs = dayData.map(tx => tx.cashref).filter(ref => ref);
+            const transactionRefs = monthData.map(tx => tx.cashref).filter(ref => ref);
             let remitted = 0;
 
             if (transactionRefs.length > 0) {
@@ -90,8 +119,7 @@ const getUserMonthlyCollection = async (req, res) => {
                 const bankTxSum = bankTransactions.reduce((sum, btx) => sum + ((btx.credit || 0) - (btx.debit || 0)), 0);
                 remitted = bankTxSum + debitSum;
             }
- 
-            // Calculate penalties
+
             const penaltyRefs = transactionRefs.map(ref => `${ref}-P`);
             let penaltySum = 0;
 
@@ -106,7 +134,6 @@ const getUserMonthlyCollection = async (req, res) => {
                 penaltySum = penaltyTransactions.reduce((sum, ptx) => sum + ((ptx.debit || 0) - (ptx.credit || 0)), 0);
             }
 
-            // Calculate excess and tobalance
             const net = amountcollected - remitted;
             let excess = 0;
             let tobalance = 0;
@@ -117,7 +144,6 @@ const getUserMonthlyCollection = async (req, res) => {
                 excess = Math.abs(net);
             }
 
-            // Update totals
             totalNoOfCollections += noofcollections;
             totalAmountCollected += amountcollected;
             totalRemitted += remitted;
@@ -126,7 +152,7 @@ const getUserMonthlyCollection = async (req, res) => {
             totalPenalty += penaltySum;
 
             results.push({
-                day: currentDate.toISOString().split('T')[0], // Format day as YYYY-MM-DD
+                month: monthStart.toISOString().split('T')[0].slice(0, 7),
                 noofcollections,
                 amountcollected,
                 remitted,
@@ -145,19 +171,19 @@ const getUserMonthlyCollection = async (req, res) => {
             totalPenalty
         };
 
-        await activityMiddleware(req, user.id, 'User monthly collection fetched successfully', 'USER_MONTHLY_COLLECTION');
+        await activityMiddleware(req, user.id, 'User yearly collection fetched successfully', 'USER_YEARLY_COLLECTION');
 
         return res.status(StatusCodes.OK).json({
             status: true,
-            message: "User monthly collection fetched successfully",
+            message: "User yearly collection fetched successfully",
             statuscode: StatusCodes.OK,
             data: results,
             totals,
             errors: []
         });
     } catch (error) {
-        console.error('Error fetching user monthly collection:', error);
-        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching user monthly collection', 'USER_MONTHLY_COLLECTION');
+        console.error('Error fetching user yearly collection:', error);
+        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching user yearly collection', 'USER_YEARLY_COLLECTION');
 
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
@@ -169,4 +195,4 @@ const getUserMonthlyCollection = async (req, res) => {
     }
 };
 
-module.exports = { getUserMonthlyCollection };
+module.exports = { viewCollectionsForTheYear };

@@ -83,7 +83,22 @@ const processCollection = async (req, res) => {
             });
         }
 
-        console.log('user, ', userCheckData[0])
+        // Check cashier limit
+        const { rows: cashierLimitData } = await pg.query(`
+            SELECT depositlimit FROM divine."Cashierlimit" WHERE cashier = $1 AND status = 'ACTIVE'
+        `, [userid]);
+
+        // if (cashierLimitData.length === 0) {
+        //     return res.status(StatusCodes.NOT_FOUND).json({
+        //         status: false,
+        //         message: "Cashier limit not found or inactive",
+        //         statuscode: StatusCodes.NOT_FOUND,
+        //         data: null,
+        //         errors: []
+        //     });
+        // }
+
+        const depositLimit = cashierLimitData[0].depositlimit;
 
         const timestamp = new Date().getTime();
         const today = new Date();
@@ -96,16 +111,29 @@ const processCollection = async (req, res) => {
         // Process multiple transactions
         let failedTransactions = [];
 
+        await pg.query('BEGIN');
 
         for (let i = 1; i <= rowsize; i++) {
             const accountnumber = req.body[`accountnumber${i}`];
             const credit = req.body[`credit${i}`];
 
             if (!accountnumber || !credit) {
+                await pg.query('ROLLBACK');
                 return res.status(StatusCodes.BAD_REQUEST).json({ 
                     status: false,
                     message: `Account number and credit are required for row ${i}`,
                     statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+
+            if (Number(credit) > depositLimit) {
+                await pg.query('ROLLBACK');
+                return res.status(StatusCodes.FORBIDDEN).json({
+                    status: false,
+                    message: `Transaction amount for row ${i} exceeds the cashier limit of ${depositLimit}. The customer associated with account number ${accountnumber} has already been informed about this issue. Please proceed to refund the customer.`,
+                    statuscode: StatusCodes.FORBIDDEN,
                     data: null,
                     errors: []
                 });
@@ -136,6 +164,7 @@ const processCollection = async (req, res) => {
         }
 
         if (failedTransactions.length > 0) {
+            await pg.query('ROLLBACK');
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: `Failed to credit accounts for rows: ${failedTransactions.join(', ')}.`,
@@ -145,6 +174,7 @@ const processCollection = async (req, res) => {
             });
         }
 
+        await pg.query('COMMIT');
         await activityMiddleware(req, user.id, 'Transactions processed successfully', 'TRANSACTION');
 
         return res.status(StatusCodes.OK).json({
@@ -155,6 +185,7 @@ const processCollection = async (req, res) => {
             errors: []
         });
     } catch (error) {
+        await pg.query('ROLLBACK');
         console.error('Unexpected Error:', error);
         await activityMiddleware(req, user.id, 'An unexpected error occurred processing transactions', 'TRANSACTION');
 

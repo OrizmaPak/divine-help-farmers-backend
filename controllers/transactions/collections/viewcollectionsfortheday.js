@@ -1,7 +1,10 @@
+const { StatusCodes } = require("http-status-codes");
+const pg = require("../../../db/pg");
+const { activityMiddleware } = require("../../../middleware/activity");
 
 const viewCollectionsForTheDay = async (req, res) => {
     const user = req.user;
-    const { date } = req.query;
+    const { date, branch, registrationpoint, userid } = req.query;
 
     if (!date) {
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -31,23 +34,23 @@ const viewCollectionsForTheDay = async (req, res) => {
 
     try {
         // Fetch transactions for the specified day
-        const transactionsQuery = `
+        let transactionsQuery = `
             SELECT 
-                t.userid, 
-                u.branch, 
-                t.accountnumber, 
+                t.*, 
                 u.firstname, 
                 u.lastname, 
-                u.othernames, 
-                t.ttype, 
-                t.tfrom, 
-                t.credit, 
-                t.debit, 
-                t.description
+                u.othernames,
+                u.registrationpoint,
+                rp.registrationpoint AS registrationpointname,
+                b.branch AS branchname
             FROM 
                 divine."transaction" t
             JOIN 
                 divine."User" u ON t.userid = u.id
+            JOIN 
+                divine."Branch" b ON u.branch = b.id
+            LEFT JOIN 
+                divine."Registrationpoint" rp ON u.registrationpoint = rp.id
             WHERE 
                 t.transactiondate >= $1 
                 AND t.transactiondate <= $2
@@ -55,7 +58,27 @@ const viewCollectionsForTheDay = async (req, res) => {
                 AND t.ttype IN ('CREDIT', 'DEBIT')
         `;
 
-        const { rows: transactions } = await pg.query(transactionsQuery, [startOfDay.toISOString(), endOfDay.toISOString()]);
+        const queryParams = [startOfDay.toISOString(), endOfDay.toISOString()];
+
+        // Add branch filter if provided
+        if (branch) {
+            transactionsQuery += ` AND u.branch = $${queryParams.length + 1}`;
+            queryParams.push(branch);
+        }
+
+        // Add registration point filter if provided
+        if (registrationpoint) {
+            transactionsQuery += ` AND u.registrationpoint = $${queryParams.length + 1}`;
+            queryParams.push(registrationpoint);
+        }
+
+        // Add user ID filter if provided
+        if (userid) {
+            transactionsQuery += ` AND u.id = $${queryParams.length + 1}`;
+            queryParams.push(userid);
+        }
+
+        const { rows: transactions } = await pg.query(transactionsQuery, queryParams);
 
         if (transactions.length === 0) {
             await activityMiddleware(req, user.id, 'No collections found for the specified day', 'VIEW_COLLECTIONS_FOR_THE_DAY');
@@ -72,73 +95,131 @@ const viewCollectionsForTheDay = async (req, res) => {
         // Organize transactions by user
         const userCollections = {};
 
-        transactions.forEach(tx => {
+        for (const tx of transactions) {
             const userId = tx.userid;
             if (!userCollections[userId]) {
                 userCollections[userId] = {
                     userid: userId,
                     fullname: `${tx.firstname} ${tx.lastname} ${tx.othernames || ''}`,
-                    branch: tx.branch,
-                    amountCollected: 0,
-                    paid: 0,
+                    branchname: tx.branchname,
+                    registrationpoint: tx.registrationpoint,
+                    registrationpointname: tx.registrationpointname,
+                    collected: 0,
+                    remitted: 0,
                     penalty: 0,
                     excess: 0,
                     balance: 0,
-                    transactions: []
+                    depositcode: tx.cashref,
+                    transactions: new Set() // Use a Set to avoid duplicate transactions
                 };
             }
 
             const user = userCollections[userId];
 
-            if (tx.ttype === 'CREDIT') {
-                user.amountCollected += tx.credit || 0;
-            }
+            user.collected += parseInt(tx.credit, 10) + parseInt(tx.debit, 10);
 
-            if (tx.ttype === 'DEBIT') {
-                user.paid += tx.debit || 0;
-            }
+            const transactionRefs = `${tx.cashref}`;
+            let remitted = 0;
+
+            const bankTxQuery = `
+                SELECT credit, debit FROM divine."banktransaction"
+                WHERE transactionref = $1
+            `;
+            const bankTxResult = await pg.query(bankTxQuery, [transactionRefs]);
+            const bankTransactions = bankTxResult.rows;
+
+            const bankTxSum = bankTransactions.reduce((sum, btx) => sum + ((btx.credit || 0) - (btx.debit || 0)), 0);
+            remitted = bankTxSum;
+
+            user.remitted += parseInt(remitted, 10) + parseInt(tx.debit || 0, 10);
 
             // Assuming penalty is indicated in description
-            if (tx.description && tx.description.toLowerCase().includes('penalty')) {
-                user.penalty += tx.debit || 0;
+            const penaltyRefs = `${tx.cashref}-P`;
+            let penaltySum = 0;
+
+            if (penaltyRefs.length > 0) {
+                const penaltyQuery = `
+                    SELECT debit, credit FROM divine."transaction"
+                    WHERE cashref = $1
+                `;
+                const penaltyResult = await pg.query(penaltyQuery, [penaltyRefs]);
+                const penaltyTransactions = penaltyResult.rows;
+
+                penaltySum = penaltyTransactions.reduce((sum, ptx) => sum + ((ptx.debit || 0) - (ptx.credit || 0)), 0);
             }
 
+            user.penalty = parseInt(penaltySum, 10);
+
             // Add transaction details
-            user.transactions.push({
-                accountnumber: tx.accountnumber,
-                accountname: user.fullname || 'N/A', // Assuming accountname is same as fullname
-                accounttype: getAccountType(tx.accountnumber), // Function to determine account type
-                tfrom: tx.tfrom,
-                credit: tx.credit || 0
-            });
+            const transactionQuery = `
+                SELECT accountnumber, whichaccount, tfrom, credit
+                FROM divine."transaction"
+                WHERE cashref = $1 AND ttype IN ('CREDIT', 'DEBIT')
+            `;
+            const transactionResult = await pg.query(transactionQuery, [tx.cashref]);
+            const transactionDetails = transactionResult.rows;
+
+            for (let transaction of transactionDetails) {
+                let accountName = 'Unknown';
+                const { whichaccount, accountnumber } = transaction;
+
+                if (whichaccount === 'PERSONAL') {
+                    const { rows: orgSettings } = await pg.query(`SELECT personal_account_prefix FROM divine."Organisationsettings"`);
+                    const personalAccountPrefix = orgSettings[0].personal_account_prefix;
+                    const phone = accountnumber.replace(personalAccountPrefix, '');
+                    const { rows: users } = await pg.query(`SELECT firstname, lastname, othernames FROM divine."User" WHERE phone = $1`, [phone]);
+                    if (users.length > 0) {
+                        const { firstname, lastname, othernames } = users[0];
+                        accountName = `${firstname} ${lastname} ${othernames}`.trim();
+                    }
+                } else if (whichaccount === 'SAVINGS') {
+                    const { rows: savings } = await pg.query(`SELECT userid FROM divine."savings" WHERE accountnumber = $1`, [accountnumber]);
+                    if (savings.length > 0) {
+                        const { userid } = savings[0];
+                        const { rows: users } = await pg.query(`SELECT firstname, lastname, othernames FROM divine."User" WHERE id = $1`, [userid]);
+                        if (users.length > 0) {
+                            const { firstname, lastname, othernames } = users[0];
+                            accountName = `${firstname} ${lastname} ${othernames}`.trim();
+                        }
+                    }
+                } else if (whichaccount === 'LOAN') {
+                    const { rows: loans } = await pg.query(`SELECT userid FROM divine."loanaccounts" WHERE accountnumber = $1`, [accountnumber]);
+                    if (loans.length > 0) {
+                        const { userid } = loans[0];
+                        const { rows: users } = await pg.query(`SELECT firstname, lastname, othernames FROM divine."User" WHERE id = $1`, [userid]);
+                        if (users.length > 0) {
+                            const { firstname, lastname, othernames } = users[0];
+                            accountName = `${firstname} ${lastname} ${othernames}`.trim();
+                        }
+                    }
+                } else if (whichaccount === 'GLACCOUNT') {
+                    accountName = 'SYSTEM AUTOMATION';
+                }
+
+                user.transactions.add(JSON.stringify({
+                    accountnumber: transaction.accountnumber,
+                    accountname: accountName,
+                    accounttype: transaction.whichaccount,
+                    tfrom: transaction.tfrom,
+                    credit: transaction.credit || 0
+                }));
+            }
+        }
+
+        // Convert Set to Array for transactions
+        Object.values(userCollections).forEach(user => {
+            user.transactions = Array.from(user.transactions).map(tx => JSON.parse(tx));
         });
 
         // Calculate excess and balance for each user
         Object.values(userCollections).forEach(user => {
-            const net = user.amountCollected - user.paid;
+            const net = user.collected - user.remitted;
             if (net > 0) {
                 user.balance = net;
             } else {
                 user.excess = Math.abs(net);
             }
         });
-
-        // Function to determine account type based on account number
-        const getAccountType = (accountNumber) => {
-            const savingsPrefix = 'SAV'; // Example prefix
-            const loanPrefix = 'LN'; // Example prefix
-            const personalPrefix = 'PR'; // Example prefix
-
-            if (accountNumber.startsWith(savingsPrefix)) {
-                return 'Savings';
-            } else if (accountNumber.startsWith(loanPrefix)) {
-                return 'Loan';
-            } else if (accountNumber.startsWith(personalPrefix)) {
-                return 'Personal';
-            } else {
-                return 'Unknown';
-            }
-        };
 
         await activityMiddleware(req, user.id, 'Collections for the day retrieved successfully', 'VIEW_COLLECTIONS_FOR_THE_DAY');
 
@@ -161,9 +242,7 @@ const viewCollectionsForTheDay = async (req, res) => {
             data: null,
             errors: [error.message]
         });
-    }
+    } 
 };
 
 module.exports = { viewCollectionsForTheDay };
-
-

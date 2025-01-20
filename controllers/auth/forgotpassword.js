@@ -69,7 +69,7 @@ async function forgotpassword(req, res) {
                 text: "A secure password is the key to protecting your digital life. Reset your password to start anew with Divine Help Farmers.",
                 html: `<!DOCTYPE html>
                         <html>
-                        <head>
+                        <head> 
                             <title>Reset Your Password</title>
                         </head>
                         <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333333; margin: 0; padding: 0; line-height: 1.6;">
@@ -80,9 +80,9 @@ async function forgotpassword(req, res) {
                             <div style="margin: 20px 0;">
                                 <p>Hello ${existingUser.firstname},</p>
                                 <p>We received a request to reset your password for your Divine Help Farmers account. If you made this request, please click the button below to set a new password:</p>
-                                <a href="${process.env.NEXT_PUBLIC_RETURN_APP_BASE}?passwordtoken=${vtoken}" style="display: block; width: 200px; margin: 20px auto; text-align: center; background-color: #4CAF50; color: #ffffff; padding: 10px; border-radius: 5px; text-decoration: none; font-weight: bold;">Reset Password</a>
+                                <a href="http://127.0.0.1:5501/view/resetpassword.html?passwordtoken=${vtoken}" style="display: block; width: 200px; margin: 20px auto; text-align: center; background-color: #4CAF50; color: #ffffff; padding: 10px; border-radius: 5px; text-decoration: none; font-weight: bold;">Reset Password</a>
                                 <p>If the button above doesn't work, copy and paste the following link into your browser:</p>
-                                <p><a href="${process.env.NEXT_PUBLIC_RETURN_APP_BASE}?passwordtoken=${vtoken}" style="color: #4CAF50;">${process.env.NEXT_PUBLIC_RETURN_APP_BASE}?passwordtoken=${vtoken}</a></p>
+                                <p><a href="http://127.0.0.1:5501/view/resetpassword.html?passwordtoken=${vtoken}" style="color: #4CAF50;">http://127.0.0.1:5501/view/resetpassword.html?passwordtoken=${vtoken}</a></p>
                                 <p>If you didn't request a password reset, please ignore this email or contact our support team if you have any concerns.</p>
                                 <p>Best Regards,<br>The Divine Help Farmers Team</p>
                             </div>
@@ -94,7 +94,7 @@ async function forgotpassword(req, res) {
                         </body>
                         </html>
                         
-                        `
+                        ` 
             }
         )
         messagestatus = true

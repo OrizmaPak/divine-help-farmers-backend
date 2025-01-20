@@ -30,6 +30,8 @@ const { checkUser } = require('../controllers/auth/checkuser');
 const { addStaffToRegistrationPoint } = require('../controllers/admin/registrationpoint/addstafftoregpoint');
 const { manageMembership } = require('../controllers/admin/memberships/managemembership');
 const { getMembershipMembers } = require('../controllers/admin/memberships/getmembershipmembers');
+const { verifyPin } = require('../controllers/admin/pin/verifypin');
+const { managePin } = require('../controllers/admin/pin/managepin');
 
 // BRANCH MANAGEMENT
 router.route('/branch')
@@ -102,6 +104,13 @@ router.route('/cashierlimit')
 // GET ALL ONLINE USERS
 router.route('/onlineusers')
     .get(getOnlineUsers)
+
+// PIN MANAGEMENT
+router.route('/verifypin')
+    .post(verifyPin)
+
+router.route('/managepin')
+    .post(managePin)
 
 
 

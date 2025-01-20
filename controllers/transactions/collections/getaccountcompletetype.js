@@ -2,7 +2,7 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
-const getAccountType = async (req, res) => {
+const getfullAccountType = async (req, res) => {
     const user = req.user;
     let { accountnumber } = req.query;
 
@@ -35,12 +35,27 @@ const getAccountType = async (req, res) => {
 
         const { savings_account_prefix, personal_account_prefix, loan_account_prefix } = settings[0];
         let accountType = null;
-        let accountname 
+        let accountname;
+        let status;
+        let person = {};
+
+        const calculateAge = (dob) => {
+            const diff = Date.now() - new Date(dob).getTime();
+            const ageDate = new Date(diff);
+            return Math.abs(ageDate.getUTCFullYear() - 1970);
+        };
+
+        const getBranchName = async (branchId) => {
+            const { rows: branchDetails } = await pg.query(`
+                SELECT branch FROM divine."Branch" WHERE id = $1
+            `, [branchId]);
+            return branchDetails.length > 0 ? branchDetails[0].branch : null;
+        };
 
         if (accountnumber.startsWith(savings_account_prefix)) {
             accountType = "Savings";
             const { rows: accountDetails } = await pg.query(`
-                SELECT sa.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname
+                SELECT sa.*, u.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname
                 FROM divine."savings" sa
                 JOIN divine."User" u ON sa.userid = u.id
                 WHERE sa.accountnumber = $1
@@ -55,11 +70,17 @@ const getAccountType = async (req, res) => {
                     errors: []
                 });
             }
-            accountname = accountDetails[0].fullname
+            accountname = accountDetails[0].fullname;
+            status = accountDetails[0].status;
+            person = { 
+                ...accountDetails[0],
+                age: calculateAge(accountDetails[0].dateofbirth),
+                branchname: await getBranchName(accountDetails[0].branch)
+            };
         } else if (accountnumber.startsWith(personal_account_prefix)) {
             accountType = "Personal";
             const { rows: accountDetails } = await pg.query(`
-                SELECT sa.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname
+                SELECT sa.*, u.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname
                 FROM divine."User" sa
                 JOIN divine."User" u ON sa.id = u.id
                 WHERE sa.phone = $1
@@ -74,11 +95,17 @@ const getAccountType = async (req, res) => {
                     errors: []
                 });
             }
-            accountname = accountDetails[0].fullname
+            accountname = accountDetails[0].fullname;
+            status = accountDetails[0].status;
+            person = { 
+                ...accountDetails[0],
+                age: calculateAge(accountDetails[0].dateofbirth),
+                branchname: await getBranchName(accountDetails[0].branch)
+            };
         } else if (accountnumber.startsWith(loan_account_prefix)) {
             accountType = "Loan";
             const { rows: accountDetails } = await pg.query(`
-                SELECT sa.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname
+                SELECT sa.*, u.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname
                 FROM divine."loanaccounts" sa
                 JOIN divine."User" u ON sa.userid = u.id
                 WHERE sa.accountnumber = $1
@@ -93,7 +120,13 @@ const getAccountType = async (req, res) => {
                     errors: []
                 });
             }
-            accountname = accountDetails[0].fullname
+            accountname = accountDetails[0].fullname;
+            status = accountDetails[0].status;
+            person = { 
+                ...accountDetails[0],
+                age: calculateAge(accountDetails[0].dateofbirth),
+                branchname: await getBranchName(accountDetails[0].branch)
+            };
         } else {
             accountType = "Personal";
             const { rows: accountDetails } = await pg.query(`
@@ -112,8 +145,13 @@ const getAccountType = async (req, res) => {
                 });
             }
             accountname = accountDetails[0].fullname;
-            accountnumber = `${personal_account_prefix}${accountnumber}`
-
+            accountnumber = `${personal_account_prefix}${accountnumber}`;
+            status = accountDetails[0].status;
+            person = { 
+                ...accountDetails[0],
+                age: calculateAge(accountDetails[0].dateofbirth),
+                branchname: await getBranchName(accountDetails[0].branch)
+            };
         } 
 
         await activityMiddleware(req, user.id, 'Account type retrieved successfully', 'ACCOUNT_TYPE');
@@ -122,7 +160,7 @@ const getAccountType = async (req, res) => {
             status: true,
             message: "Account type retrieved successfully",
             statuscode: StatusCodes.OK,
-            data: { accounttype:accountType, accountnumber, accountname },
+            data: { accounttype: accountType, accountnumber, accountname, status, person },
             errors: []
         });
     } catch (error) {
@@ -139,4 +177,4 @@ const getAccountType = async (req, res) => {
     }
 };
 
-module.exports = { getAccountType };
+module.exports = { getfullAccountType };

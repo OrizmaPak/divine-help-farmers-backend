@@ -8,6 +8,10 @@ const { getBankTransactions } = require('../controllers/transactions/getbank');
 const { route } = require('./loan');
 const { getUserMonthlyCollection } = require('../controllers/transactions/collections/getusermonthlycollection');
 const { getUserYearlyCollection } = require('../controllers/transactions/collections/getuseryearlycollection');
+const { viewCollectionsForTheDay } = require('../controllers/transactions/collections/viewcollectionsfortheday');
+const { getUserMonthlyviewCollection } = require('../controllers/transactions/collections/viewcollectionsforthemonth');
+const { viewCollectionsForTheYear } = require('../controllers/transactions/collections/viewcollectionsfortheyear');
+const { getfullAccountType } = require('../controllers/transactions/collections/getaccountcompletetype');
 const router = express.Router();
 
 
@@ -25,6 +29,9 @@ router.route('/balance')
 router.route('/getaccounttype')
     .get(getAccountType)
 
+router.route('/getaccounttypefull')
+    .get(getfullAccountType)
+
 router.route('/collection')
     .post(processCollection)
 
@@ -37,9 +44,17 @@ router.route('/collection/useryearly')
 router.route('/bank') 
     .get(getBankTransactions)
 
+router.route('/viewcollectionsfortheday')
+    .get(viewCollectionsForTheDay)
 
+router.route('/getusermonthlycviewollection')
+    .get(getUserMonthlyviewCollection)
 
+router.route('/viewcollectionsfortheyear')
+    .get(viewCollectionsForTheYear)
+
+ 
 
      
 
-module.exports = router;
+module.exports = router;  

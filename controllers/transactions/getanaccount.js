@@ -146,7 +146,7 @@ const getaccountTransactions = async (req, res) => {
                 COALESCE(SUM(debit), 0) AS total_debit
             FROM divine."transaction" 
             WHERE accountnumber = $1 AND status = 'ACTIVE'
-        `;
+        `; 
         // sumQueryValues.push(accountnumber);
         const { rows: [sumRow] } = await pg.query(transactionsSumQuery, [accountnumber]);
         const totalCredit = parseFloat(sumRow.total_credit);
