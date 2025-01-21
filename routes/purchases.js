@@ -40,7 +40,7 @@ router.route('/service')
     .get(getServicesReceived) 
 
 router.route('/rejectedservicereceived') 
-    .get(getRejectedServicesReceived)
+    .get(getRejectedServicesReceived)  
  
 
     

@@ -125,8 +125,8 @@ const saveFailedTransaction = async (client, req, res, reasonForRejection, trans
             if(!req.body.transactionref)req.body.transactionref = '';
             if(!req.body.cashref)req.body.cashref = '';
             await client.query(
-                `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom, transactionref, cashref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14, $15)`,
-                [req.body.accountnumber, req.body.credit, req.body.debit, transactionReference, req.body.description, req.body.ttype, status, reasonForRejection, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref??'', req.body.cashref??'']
+                `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14, $15, $16)`,
+                [req.body.accountnumber, req.body.credit, req.body.debit, transactionReference, req.body.description, req.body.ttype, status, reasonForRejection, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref??'', req.body.cashref??'', req.body.branch]
             );
             req.transactionError = {
                 status: StatusCodes.BAD_REQUEST,
@@ -251,8 +251,8 @@ const saveTransaction = async (client, res, transactionData, req) => {
         const finalValuedate = status === 'ACTIVE' ? new Date() : null;
         const newReference = await generateNewReference(client, accountnumber, req);
         await client.query(
-            `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid, tfrom, transactionref, cashref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14, $15, $16, $17)`,
-            [accountnumber, credit, debit, newReference, description, ttype, status, transactiondate, req.body.whichaccount, finalValuedate, transactiondesc, createdBy, currency, userid, tfrom, transactionref, cashref]
+            `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14, $15, $16, $17, $18)`,
+            [accountnumber, credit, debit, newReference, description, ttype, status, transactiondate, req.body.whichaccount, finalValuedate, transactiondesc, createdBy, currency, userid, tfrom, transactionref, cashref, req.body.branch]
         );
         req.body.transactiondesc += 'Transaction saved successfully.|';
     } catch (error) {
@@ -444,8 +444,8 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
     if (!req.body.transactionref) req.body.transactionref = '';
     if (!req.body.cashref) req.body.cashref = '';
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom, transactionref, cashref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14, $15)`,
-        [req.body.accountnumber, credit ? credit : req.body.credit, 0, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '']
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14, $15, $16)`,
+        [req.body.accountnumber, credit ? credit : req.body.credit, 0, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '', req.body.branch]
     );
     req.body.transactiondesc += `Credit redirected from ${req.body.accountnumber} to personal account.|`;
     
@@ -472,8 +472,8 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
     if (!req.body.transactionref) req.body.transactionref = '';
     if (!req.body.cashref) req.body.cashref = '';
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15)`,
-        [req.body.personalaccountnumber, credit ? credit : req.body.credit, 0, newPersonalReference, req.body.description, req.body.ttype, status, `hcrCredit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '']
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15, $16)`,
+        [req.body.personalaccountnumber, credit ? credit : req.body.credit, 0, newPersonalReference, req.body.description, req.body.ttype, status, `hcrCredit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '', req.body.branch]
     );
     
 };    
@@ -491,8 +491,8 @@ const handleRedirection = async (client, req, res, accountuser, reference, trans
     if (!req.body.transactionref) req.body.transactionref = '';
     if (!req.body.cashref) req.body.cashref = '';
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom, transactionref, cashref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14, $15)`,
-        [req.body.accountnumber, credit ? credit : req.body.credit, debit ? debit : req.body.debit, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '']
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14, $15, $16)`,
+        [req.body.accountnumber, credit ? credit : req.body.credit, debit ? debit : req.body.debit, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '', req.body.branch]
     );
 
     if ((credit ? credit : req.body.credit) > 0) {
@@ -538,8 +538,8 @@ const handleRedirection = async (client, req, res, accountuser, reference, trans
     if (!req.body.transactionref) req.body.transactionref = '';
     if (!req.body.cashref) req.body.cashref = '';
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15)`,
-        [req.body.personalaccountnumber, credit ? credit : req.body.credit, debit ? debit : req.body.debit, newPersonalReference, `Transaction redirected from ${req.body.accountnumber}`, req.body.ttype, status, transactiondesc, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '']
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15, $16)`,
+        [req.body.personalaccountnumber, credit ? credit : req.body.credit, debit ? debit : req.body.debit, newPersonalReference, `Transaction redirected from ${req.body.accountnumber}`, req.body.ttype, status, transactiondesc, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '', req.body.branch]
     );
 };
 
@@ -564,8 +564,8 @@ const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountus
     if (!req.body.transactionref) req.body.transactionref = '';
     if (!req.body.cashref) req.body.cashref = '';
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom, transactionref, cashref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14, $15)`,
-        [req.body.accountnumber, 0, debit ? debit : req.body.debit, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '']
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), $13, $14, $15, $16)`,
+        [req.body.accountnumber, 0, debit ? debit : req.body.debit, newReference, req.body.description, req.body.ttype, 'REDIRECTED', transactiondesc, whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '', req.body.branch]
     );
     req.body.transactiondesc += `Debit redirected from ${req.body.accountnumber} to personal account.|`;
 
@@ -627,8 +627,8 @@ const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountus
     if (!req.body.transactionref) req.body.transactionref = '';
     if (!req.body.cashref) req.body.cashref = '';
     await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15)`,
-        [req.body.personalaccountnumber, 0, debit ? debit : req.body.debit, newPersonalReference, req.body.description, req.body.ttype, status, `Debit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '']
+        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15, $16)`,
+        [req.body.personalaccountnumber, 0, debit ? debit : req.body.debit, newPersonalReference, req.body.description, req.body.ttype, status, `Debit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '', req.body.branch]
     );
     
 };

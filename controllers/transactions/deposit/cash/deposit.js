@@ -1,10 +1,20 @@
 const { StatusCodes } = require("http-status-codes");
-const pg = require("../../../db/pg");
-const { activityMiddleware } = require("../../../middleware/activity");
-const { performTransactionOneWay } = require("../../../middleware/transactions/performTransaction");
+const pg = require("../../../../db/pg");
+const { activityMiddleware } = require("../../../../middleware/activity");
+const { performTransactionOneWay } = require("../../../../middleware/transactions/performTransaction");
 
-const processCollection = async (req, res) => {
-    const { branch, userid, rowsize, location="OUTSIDE" } = req.body;
+const processCashCollection = async (req, res) => {
+    const timestamp = new Date().getTime();
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateString = `${year}${month}${day}`;
+    let { branch, userid, rowsize, location="OUTSIDE", cashref } = req.body;
+    const reqCashref = cashref
+    if (!cashref) {
+        cashref = `CR-${dateString}-${userid}`;
+    }
     // location can be "OUTSIDE" or "INSIDE".... inside is when it is made from the branch
     const user = req.user;
 
@@ -12,6 +22,16 @@ const processCollection = async (req, res) => {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Branch, user, and rowsize are required",
+            statuscode: StatusCodes.BAD_REQUEST,
+            data: null,
+            errors: []
+        });
+    }
+
+    if (!cashref) {
+        return res.status(StatusCodes.BAD_REQUEST).json({  
+            status: false,
+            message: "marketer reference is required", 
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: []
@@ -101,16 +121,29 @@ const processCollection = async (req, res) => {
 
         const depositLimit = cashierLimitData[0].depositlimit;
 
-        const timestamp = new Date().getTime();
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-        const day = String(today.getDate()).padStart(2, '0');
-        const dateString = `${year}${month}${day}`;
-        const cashref = `CR-${dateString}-${userid}`;
+        
+        
+        // const cashref = cashref;
 
         // Process multiple transactions
         let failedTransactions = [];
+
+        const { rows: orgSettingsData } = await pg.query(`
+            SELECT default_cash_account FROM divine."Organisationsettings" WHERE status = 'ACTIVE'
+        `);
+
+        if (orgSettingsData.length === 0) {
+            await pg.query('ROLLBACK');
+            return res.status(StatusCodes.NOT_FOUND).json({
+                status: false,
+                message: "Organization settings not found or inactive",
+                statuscode: StatusCodes.NOT_FOUND,
+                data: null,
+                errors: []
+            });
+        }
+
+        const orgDefaultCashAccount = orgSettingsData[0].default_cash_account;
 
         await pg.query('BEGIN');
 
@@ -157,9 +190,74 @@ const processCollection = async (req, res) => {
                 tax: false,
             };
             
-            const creditTransaction = await performTransactionOneWay(transaction, userCheckData[0].id);
+            const creditTransaction = !reqCashref ? await performTransactionOneWay(transaction, userCheckData[0].id) : true;
+            
+            const transactiondefault = {
+                accountnumber: orgDefaultCashAccount,
+                credit: Number(credit),
+                debit: 0,
+                reference: "",
+                transactiondate: new Date(),
+                transactiondesc: (location === 'INSIDE' ? 'BRANCH ' : '') + 'Credit Cash transaction collected by ' + userCheckData[0].firstname + ' ' + userCheckData[0].lastname + ' ' + userCheckData[0].othernames + (!reqCashref ? ' as a collection remittance by the marketer' : ''),
+                cashref: cashref,
+                currency: 'NGN',
+                description: (location === 'INSIDE' ? 'BRANCH ' : '') + `Credit of ${credit} to account ${accountnumber}` + (!reqCashref ? ' as a collection remittance by the marketer' : ''),
+                branch,
+                registrationpoint: userCheckData[0].registrationpoint,
+                ttype: 'CREDIT', 
+                tfrom: 'CASH',
+                tax: false,
+            };
+
+            console.log('orgDefaultCashAccount', orgDefaultCashAccount);
+            
+            const creditTransactiondefault = await performTransactionOneWay(transactiondefault, userCheckData[0].id);
+
+           
+            
+
+            function generateRandomComplexReference() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let reference = '';
+                for (let i = 0; i < 16; i++) {
+                    reference += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return reference;
+            }
+
+            // Perform another deposit to the default cash account and save it directly to the table
+            const defaultCashTransactionQuery = `
+                INSERT INTO divine."banktransaction" 
+                (accountnumber, userid, description, debit, credit, ttype, tfrom, createdby, valuedate, reference, transactiondate, transactiondesc, transactionref, status, whichaccount, rawdata)
+                VALUES 
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            `;
+            const defaultCashTransactionValues = [
+                orgDefaultCashAccount,
+                userCheckData[0].id,
+                (location === 'INSIDE' ? 'BRANCH ' : '') + `Credit of ${credit} to default cash account` + (!reqCashref ? ' as a collection remittance by the marketer' : ''),
+                0,
+                Number(credit),
+                'CREDIT',
+                'CASH',
+                user.id,
+                new Date(),
+                generateRandomComplexReference(),
+                new Date(),
+                (location === 'INSIDE' ? 'BRANCH ' : '') + 'Credit to default cash account by ' + userCheckData[0].firstname + ' ' + userCheckData[0].lastname + ' ' + userCheckData[0].othernames + (!reqCashref ? ' as a collection remittance by the marketer' : ''),
+                cashref,
+                'ACTIVE',
+                'CASH BANK',
+                null
+            ];
+
+            await pg.query(defaultCashTransactionQuery, defaultCashTransactionValues);
 
             if (!creditTransaction) {
+                failedTransactions.push(i);
+            }
+
+            if (!creditTransactiondefault) {
                 failedTransactions.push(i);
             }
         }
@@ -200,4 +298,4 @@ const processCollection = async (req, res) => {
     }
 };
 
-module.exports = { processCollection };
+module.exports = { processCashCollection };

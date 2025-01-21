@@ -12,6 +12,8 @@ const { viewCollectionsForTheDay } = require('../controllers/transactions/collec
 const { getUserMonthlyviewCollection } = require('../controllers/transactions/collections/viewcollectionsforthemonth');
 const { viewCollectionsForTheYear } = require('../controllers/transactions/collections/viewcollectionsfortheyear');
 const { getfullAccountType } = require('../controllers/transactions/collections/getaccountcompletetype');
+const { processWithdrawal } = require('../controllers/transactions/withdrawal/cash/withdrawal');
+const { processCashCollection } = require('../controllers/transactions/deposit/cash/deposit');
 const router = express.Router();
 
 
@@ -52,6 +54,15 @@ router.route('/getusermonthlycviewollection')
 
 router.route('/viewcollectionsfortheyear')
     .get(viewCollectionsForTheYear)
+
+router.route('/deposit')
+    .post(processCollection)
+
+router.route('/withdrawal')
+    .post(processWithdrawal)
+
+router.route('/cashdeposit')
+    .post(processCashCollection)
 
  
 

@@ -19,6 +19,28 @@ const managePin = async (req, res) => {
         // Encrypt the pin using JWT_SECRET
         const encryptedPin = jwt.sign({ pin }, process.env.JWT_SECRET);
 
+        // Fetch the user's current pin from the database
+        const { rows: [user] } = await pg.query(`SELECT pin FROM divine."User" WHERE id = $1`, [id]);
+        if (!user) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                status: false,
+                message: "User not found",
+                statuscode: StatusCodes.NOT_FOUND,
+                data: null,
+                errors: []
+            });
+        }
+
+        if (user.pin == 'AUTH_BLOCKED') {
+            return res.status(StatusCodes.UNAUTHORIZED).json({
+                status: false,
+                message: "Pin is blocked, Please contact support for further assistance",
+                statuscode: StatusCodes.UNAUTHORIZED,
+                data: null,
+                errors: []
+            });
+        }
+
         // Update the User with the new encrypted pin
         const updateQuery = {
             text: `UPDATE divine."User" SET pin = $1 WHERE id = $2`,

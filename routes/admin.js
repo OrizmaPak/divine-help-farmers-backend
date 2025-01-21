@@ -32,6 +32,7 @@ const { manageMembership } = require('../controllers/admin/memberships/managemem
 const { getMembershipMembers } = require('../controllers/admin/memberships/getmembershipmembers');
 const { verifyPin } = require('../controllers/admin/pin/verifypin');
 const { managePin } = require('../controllers/admin/pin/managepin');
+const { blockPin } = require('../controllers/admin/pin/blockpin');
 
 // BRANCH MANAGEMENT
 router.route('/branch')
@@ -111,6 +112,9 @@ router.route('/verifypin')
 
 router.route('/managepin')
     .post(managePin)
+
+router.route('/blockpin')
+    .post(blockPin)
 
 
 

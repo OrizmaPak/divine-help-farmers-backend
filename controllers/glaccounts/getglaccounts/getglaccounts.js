@@ -43,7 +43,7 @@ const getAccounts = async (req, res) => {
             status: true,
             message: "Accounts fetched successfully",
             statuscode: StatusCodes.OK,
-            data: accounts,
+            data: accounts, 
             errors: []
         });
     } catch (error) {

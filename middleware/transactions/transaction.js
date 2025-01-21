@@ -148,9 +148,11 @@ const saveTransactionMiddleware = async (req, res, next) => {
         const accountResult = await client.query(savingsAccountQuery, [parsedAccountNumber]);
         const loanAccountResult = await client.query(loanAccountQuery, [parsedAccountNumber]);
         const glAccountResult = await client.query(glAccountQuery, [parsedAccountNumber]);
+        console.log('accountnumber', accountnumber);
+
         if (accountResult.rowCount !== 0) {
             whichaccount = 'SAVINGS'; // Set account type to SAVINGS
-        } else if (accountnumber && accountnumber.startsWith(orgSettings.personal_account_prefix)) {
+        } else if (accountnumber && accountnumber.toString().startsWith(orgSettings.personal_account_prefix)) {
             const phoneNumber = accountnumber.substring(orgSettings.personal_account_prefix.length);
             const userQuery = `SELECT * FROM divine."User" WHERE phone = $1::text`;
             const userResult = await client.query(userQuery, [phoneNumber]);
@@ -196,7 +198,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
             personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`;
         }
 
-        if (accountResult.rowCount === 0 && accountnumber && !accountnumber.startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0 && glAccountResult.rowCount === 0) {
+        if (accountResult.rowCount === 0 && accountnumber && !accountnumber.toString().startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0 && glAccountResult.rowCount === 0) {
             // If account number is invalid, save the transaction as failed
             await saveFailedTransaction(client, req, res, 'Invalid account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
             await client.query('COMMIT'); // Commit the transaction

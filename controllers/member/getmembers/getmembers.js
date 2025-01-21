@@ -9,7 +9,10 @@
     
         try {
             let query = {
-                text: `SELECT * FROM divine."User"`,
+                text: `SELECT u.*, b.branch AS branchname, rp.registrationpoint AS registrationpointname
+                       FROM divine."User" u
+                       LEFT JOIN divine."Branch" b ON u.branch = b.id
+                       LEFT JOIN divine."Registrationpoint" rp ON u.registrationpoint = rp.id`,
                 values: []
             };
     
@@ -17,7 +20,7 @@
             let whereClause = '';
             if (user.role !== 'SUPERADMIN' && (!user.permissions || !user.permissions.includes('ACCESS ALL USERS'))) {
                 // Restrict to users from the same branch
-                whereClause += whereClause ? ` AND "branch" = $${query.values.length + 1}` : ` WHERE "branch" = $${query.values.length + 1}`;
+                whereClause += whereClause ? ` AND u."branch" = $${query.values.length + 1}` : ` WHERE u."branch" = $${query.values.length + 1}`;
                 query.values.push(user.branch);
             }
 
@@ -28,7 +31,7 @@
             Object.keys(req.query).forEach((key) => {
                 if (key !== 'q') {
                     whereClause += whereClause ? ` AND ` : ` WHERE `;
-                    whereClause += `"${key}" = $${valueIndex}`;
+                    whereClause += `u."${key}" = $${valueIndex}`;
                     query.values.push(req.query[key]);
                     valueIndex++;
                 }
@@ -46,7 +49,7 @@
                 const cols = columns.map(row => row.column_name);
     
                 // Generate the dynamic SQL query
-                const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
+                const searchConditions = cols.map(col => `u.${col}::text ILIKE $${valueIndex}`).join(' OR ');
                 whereClause += whereClause ? ` AND (${searchConditions})` : ` WHERE (${searchConditions})`;
                 query.values.push(`%${req.query.q}%`);
                 valueIndex++;
@@ -88,7 +91,7 @@
     
             // Get total count for pagination
             const countQuery = {
-                text: `SELECT COUNT(*) FROM divine."User" ${whereClause}`,
+                text: `SELECT COUNT(*) FROM divine."User" u ${whereClause}`,
                 values: whereClause ? query.values.slice(0, -2) : []
             };
             const { rows: [{ count: total }] } = await pg.query(countQuery);
@@ -124,3 +127,4 @@
     };
     
     module.exports = { getUsers };
+ 

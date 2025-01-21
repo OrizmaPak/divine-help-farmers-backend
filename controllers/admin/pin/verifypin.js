@@ -28,6 +28,26 @@ const verifyPin = async (req, res) => {
             });
         }
 
+        if (user.pin == 'BLOCKED') {
+            return res.status(StatusCodes.UNAUTHORIZED).json({
+                status: false,
+                message: "Pin is blocked, Please go and reset your pin",
+                statuscode: StatusCodes.UNAUTHORIZED,
+                data: null,
+                errors: []
+            });
+        }
+
+        if (user.pin == 'AUTH_BLOCKED') {
+            return res.status(StatusCodes.UNAUTHORIZED).json({
+                status: false,
+                message: "Pin is blocked, You will have to contact support for further assistance",
+                statuscode: StatusCodes.UNAUTHORIZED,
+                data: null,
+                errors: []
+            });
+        }
+
         if (!user.pin) {
             if (pin != '1234') {
                 return res.status(StatusCodes.UNAUTHORIZED).json({
