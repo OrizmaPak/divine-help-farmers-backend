@@ -97,7 +97,7 @@ const rejectService = async (req, res) => {
             currency: service.currency || 'NGN',
             description: `Rejection of service ${service.servicetype} by ${user.firstname} ${user.lastname} because: ${issue}`,
             branch: user.branch,
-            registrationpoint: '',
+            registrationpoint: null,
             ttype: staff ? 'DEBIT' : 'CREDIT',
             tfrom: 'SERVICE',
             tax: false,

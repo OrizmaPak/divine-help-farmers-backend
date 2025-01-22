@@ -5,12 +5,12 @@ const { performTransaction, performTransactionOneWay } = require("../../../middl
 
 const manageReceiveService = async (req, res) => {
     const user = req.user;
-    const { rowsize, supplier, branch, reference } = req.body;
+    const { rowsize, supplier, branch, reference, tfrom } = req.body;
 
-    if (!rowsize || !reference) {
+    if (!rowsize || !reference || !tfrom) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Invalid reference or data size provided. Please verify your input.",
+            message: "Invalid reference, payment method or data size provided. Please verify your input.",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: []
@@ -141,9 +141,9 @@ const manageReceiveService = async (req, res) => {
             currency: validSupplier.currency,
             description: "Cost of services received from supplier",
             branch: branch,  
-            registrationpoint: '',
+            registrationpoint: null,
             ttype: 'DEBIT',
-            tfrom: 'BANK',
+            tfrom,
             tax: false,
         };
 
@@ -169,9 +169,9 @@ const manageReceiveService = async (req, res) => {
             currency: validSupplier.currency,
             description: `Debit for services received from ${validSupplier.supplier}`,
             branch: branch,
-            registrationpoint: '',
+            registrationpoint: null,
             ttype: 'DEBIT',
-            tfrom: 'BANK',
+            tfrom,
             tax: false,
         };
 
@@ -185,9 +185,9 @@ const manageReceiveService = async (req, res) => {
             currency: validSupplier.currency,
             description: `Credit for services provided by ${user.firstname} ${user.lastname}`,
             branch: branch,
-            registrationpoint: '',
+            registrationpoint: null,
             ttype: 'CREDIT',
-            tfrom: 'BANK',
+            tfrom,
             tax: false,
         };
 

@@ -152,6 +152,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
 
         if (accountResult.rowCount !== 0) {
             whichaccount = 'SAVINGS'; // Set account type to SAVINGS
+            req.body.whichaccount = whichaccount;
         } else if (accountnumber && accountnumber.toString().startsWith(orgSettings.personal_account_prefix)) {
             const phoneNumber = accountnumber.substring(orgSettings.personal_account_prefix.length);
             const userQuery = `SELECT * FROM divine."User" WHERE phone = $1::text`;
@@ -181,13 +182,16 @@ const saveTransactionMiddleware = async (req, res, next) => {
                 personnalaccount = `${orgSettings.personal_account_prefix}${accountuser.phone}`;
             }
             whichaccount = 'PERSONAL'; // Set account type to PERSONAL
+            req.body.whichaccount = whichaccount;
         } else if (loanAccountResult.rowCount !== 0) {
             whichaccount = 'LOAN'; // Set account type to LOAN
+            req.body.whichaccount = whichaccount;
             const loanaccountuser = loanAccountResult.rows[0]; // Save the user data in loanaccountuser variable
             req.body.loanaccountnumber = loanaccountuser.accountnumber;
             req.body.loanaccount = loanaccountuser;
         } else if (glAccountResult.rowCount !== 0) {
             whichaccount = 'GLACCOUNT'; // Set account type to GLACCOUNT
+            req.body.whichaccount = whichaccount;
         }
         // Establish the personal account number  
         if (!req.body['personalaccountnumber']) {

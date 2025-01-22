@@ -283,40 +283,68 @@ const calculateChargedebit = (product, amount) => {
 
 
 const applyMinimumCreditAmountPenalty = async (client, req, res, orgSettings) => {
-    if (req.body.credit < orgSettings.minimum_credit_amount && req.body.type != 'CHARGE') {
+    if (req.body.credit < orgSettings.minimum_credit_amount && req.body.ttype != 'CHARGE') {
         const penaltyAmount = orgSettings.minimum_credit_amount_penalty;
         const defaultIncomeAccountNumber = orgSettings.default_income_account;
         const incomeAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
         const incomeAccountResult = await client.query(incomeAccountQuery, [defaultIncomeAccountNumber]);
-    
-        if (incomeAccountResult.rowCount === 0) {
-            req.body.transactiondesc += 'Default income account does not exist. Please contact support for assistance.|';
-            // throw new Error('Default income account does not exist. Please contact support for assistance.');
-        } else {
-            console.log('Penalty Amount:', penaltyAmount);
-    
-            await saveTransaction(client, res, {
-                accountnumber: defaultIncomeAccountNumber,
-                credit: penaltyAmount,
-                debit: 0,
-                reference: await generateNewReference(client, defaultIncomeAccountNumber, req, res),
-                description: 'Minimum Credit Amount Penalty',
-                ttype: 'PENALTY',
-                status: 'ACTIVE',
-                transactiondesc: 'Minimum Credit Amount Penalty',
-                whichaccount: 'GLACCOUNT',
-                currency: req.body.currency,
-                tfrom: req.body.tfrom
-            }, req);
-            req.body.transactiondesc += `Penalty of ${penaltyAmount} has been deducted.|`;
-            req.body.credit = req.body.credit - penaltyAmount;
-            await activityMiddleware(req, req.user.id, 'Penalty transaction saved', 'TRANSACTION');
+        let continued = true
+        if (req.body.whichaccount == 'PERSONAL') {
+            const userQuery = `SELECT id FROM divine."User" WHERE phone = $1`;
+            const userResult = await client.query(userQuery, [req.body.accountnumber.toString().replace(orgSettings.personal_account_prefix, '')]);
+
+            if (userResult.rowCount === 0) {
+                req.body.transactiondesc += 'Account seems like a supplier / non-member account. Penalty cannot proceed.|';
+                continued = false;
+            }
         }
-    }
+        
+        if(continued){
+            if (incomeAccountResult.rowCount === 0) {
+                req.body.transactiondesc += 'Default income account does not exist. Please contact support for assistance.|';
+                const excessAccountNumber = orgSettings.default_excess_account || '999999999';
+                await saveTransaction(client, res, {
+                    accountnumber: excessAccountNumber,
+                    credit: penaltyAmount,
+                    debit: 0,
+                    reference: await generateNewReference(client, excessAccountNumber, req, res),
+                    description: 'Penalty saved to excess account',
+                    ttype: 'PENALTY',
+                    status: 'ACTIVE',
+                    transactiondesc: 'Penalty saved to excess account',
+                    whichaccount: 'GLACCOUNT',
+                    currency: req.body.currency,
+                    tfrom: req.body.tfrom
+                }, req);
+                req.body.transactiondesc += `Penalty of ${penaltyAmount} has been saved to excess account.|`;
+                await activityMiddleware(req, req.user.id, 'Penalty transaction saved to excess account', 'TRANSACTION');
+                // throw new Error('Default income account does not exist. Please contact support for assistance.');
+            } else {
+                console.log('Penalty Amount:', penaltyAmount);
+        
+                await saveTransaction(client, res, {
+                    accountnumber: defaultIncomeAccountNumber,
+                    credit: penaltyAmount,
+                    debit: 0,
+                    reference: await generateNewReference(client, defaultIncomeAccountNumber, req, res),
+                    description: 'Minimum Credit Amount Penalty',
+                    ttype: 'PENALTY',
+                    status: 'ACTIVE',
+                    transactiondesc: 'Minimum Credit Amount Penalty',
+                    whichaccount: 'GLACCOUNT',
+                    currency: req.body.currency,
+                    tfrom: req.body.tfrom
+                }, req);
+                req.body.transactiondesc += `Penalty of ${penaltyAmount} has been deducted.|`;
+                req.body.credit = req.body.credit - penaltyAmount;
+                await activityMiddleware(req, req.user.id, 'Penalty transaction saved', 'TRANSACTION');
+            }
+        }
+    } 
 };
 
 // Helper function for penalty calculation
-const calculatePenalty = (product) => {
+const calculatePenalty = (product) => {  
     if (product.penaltytype === 'PERCENTAGE') {
         return (product.penaltyamount / 100) * product.compulsorydepositfrequencyamount;
     }

@@ -13,9 +13,9 @@
             { "code": "NIGERIA", "name": "Tobore Staff" },
             { "code": "HOUSTON", "name": "Engineer Lucky" },
         ];
-    
+      
         try {
-            const data = req.body;
+            const data = req.body; 
     
             // Validate the presence of the type field
             if (!data.type || (data.type !== 'NEW' && data.type !== 'UPDATE')) {

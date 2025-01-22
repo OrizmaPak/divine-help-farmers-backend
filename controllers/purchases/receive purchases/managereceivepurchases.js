@@ -28,13 +28,6 @@ const manageReceivePurchases = async (req, res) => {
         // Initialize an array to hold all the inventory items to be inserted
         const inventoryItems = [];
 
-        // if(reference){  
-        //     await pg.query(
-        //         `DELETE FROM divine."Inventory" WHERE reference = $1`,
-        //         [reference]
-        //     );
-        // };
-
         if (!req.body[`supplier`]) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -90,8 +83,6 @@ const manageReceivePurchases = async (req, res) => {
                     errors: [`Inventory item ${itemid} not found`]  
                 });
             }
-
-
 
             // Clone the inventory item to modify its properties
             const clonedInventory = { ...inventory.rows[0] };
@@ -167,173 +158,189 @@ const manageReceivePurchases = async (req, res) => {
             inventoryItems.push(clonedInventory);
         }
 
-        // Insert cloned inventory items into the database
-        for (const item of inventoryItems) {
-            await pg.query(`INSERT INTO divine."Inventory" (
-                itemid, itemname, department, branch, units, cost, price, pricetwo, 
-                beginbalance, qty, minimumbalance, "group", applyto, itemclass, 
-                composite, compositeid, description, imageone, imagetwo, imagethree, 
-                status, "reference", transactiondate, transactiondesc, transactionref, createdby, dateadded
-            ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
-                $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
-            )`, [
-                item.itemid, item.itemname, item.department, 
-                item.branch, item.units, item.cost, 
-                item.price, item.pricetwo, item.beginbalance, 
-                item.qty, item.minimumbalance, item.group, 
-                item.applyto, item.itemclass, item.composite, 
-                item.compositeid, item.description, item.imageone, 
-                item.imagetwo, item.imagethree, 'ACTIVE', 
-                item.reference, item.transactiondate, item.transactiondesc, 
-                item.transactionref, user.id, new Date()
-            ]);
+        await pg.query('BEGIN');
+        try {
+            // Insert cloned inventory items into the database
+            for (const item of inventoryItems) {
+                await pg.query(`INSERT INTO divine."Inventory" (
+                    itemid, itemname, department, branch, units, cost, price, pricetwo, 
+                    beginbalance, qty, minimumbalance, "group", applyto, itemclass, 
+                    composite, compositeid, description, imageone, imagetwo, imagethree, 
+                    status, "reference", transactiondate, transactiondesc, transactionref, createdby, dateadded
+                ) VALUES (
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
+                    $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
+                )`, [
+                    item.itemid, item.itemname, item.department, 
+                    item.branch, item.units, item.cost, 
+                    item.price, item.pricetwo, item.beginbalance, 
+                    item.qty, item.minimumbalance, item.group, 
+                    item.applyto, item.itemclass, item.composite, 
+                    item.compositeid, item.description, item.imageone, 
+                    item.imagetwo, item.imagethree, 'ACTIVE', 
+                    item.reference, item.transactiondate, item.transactiondesc, 
+                    item.transactionref, user.id, new Date()
+                ]);
 
-            // Log activity for opening stock
-            // Get the department from the department table
-            const { rows: department } = await pg.query(`SELECT department FROM divine."Department" WHERE id = $1`, [item.department]);
-            // Get the branch from the branch table
-            const { rows: branch } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [item.branch]);
-            // Log activity for opening stock
-            await activityMiddleware(res, req.user.id, `Opening stock added for item ${item.itemname} in department ${department[0].department} and branch ${branch[0].branch} with quantity ${item.qty}`, 'OPEN STOCK');
-        }
+                // Log activity for opening stock
+                // Get the department from the department table
+                const { rows: department } = await pg.query(`SELECT department FROM divine."Department" WHERE id = $1`, [item.department]);
+                // Get the branch from the branch table
+                const { rows: branch } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [item.branch]);
+                // Log activity for opening stock
+                await activityMiddleware(res, req.user.id, `Opening stock added for item ${item.itemname} in department ${department[0].department} and branch ${branch[0].branch} with quantity ${item.qty}`, 'OPEN STOCK');
+            }
 
-        // HANDLE TRANSACTIONS
-        // GET TOTAL VALUE OF ITEMS
-        const totalValue = inventoryItems.reduce((acc, item) => acc + item.qty * item.cost, 0);
-        // get the supplier
-        
-        // get the organisation settings
-        const orgSettings = (await pg.query(`SELECT * FROM divine."Organisationsettings" LIMIT 1`)).rows[0];
+            // HANDLE TRANSACTIONS
+            // GET TOTAL VALUE OF ITEMS
+            const totalValue = inventoryItems.reduce((acc, item) => acc + item.qty * item.cost, 0);
+            // get the supplier
+            
+            // get the organisation settings
+            const orgSettings = (await pg.query(`SELECT * FROM divine."Organisationsettings" LIMIT 1`)).rows[0];
 
-        const reqbody = req.body;
+            const reqbody = req.body;
 
-        
-        const userAllocationBalanceQuery = `
-            SELECT COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) AS balance 
-            FROM divine."transaction" 
-            WHERE accountnumber = $1 AND userid = $2 AND status = 'ACTIVE'
-        `;
-        
-        const userAllocationBalanceResult = await pg.query(userAllocationBalanceQuery, [orgSettings.default_allocation_account, req.user.id]);
-        const userAllocationBalance = userAllocationBalanceResult.rows[0].balance;
+            
+            const userAllocationBalanceQuery = `
+                SELECT COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) AS balance 
+                FROM divine."transaction" 
+                WHERE accountnumber = $1 AND userid = $2 AND status = 'ACTIVE' AND tfrom = $3
+            `;
+            
+            const userAllocationBalanceResult = await pg.query(userAllocationBalanceQuery, [orgSettings.default_allocation_account, req.user.id, req.body.tfrom]);
+            const userAllocationBalance = userAllocationBalanceResult.rows[0].balance;
 
-        if (tfrom == 'BANK' && userAllocationBalance < req.body.amountpaid) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: 'Insufficient funds allocated to the you. Contact your administrator for more funds to be allocated or pay '+userAllocationBalance+' and pay the balance later',
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });  
-        }
-        
-        // debit the supplier account
-        const supplierTransaction = {
-            accountnumber: `${orgSettings.personal_account_prefix}${supplier.contactpersonphone}`,
-            credit: 0,
-            debit: totalValue,
-            reference: req.body.paymentref,
-            transactiondate: new Date(),
-            transactiondesc: '',
-            currency: supplier.currency,
-            description: "Cost of items received from supplier",
-            branch: '',
-            registrationpoint: '',
-            ttype: 'DEBIT',
-            tfrom: tfrom,
-            tax: false,
-            voucher: req.body.voucher,
-        };
-
-       const debitSupplier = await performTransactionOneWay(supplierTransaction);
-
-       if (!debitSupplier) {
-           return res.status(StatusCodes.BAD_REQUEST).json({
-               status: false,
-               message: 'Failed to debit supplier account.',
-               statuscode: StatusCodes.BAD_REQUEST,
-               data: null,
-               errors: []
-           });
-       }
-
-
-        // SUBMIT TRANSACTION PAID
-        const fromTransaction = {
-            accountnumber: `${orgSettings.default_allocation_account}`,
-            credit: 0,
-            debit: req.body.amountpaid,
-            reference: req.body.paymentref,
-            transactiondate: new Date(),
-            transactiondesc: '',
-            currency: supplier.currency,
-            description: `Debit for items received to inventory from ${supplier.supplier}`,
-            branch: '',
-            registrationpoint: '',
-            ttype: 'DEBIT',
-            tfrom: tfrom,
-            tax: false,
-            voucher: req.body.voucher,
-        };
-
-        const toTransaction = {
-            accountnumber: `${orgSettings.personal_account_prefix}${supplier.contactpersonphone}`,
-            credit: req.body.amountpaid,
-            debit: 0,
-            reference:"",
-            transactiondate: new Date(),
-            transactiondesc: '', 
-            currency: supplier.currency,
-            description: `Credit for items purchased by ${user.firstname} ${user.lastname} to balance ${(Number(totalValue) - Number(req.body.amountpaid)).toLocaleString()}`,
-            branch: '',
-            registrationpoint: '',
-            ttype: 'CREDIT',
-            tfrom: tfrom,
-            tax: false,
-            voucher: req.body.voucher,
-        };
-
-        const makepayment = await performTransaction(fromTransaction, toTransaction, user.id, user.id);
-
-        if (reference) {
-            try {
-                await pg.query(
-                    `DELETE FROM divine."Inventory" WHERE reference = $1`,
-                    [reference]
-                );
-            } catch (error) {
-                console.error('Error deleting purchase order:', error); 
-                return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            if (userAllocationBalance < req.body.amountpaid) {
+                await pg.query('ROLLBACK');
+                return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: "Failed to delete purchase order",
-                    statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    message: `Insufficient funds available at ${req.body.tfrom} allocation to the you. Contact your administrator for more funds to be allocated or pay ${userAllocationBalance} and pay the balance later`,
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });  
+            }
+            
+            // debit the supplier account
+            const supplierTransaction = {
+                accountnumber: `${orgSettings.personal_account_prefix}${supplier.contactpersonphone}`,
+                credit: 0,
+                debit: totalValue,
+                reference: req.body.paymentref,
+                transactiondate: new Date(),
+                transactiondesc: '',
+                currency: supplier.currency,
+                description: "Cost of items received from supplier",
+                branch: null,
+                registrationpoint: null,
+                ttype: 'DEBIT',
+                tfrom: tfrom,
+                tax: false,
+                voucher: req.body.voucher,
+            };
+
+            const debitSupplier = await performTransactionOneWay(supplierTransaction);
+
+            if (!debitSupplier) {
+                await pg.query('ROLLBACK');
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: 'Failed to debit supplier account.',
+                    statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: []
                 });
             }
-        }
 
-        if (makepayment) {
-            // Return success response with the inserted inventory items
-            return res.status(StatusCodes.OK).json({
-                status: true,
-                message: "Inventory Received successfully",
-                statuscode: StatusCodes.OK,
-                data: inventoryItems,
-                errors: []
-            });
-        } else {
-            // Return failure response if payment was not successful
-            return res.status(StatusCodes.BAD_REQUEST).json({
+            // SUBMIT TRANSACTION PAID
+            const fromTransaction = {
+                accountnumber: `${orgSettings.default_allocation_account}`,
+                credit: 0,
+                debit: req.body.amountpaid,
+                reference: req.body.paymentref,
+                transactiondate: new Date(),
+                transactiondesc: '',
+                currency: supplier.currency,
+                description: `Debit for items received to inventory from ${supplier.supplier}`,
+                branch: null,
+                registrationpoint: null,
+                ttype: 'DEBIT',
+                tfrom: tfrom,
+                tax: false,
+                voucher: req.body.voucher,
+            };
+
+            const toTransaction = {
+                accountnumber: `${orgSettings.personal_account_prefix}${supplier.contactpersonphone}`,
+                credit: req.body.amountpaid,
+                debit: 0,
+                reference:"",
+                transactiondate: new Date(),
+                transactiondesc: '', 
+                currency: supplier.currency,
+                description: `Credit for items purchased by ${user.firstname} ${user.lastname} to balance ${(Number(totalValue) - Number(req.body.amountpaid)).toLocaleString()}`,
+                branch: null,
+                registrationpoint: null,
+                ttype: 'CREDIT',
+                tfrom: tfrom,
+                tax: false,
+                voucher: req.body.voucher,
+            };
+
+            const makepayment = await performTransaction(fromTransaction, toTransaction, user.id, user.id);
+
+            if (reference) {
+                try {
+                    await pg.query(
+                        `DELETE FROM divine."Inventory" WHERE reference = $1`,
+                        [reference]
+                    );
+                } catch (error) {
+                    console.error('Error deleting purchase order:', error); 
+                    await pg.query('ROLLBACK');
+                    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                        status: false,
+                        message: "Failed to delete purchase order",
+                        statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                        data: null,
+                        errors: []
+                    });
+                }
+            }
+
+            if (makepayment) {
+                await pg.query('COMMIT');
+                // Return success response with the inserted inventory items
+                return res.status(StatusCodes.OK).json({
+                    status: true,
+                    message: "Inventory Received successfully",
+                    statuscode: StatusCodes.OK,
+                    data: inventoryItems,
+                    errors: []
+                });
+            } else {
+                await pg.query('ROLLBACK');
+                // Return failure response if payment was not successful
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "Failed to add opening stock due to payment issue",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+        } catch (error) {
+            await pg.query('ROLLBACK');
+            console.error('Transaction error:', error);
+            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                 status: false,
-                message: "Failed to add opening stock due to payment issue",
-                statuscode: StatusCodes.BAD_REQUEST,
+                message: "Transaction failed",
+                statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
                 data: null,
                 errors: []
             });
         }
-        
     } catch (error) {
         // Log error if any occurs
         console.error(error);
@@ -350,5 +357,3 @@ const manageReceivePurchases = async (req, res) => {
 
 // Export the manageReceivePurchases function
 module.exports = {manageReceivePurchases};
-
- 

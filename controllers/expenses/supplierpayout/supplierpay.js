@@ -3,13 +3,13 @@ const pg = require("../../../db/pg");
 const { performTransaction } = require("../../../middleware/transactions/performTransaction");
 
 const processSupplierPayout = async (req, res) => {
-    const { supplier, amount, description } = req.body;
+    const { supplier, amount, description, tfrom } = req.body;
     const user = req.user
 
-    if (!supplier || !amount || !description) {
+    if (!supplier || !amount || !description || !tfrom) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Supplier, amount, and description are required.",
+            message: "Supplier, amount, description, and payment method are required.",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: []
@@ -49,9 +49,9 @@ const processSupplierPayout = async (req, res) => {
             SELECT 
                 COALESCE(SUM(credit), 0) - COALESCE(SUM(debit), 0) AS balance
             FROM divine."transaction"
-            WHERE accountnumber = $1 AND userid = $2 AND status = 'ACTIVE'
+            WHERE accountnumber = $1 AND userid = $2 AND tfrom = $3 AND status = 'ACTIVE'
         `;
-        const { rows: [transactionData] } = await pg.query(transactionQuery, [organisationData.default_allocation_account, user.id]);
+        const { rows: [transactionData] } = await pg.query(transactionQuery, [organisationData.default_allocation_account, user.id, tfrom]);
 
         if (!transactionData) {
             return res.status(StatusCodes.NOT_FOUND).json({
@@ -65,10 +65,10 @@ const processSupplierPayout = async (req, res) => {
 
         const balance = transactionData.balance;
 
-        if (amount > balance) {
+        if (amount > balance) { 
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: "Insufficient allocated funds.",
+                message: "Insufficient allocated funds at "+tfrom,
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
                 errors: ["The payout amount exceeds the available balance."]
@@ -85,9 +85,9 @@ const processSupplierPayout = async (req, res) => {
             currency: validSupplier.currency,
             description: `Debit for supplier, payout to ${validSupplier.supplier} ${description}`,
             branch: user.branch,
-            registrationpoint: '',
+            registrationpoint: null,
             ttype: 'DEBIT',
-            tfrom: 'BANK',
+            tfrom,
             tax: false,
         };
 
@@ -100,10 +100,10 @@ const processSupplierPayout = async (req, res) => {
             transactiondesc: description,
             currency: validSupplier.currency,
             description: `Credit for supplier payout by ${user.firstname} ${user.lastname} ${description}`,
-            branch: '',
-            registrationpoint: '',
+            branch: null,
+            registrationpoint: null,
             ttype: 'CREDIT',
-            tfrom: 'BANK',
+            tfrom,
             tax: false,
         };
 

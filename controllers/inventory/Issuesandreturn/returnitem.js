@@ -109,7 +109,7 @@ const updateReturnItem = async (req, res) => {
             currency: transactionEntity.currency || 'NGN',
             description: `${qty} ${req.body.itemname}(s) returned by ${req.user.firstname} ${req.user.lastname} because of ${issue}`,
             branch: user.branch,
-            registrationpoint: '',
+            registrationpoint: null,
             ttype: staff ? 'DEBIT' : 'CREDIT',
             tfrom: 'BANK',
             tax: false,
