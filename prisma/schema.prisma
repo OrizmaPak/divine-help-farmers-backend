@@ -551,6 +551,7 @@ model transaction {
   valuedate                 DateTime?
   reference                 String?
   whichaccount              String? // "SAVINGS" or "PERSONAL" or "LOAN" or "GLACCCOUNT"
+  voucher                   String? @default("")
   tax                       Boolean? @default(false)
 }
 

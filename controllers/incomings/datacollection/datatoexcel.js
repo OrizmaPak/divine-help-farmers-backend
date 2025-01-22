@@ -27,6 +27,17 @@
                     errors: [{ field: 'type', message: 'Type must be either NEW or UPDATE.' }]
                 });
             }
+
+            // Validate phone number format for 'NEW' type
+            if (data.type === 'NEW' && !/^\+?[1-9]\d{1,14}$/.test(data.phonenumber)) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    error: true,
+                    message: 'Invalid phone number format.',
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: [{ field: 'phonenumber', message: 'Phone number must be a valid E.164 format.' }]
+                });
+            }
     
             const auth = new google.auth.GoogleAuth({
                 scopes: ['https://www.googleapis.com/auth/spreadsheets'],

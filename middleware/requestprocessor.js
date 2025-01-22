@@ -17,16 +17,17 @@ const upload = multer({ storage: storage });
 
 // Middleware function to handle file uploads and form data
 const requestprocessor = (req, res, next) => {
-    const maxIntValue = 2147483647; // Maximum value for a 32-bit integer
+    const maxIntValue = 9999999999999; // Maximum value for a 32-bit integer
 
     // Check and parse body values
     for (let key in req.body) {
         if (Object.prototype.hasOwnProperty.call(req.body, key)) {
             const parsedValue = parseInt(req.body[key], 10);
             if (!isNaN(parsedValue) && parsedValue > maxIntValue) {
+                const digitLength = req.body[key].length;
                 return res.status(400).json({
                     status: false,
-                    message: `Value for ${key} exceeds the maximum allowed integer value`,
+                    message: `Value for ${key} exceeds the maximum allowed integer value. Length of the digit: ${digitLength}`,
                     statuscode: 400,
                     data: null,
                     errors: []

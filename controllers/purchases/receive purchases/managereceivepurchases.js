@@ -45,6 +45,18 @@ const manageReceivePurchases = async (req, res) => {
             });
         }
 
+        if (!req.body.tfrom || (req.body.tfrom != 'CASH' && req.body.tfrom != 'BANK')) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Payment method must be either 'CASH' or 'BANK'",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: '',
+                errors: ["Payment method must be either 'CASH' or 'BANK'"]
+            });
+        }
+
+        const tfrom = req.body.tfrom;
+
         // Confirm that the supplier exists
         const supplierQuery = await pg.query(`SELECT * FROM divine."Supplier" WHERE id = $1`, [req.body[`supplier`]]);
         if (!supplierQuery.rows[0]) {
@@ -206,7 +218,7 @@ const manageReceivePurchases = async (req, res) => {
         const userAllocationBalanceResult = await pg.query(userAllocationBalanceQuery, [orgSettings.default_allocation_account, req.user.id]);
         const userAllocationBalance = userAllocationBalanceResult.rows[0].balance;
 
-        if (userAllocationBalance < req.body.amountpaid) {
+        if (tfrom == 'BANK' && userAllocationBalance < req.body.amountpaid) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: 'Insufficient funds allocated to the you. Contact your administrator for more funds to be allocated or pay '+userAllocationBalance+' and pay the balance later',
@@ -229,8 +241,9 @@ const manageReceivePurchases = async (req, res) => {
             branch: '',
             registrationpoint: '',
             ttype: 'DEBIT',
-            tfrom: 'BANK',
+            tfrom: tfrom,
             tax: false,
+            voucher: req.body.voucher,
         };
 
        const debitSupplier = await performTransactionOneWay(supplierTransaction);
@@ -259,8 +272,9 @@ const manageReceivePurchases = async (req, res) => {
             branch: '',
             registrationpoint: '',
             ttype: 'DEBIT',
-            tfrom: 'BANK',
+            tfrom: tfrom,
             tax: false,
+            voucher: req.body.voucher,
         };
 
         const toTransaction = {
@@ -275,8 +289,9 @@ const manageReceivePurchases = async (req, res) => {
             branch: '',
             registrationpoint: '',
             ttype: 'CREDIT',
-            tfrom: 'BANK',
+            tfrom: tfrom,
             tax: false,
+            voucher: req.body.voucher,
         };
 
         const makepayment = await performTransaction(fromTransaction, toTransaction, user.id, user.id);
@@ -336,3 +351,4 @@ const manageReceivePurchases = async (req, res) => {
 // Export the manageReceivePurchases function
 module.exports = {manageReceivePurchases};
 
+ 

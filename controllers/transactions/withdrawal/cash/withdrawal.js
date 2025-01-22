@@ -21,7 +21,7 @@ const processWithdrawal = async (req, res) => {
         const { rows: branchData } = await pg.query(`
             SELECT * FROM divine."Branch" WHERE id = $1 AND status = 'ACTIVE'
         `, [branch]);
-
+ 
         if (branchData.length === 0) {
             return res.status(StatusCodes.NOT_FOUND).json({
                 status: false,
@@ -220,11 +220,11 @@ const processWithdrawal = async (req, res) => {
             }; 
 
             const transactionResult = await performTransaction(transactionDetails.debitAccount, transactionDetails.debitcashAccount, userCheckData[0].id);
-
+ 
             const bankTransactionDetails = { 
                 accountnumber:orgDefaultCashAccount,
                 userid: userCheckData[0].id,
-                description: transactionDetails.debitcashAccount.description,
+                description: transactionDetails.debitcashAccount.description, 
                 debit: Number(debit),
                 credit: 0,
                 ttype: 'WITHDRAWAL',
