@@ -26,11 +26,10 @@ const { updateRequisitionStatus } = require('../controllers/inventory/requisitio
 const { updateLogQty } = require('../controllers/inventory/Issuesandreturn/updatelog');
 const { updateReturnItem } = require('../controllers/inventory/Issuesandreturn/returnitem');
 const { getAllUniqueItemIds } = require('../controllers/inventory/getallitems/getallitems');
+
 const router = express.Router();
-
-
-
-// CREATE INVENTORY
+ 
+// CREATE INVENTORY 
 router.route('/createinventory')
     .post(createInventory)
 

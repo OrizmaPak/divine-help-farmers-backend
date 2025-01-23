@@ -744,3 +744,53 @@ model otp {
   otp                String
   created_at         DateTime  @default(now())
 }
+
+model Property {
+  id                 Int       @id @default(autoincrement())
+  itemid             Int
+  itemname           String
+  department         String    
+  branch             Int
+  units              String
+  cost               Float?
+  price              Float?
+  pricetwo           Float?
+  beginbalance       Float?
+  qty                Float?
+  minimumbalance     Float?
+  group              String?
+  applyto            String
+  itemclass          String
+  composite          String
+  compositeid        Int?
+  description        String?
+  imageone           String?
+  imagetwo           String? 
+  imagethree         String?
+  sellingprice       Float?
+  reference          String?
+  transactiondate    String?
+  transactiondesc    String?
+  transactionref     String? @default("")
+  reorderlevel       String? @default("2")
+  issue              String?
+  issuetype          String?
+  supplier           String?
+  staff              String? @default("")
+  returned           Boolean @default(false)
+  status             String @default("ACTIVE")
+  dateadded          DateTime
+  createdby          Int
+}
+
+model compositedetails {
+  id                 Int       @id @default(autoincrement())
+  compositeid        Int
+  itemid             Interest
+  qty                Int
+  createdby          Int
+  dateadded          DateTime
+  status             String @default("ACTIVE")
+}
+
+
