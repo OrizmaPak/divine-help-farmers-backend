@@ -3,30 +3,12 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 const { divideAndRoundUp } = require("../../../utils/pageCalculator");
 
-const getCompositeDetails = async (req, res) => {
+const getCategoryTimeline = async (req, res) => {
     const user = req.user;
-    const { itemname } = req.body.query;
 
     try {
         let query = {
-            text: `SELECT cd.compositeid, 
-                          i.compositename, 
-                          cd.itemid, 
-                          inv.itemidname, 
-                          inv.pricetwo, 
-                          cd.qty, 
-                          cd.createdby, 
-                          cd.dateadded, 
-                          cd.status 
-                   FROM divine."compositedetails" cd
-                   JOIN inventory i ON cd.compositeid = i.compositeid
-                   JOIN (
-                       SELECT itemid, itemidname, price2
-                       FROM inventory
-                       WHERE id = (
-                           SELECT MAX(id) FROM inventory WHERE itemid = cd.itemid
-                       )
-                   ) inv ON cd.itemid = inv.itemid`,
+            text: `SELECT * FROM divine."categorytimeline"`,
             values: []
         };
 
@@ -34,7 +16,7 @@ const getCompositeDetails = async (req, res) => {
         let whereClause = '';
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
-            if (key !== 'q' && key !== 'sort') {
+            if (key !== 'q' && key !== 'startdate' && key !== 'enddate') {
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
@@ -46,13 +28,36 @@ const getCompositeDetails = async (req, res) => {
             }
         });
 
+        // Add date range filter if provided
+        if (req.query.startdate) {
+            if (whereClause) {
+                whereClause += ` AND `;
+            } else {
+                whereClause += ` WHERE `;
+            }
+            whereClause += `"dateadded" >= $${valueIndex}`;
+            query.values.push(req.query.startdate);
+            valueIndex++;
+        }
+
+        if (req.query.enddate) {
+            if (whereClause) {
+                whereClause += ` AND `;
+            } else {
+                whereClause += ` WHERE `;
+            }
+            whereClause += `"dateadded" <= $${valueIndex}`;
+            query.values.push(req.query.enddate);
+            valueIndex++;
+        }
+
         // Add search query if provided
         if (req.query.q) {
-            // Fetch column names from the 'compositedetails' table
+            // Fetch column names from the 'categorytimeline' table
             const { rows: columns } = await pg.query(`
                 SELECT column_name
                 FROM information_schema.columns
-                WHERE table_name = 'compositedetails'
+                WHERE table_name = 'categorytimeline'
             `);
 
             const cols = columns.map(row => row.column_name);
@@ -70,16 +75,6 @@ const getCompositeDetails = async (req, res) => {
 
         query.text += whereClause;
 
-        // Add sorting if provided
-        if (req.query.sort) {
-            const sortParams = req.query.sort.split(',');
-            const sortConditions = sortParams.map(param => {
-                const [field, order] = param.split(':');
-                return `"${field}" ${order.toUpperCase()}`;
-            }).join(', ');
-            query.text += ` ORDER BY ${sortConditions}`;
-        }
-
         // Add pagination
         const searchParams = new URLSearchParams(req.query);
         const page = parseInt(searchParams.get('page') || '1', 10);
@@ -90,48 +85,23 @@ const getCompositeDetails = async (req, res) => {
         query.values.push(limit, offset);
 
         const result = await pg.query(query);
-        const compositeDetails = result.rows;
-
-        // Group the items by compositeid
-        const groupedCompositeDetails = compositeDetails.reduce((acc, curr) => {
-            let composite = acc.find(item => item.compositeid === curr.compositeid);
-            if (!composite) {
-                composite = {
-                    compositeid: curr.compositeid,
-                    compositename: curr.compositename,
-                    items: []
-                };
-                acc.push(composite);
-            }
-            composite.items.push({
-                itemid: curr.itemid,
-                itemidname: curr.itemidname,
-                price2: curr.price2,  // Added price2
-                qty: curr.qty,
-                createdby: curr.createdby,
-                dateadded: curr.dateadded,
-                status: curr.status
-            });
-            return acc;
-        }, []);
+        const categoryTimelines = result.rows;
 
         // Get total count for pagination
         const countQuery = {
-            text: `SELECT COUNT(*) FROM divine."compositedetails" cd
-                   JOIN inventory i ON cd.compositeid = i.compositeid
-                   JOIN inventory inv ON cd.itemid = inv.itemid ${whereClause}`,
+            text: `SELECT COUNT(*) FROM divine."categorytimeline" ${whereClause}`,
             values: query.values.slice(0, -2) // Exclude limit and offset
         };
         const { rows: [{ count: total }] } = await pg.query(countQuery);
         const pages = divideAndRoundUp(total, limit);
 
-        await activityMiddleware(req, user.id, 'Composite details fetched successfully', 'COMPOSITE');
+        await activityMiddleware(req, user.id, 'Category timelines fetched successfully', 'CATEGORY_TIMELINE');
 
         return res.status(StatusCodes.OK).json({
             status: true,
-            message: "Composite details fetched successfully",
+            message: "Category timelines fetched successfully",
             statuscode: StatusCodes.OK,
-            data: groupedCompositeDetails,
+            data: categoryTimelines,
             pagination: {
                 total: Number(total),
                 pages,
@@ -142,7 +112,7 @@ const getCompositeDetails = async (req, res) => {
         });
     } catch (error) {
         console.error('Unexpected Error:', error);
-        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching composite details', 'COMPOSITE');
+        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching category timelines', 'CATEGORY_TIMELINE');
 
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
@@ -154,5 +124,4 @@ const getCompositeDetails = async (req, res) => {
     }
 };
 
-
-module.exports = { getCompositeDetails };
+module.exports = { getCategoryTimeline };

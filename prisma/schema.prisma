@@ -224,10 +224,12 @@ model Organisationsettings {
   loan_transaction_prefix                    String?
   savings_transaction_prefix                 String?
   gl_transaction_prefix                      String?
+  property_transaction_prefix                String? @default("")
 
   savings_account_prefix                     String?
   personal_account_prefix                    String   @default("DHF")
   loan_account_prefix                        String?
+  property_account_prefix                        String? @default("")
   asset_account_prefix                       String?
   cash_account_prefix                        String?
   current_assets_account_prefix              String?
@@ -271,6 +273,7 @@ model Organisationsettings {
   default_tax_account                         Float?
   default_excess_account                      Float?
   default_allocation_account                  Float? @default(0)
+  default_property_account                  Float? @default(0)
   status                                      String @default("ACTIVE")
 }
 
@@ -786,11 +789,74 @@ model Property {
 model compositedetails {
   id                 Int       @id @default(autoincrement())
   compositeid        Int
-  itemid             Interest
+  itemid             Int
   qty                Int
   createdby          Int
   dateadded          DateTime
   status             String @default("ACTIVE")
 }
 
+model categorytimeline {
+  id                 Int       @id @default(autoincrement())
+  valuefrom          Int
+  valueto            Int
+  numberofdays       Int
+  createdby          Int
+  dateadded          DateTime
+  status             String @default("ACTIVE")
+}
 
+model propertyproduct {
+  id                 Int       @id @default(autoincrement())
+  product            String @unique
+  member             String?
+  useraccount        Int @default(1)
+  registrationcharge String?
+  createdby          Int
+  currency           String @default("NGN")
+  productofficer     Int?
+  dateadded          DateTime
+  status             String @default("ACTIVE")
+}
+
+model propertyaccount {
+  id                 Int      @id @default(autoincrement())
+  productid          Int
+  accountnumber      String
+  userid             Int
+  branch             Int
+  registrationcharge  Int
+  registrationdate    DateTime @default(now())
+  registrationpoint   String?
+  accountofficer     Int?
+  repaymentfrequency String?
+  numberofrepayments Int?
+  percentagedelivery Int?
+  createdby          Int
+  status             String @default("ACTIVE")
+  dateadded          DateTime @default(now())
+}
+
+model propertyitems {
+  id                 Int      @id @default(autoincrement())
+  accountnumber      String
+  itemid             Int
+  qty                Int
+  price              Int
+  userid             Int
+  createdby          Int
+  status             String @default("ACTIVE")
+  dateadded          DateTime @default(now())
+}
+
+model propertyinstallments {
+  id                 Int       @id @default(autoincrement())
+  accountnumber      String
+  itemid             Int
+  qty                Int
+  price              Int
+  userid             Int
+  createdby          Int
+  status             String @default("ACTIVE")
+  dateadded          DateTime @default(now())
+}
