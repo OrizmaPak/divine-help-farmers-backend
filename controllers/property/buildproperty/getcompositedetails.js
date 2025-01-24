@@ -4,33 +4,30 @@ const { activityMiddleware } = require("../../../middleware/activity");
 const { divideAndRoundUp } = require("../../../utils/pageCalculator");
 
 const getCompositeDetails = async (req, res) => {
+    console.log('we entered the get composite details');
     const user = req.user;
-    const { itemname } = req.body.query;
 
     try {
         let query = {
             text: `SELECT cd.compositeid, 
-                          i.compositename, 
+                          i.itemname AS compositename,
                           cd.itemid, 
-                          inv.itemidname, 
+                          inv.itemname AS itemidname,
                           inv.pricetwo, 
                           cd.qty, 
                           cd.createdby, 
                           cd.dateadded, 
                           cd.status 
                    FROM divine."compositedetails" cd
-                   JOIN inventory i ON cd.compositeid = i.compositeid
-                   JOIN (
-                       SELECT itemid, itemidname, price2
-                       FROM inventory
-                       WHERE id = (
-                           SELECT MAX(id) FROM inventory WHERE itemid = cd.itemid
-                       )
-                   ) inv ON cd.itemid = inv.itemid`,
+                   JOIN divine."Inventory" i ON cd.compositeid = i.itemid
+                   JOIN divine."Inventory" inv ON cd.itemid = inv.itemid
+                   WHERE inv.id = (
+                       SELECT MAX(id) FROM divine."Inventory" WHERE itemid = cd.itemid
+                   )`,
             values: []
         };
 
-        // Dynamically build the WHERE clause based on query parameters
+        // Dynamically build the WHERE clause based on query parameters 
         let whereClause = '';
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
@@ -81,16 +78,17 @@ const getCompositeDetails = async (req, res) => {
         }
 
         // Add pagination
-        const searchParams = new URLSearchParams(req.query);
-        const page = parseInt(searchParams.get('page') || '1', 10);
-        const limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10);
+        const page = parseInt(req.query.page || '1', 10);
+        const limit = parseInt(req.query.limit || process.env.DEFAULT_LIMIT, 10);
         const offset = (page - 1) * limit;
 
         query.text += ` LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;
         query.values.push(limit, offset);
 
+        console.log('Executing query:', query.text, 'with values:', query.values);
         const result = await pg.query(query);
         const compositeDetails = result.rows;
+        console.log('Query result:', compositeDetails);
 
         // Group the items by compositeid
         const groupedCompositeDetails = compositeDetails.reduce((acc, curr) => {
@@ -103,27 +101,41 @@ const getCompositeDetails = async (req, res) => {
                 };
                 acc.push(composite);
             }
-            composite.items.push({
-                itemid: curr.itemid,
-                itemidname: curr.itemidname,
-                price2: curr.price2,  // Added price2
-                qty: curr.qty,
-                createdby: curr.createdby,
-                dateadded: curr.dateadded,
-                status: curr.status
-            });
+            // Ensure itemid is unique in composite.items
+            const existingItem = composite.items.find(item => item.itemid === curr.itemid);
+            if (!existingItem) {
+                composite.items.push({
+                    itemid: curr.itemid,
+                    itemidname: curr.itemidname,
+                    price: curr.pricetwo,  // Added pricetwo
+                    qty: curr.qty,
+                    createdby: curr.createdby,
+                    dateadded: curr.dateadded,
+                    status: curr.status
+                });
+            }
             return acc;
         }, []);
+        console.log('Grouped composite details:', groupedCompositeDetails);
 
         // Get total count for pagination
         const countQuery = {
             text: `SELECT COUNT(*) FROM divine."compositedetails" cd
-                   JOIN inventory i ON cd.compositeid = i.compositeid
-                   JOIN inventory inv ON cd.itemid = inv.itemid ${whereClause}`,
+                   JOIN divine."Inventory" i ON cd.compositeid = i.compositeid
+                   JOIN (
+                       SELECT itemid, itemname, pricetwo
+                       FROM divine."Inventory" inv
+                       WHERE inv.id = (
+                           SELECT MAX(id) FROM divine."Inventory" WHERE itemid = inv.itemid
+                       )
+                   ) inv ON cd.itemid = inv.itemid
+                   ${whereClause}`,
             values: query.values.slice(0, -2) // Exclude limit and offset
         };
+        console.log('Executing count query:', countQuery.text, 'with values:', countQuery.values);
         const { rows: [{ count: total }] } = await pg.query(countQuery);
         const pages = divideAndRoundUp(total, limit);
+        console.log('Total count:', total, 'Total pages:', pages);
 
         await activityMiddleware(req, user.id, 'Composite details fetched successfully', 'COMPOSITE');
 
@@ -153,6 +165,5 @@ const getCompositeDetails = async (req, res) => {
         });
     }
 };
-
 
 module.exports = { getCompositeDetails };

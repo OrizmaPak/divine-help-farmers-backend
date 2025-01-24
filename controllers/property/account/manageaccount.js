@@ -3,7 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
 const createPropertyAccount = async (req, res) => {
-    let { accountnumber, productid, userid, registrationcharge, registrationdate, registrationpoint, accountofficer, rowsize } = req.body;
+    let { accountnumber, productid, userid, registrationcharge, registrationdate, registrationpoint, accountofficer, rowsize, repaymentfrequency, numberofrepayments, percentagedelivery } = req.body;
 
     try {
         // Check if product exists
@@ -74,11 +74,33 @@ const createPropertyAccount = async (req, res) => {
             });
         }
 
+        if(repaymentfrequency){
+            if(!validateCode(repaymentfrequency)){
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Invalid repayment frequency",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: []
+            });
+            }
+        }else{
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Repayment frequency is required",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: []
+            });
+        }
+
+        pg.client('BEGIN')
+
         if (accountnumber) {
             // If accountnumber is provided, update the existing property account
             const updateAccountQuery = {
-                text: `UPDATE divine."propertyaccount" SET productid = $1, registrationcharge = $2, registrationdate = $3, registrationpoint = $4, accountofficer = $5, createdby = $6, status = 'ACTIVE', dateadded = NOW() WHERE accountnumber = $7 RETURNING id`,
-                values: [productid, registrationcharge, registrationdate, registrationpoint, accountofficer, userid, accountnumber]
+                text: `UPDATE divine."propertyaccount" SET productid = $1, registrationcharge = $2, registrationdate = $3, registrationpoint = $4, accountofficer = $5, createdby = $6, repaymentfrequency = $7, numberofrepayments = $8, percentagedelivery = $9, status = 'ACTIVE', dateadded = NOW() WHERE accountnumber = $10 RETURNING id`,
+                values: [productid, registrationcharge, registrationdate, registrationpoint, accountofficer, userid, repaymentfrequency, numberofrepayments, percentagedelivery, accountnumber]
             };
             const { rows: updatedAccountRows } = await pg.query(updateAccountQuery);
             if (updatedAccountRows.length === 0) {
@@ -121,6 +143,7 @@ const createPropertyAccount = async (req, res) => {
 
             await activityMiddleware(req, userid, 'Property account updated successfully', 'PROPERTY_ACCOUNT');
 
+            pg.client('COMMIT')
             return res.status(StatusCodes.OK).json({
                 status: true,
                 message: "Property account updated successfully",
@@ -166,8 +189,8 @@ const createPropertyAccount = async (req, res) => {
 
             // Save to propertyaccount table
             const propertyAccountQuery = {
-                text: `INSERT INTO divine."propertyaccount" (productid, accountnumber, userid, registrationcharge, registrationdate, registrationpoint, accountofficer, createdby, status, dateadded) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ACTIVE', NOW()) RETURNING id`,
-                values: [productid, accountnumber, userid, registrationcharge, registrationdate, registrationpoint, accountofficer, userid]
+                text: `INSERT INTO divine."propertyaccount" (productid, accountnumber, userid, registrationcharge, registrationdate, registrationpoint, accountofficer, createdby, repaymentfrequency, numberofrepayments, percentagedelivery, status, dateadded) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'ACTIVE', NOW()) RETURNING id`,
+                values: [productid, accountnumber, userid, registrationcharge, registrationdate, registrationpoint, accountofficer, userid, repaymentfrequency, numberofrepayments, percentagedelivery]
             };
             const { rows: propertyAccountRows } = await pg.query(propertyAccountQuery);
             const propertyAccountId = propertyAccountRows[0].id;
@@ -206,5 +229,9 @@ const createPropertyAccount = async (req, res) => {
         });
     }
 };
+
+function doScheduler(req, date) {
+
+}
 
 module.exports = { createPropertyAccount };

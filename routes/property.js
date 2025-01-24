@@ -4,6 +4,7 @@ const { getCompositeDetails } = require('../controllers/property/buildproperty/g
 const { saveOrUpdateCategoryTimeline } = require('../controllers/property/categorytimeline/categorytimeline');
 const { getCategoryTimeline } = require('../controllers/property/categorytimeline/getcategorytimeline');
 const { saveOrUpdatePropertyProduct } = require('../controllers/property/product/manageproduct');
+const { getPropertyProduct } = require('../controllers/property/product/getproduct');
 const router = express.Router();
 
 
@@ -19,6 +20,7 @@ router.route('/categorytimeline')
 
 router.route('/product')
     .post(saveOrUpdatePropertyProduct)
+    .get(getPropertyProduct)
 
 
 
