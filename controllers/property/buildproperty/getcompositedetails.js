@@ -31,7 +31,7 @@ const getCompositeDetails = async (req, res) => {
         let whereClause = '';
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
-            if (key !== 'q' && key !== 'sort') {
+            if (key !== 'q' && key !== 'sort' && key !== 'compositeid') {
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
