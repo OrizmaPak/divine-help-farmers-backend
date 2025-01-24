@@ -143,7 +143,7 @@ const getCompositeDetails = async (req, res) => {
             status: true,
             message: "Composite details fetched successfully",
             statuscode: StatusCodes.OK,
-            data: groupedCompositeDetails,
+            data: req.query.compositeid ? groupedCompositeDetails.filter(item => item.compositeid == req.query.compositeid) : groupedCompositeDetails,
             pagination: {
                 total: Number(total),
                 pages,
