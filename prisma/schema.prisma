@@ -813,9 +813,10 @@ model propertyproduct {
   useraccount        Int @default(1)
   registrationcharge String?
   createdby          Int
+  description        String?  @default("")
   currency           String @default("NGN")
   productofficer     Int?
-  dateadded          DateTime
+  dateadded          DateTime @default(now())
   status             String @default("ACTIVE")
 }
 
@@ -824,7 +825,6 @@ model propertyaccount {
   productid          Int
   accountnumber      String
   userid             Int
-  branch             Int
   registrationcharge  Int
   registrationdate    DateTime @default(now())
   registrationpoint   String?
@@ -844,6 +844,10 @@ model propertyitems {
   qty                Int
   price              Int
   userid             Int
+  delivered          Boolean @default(false)
+  deliverystatus     String @default("NOT STARTED")
+  deliveryrequested  Boolean @default(false)
+  deliveryrequestdate DateTime?
   createdby          Int
   status             String @default("ACTIVE")
   dateadded          DateTime @default(now())
@@ -856,6 +860,7 @@ model propertyinstallments {
   duedate            DateTime
   delivered          Boolean @default(false)
   userid             Int
+  transactionref     String? @default("")
   description        String? @default("")
   createdby          Int
   status             String @default("ACTIVE")

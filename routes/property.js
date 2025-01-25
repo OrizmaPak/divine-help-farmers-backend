@@ -6,6 +6,9 @@ const { getCategoryTimeline } = require('../controllers/property/categorytimelin
 const { saveOrUpdatePropertyProduct } = require('../controllers/property/product/manageproduct');
 const { getPropertyProduct } = require('../controllers/property/product/getproduct');
 const { deleteCategoryTimeline } = require('../controllers/property/categorytimeline/deletecategorytimeline');
+const { createPropertyAccount } = require('../controllers/property/account/manageaccount');
+const { getPropertyAccount } = require('../controllers/property/account/getaccount');
+const { getMaturedPropertyAccount } = require('../controllers/property/maturedaccount/getmaturedaccount');
 const router = express.Router();
 
 
@@ -25,7 +28,11 @@ router.route('/product')
     .get(getPropertyProduct)
 
 router.route('/account')
-    .post(saveOrUpdatePropertyProduct)
+    .post(createPropertyAccount)
+    .get(getPropertyAccount)
+
+router.route('/maturedaccount')
+    .get(getMaturedPropertyAccount)
 
 
 

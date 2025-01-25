@@ -22,6 +22,7 @@ const { loanCredit } = require('./loan/credit');
 const { loanDebit } = require('./loan/debit');
 const { glAccountCredit } = require('./gl/credit');
 const { glAccountDebit } = require('./gl/debit');
+const { propertyAccountCredit } = require('./property/credit');
 
 // Middleware function to save a transaction
 const saveTransactionMiddleware = async (req, res, next) => {
@@ -138,6 +139,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
         const savingsAccountQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
         const loanAccountQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
         const glAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
+        const propertyAccountQuery = `SELECT * FROM divine."propertyaccount" WHERE accountnumber = $1`;
         let parsedAccountNumber = accountnumber;
         if (isNaN(accountnumber)) {
             parsedAccountNumber = parseInt(accountnumber, 10);
@@ -148,6 +150,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
         const accountResult = await client.query(savingsAccountQuery, [parsedAccountNumber]);
         const loanAccountResult = await client.query(loanAccountQuery, [parsedAccountNumber]);
         const glAccountResult = await client.query(glAccountQuery, [parsedAccountNumber]);
+        const propertyAccountResult = await client.query(propertyAccountQuery, [parsedAccountNumber]);
         console.log('accountnumber', accountnumber);
 
         if (accountResult.rowCount !== 0) {
@@ -192,17 +195,20 @@ const saveTransactionMiddleware = async (req, res, next) => {
         } else if (glAccountResult.rowCount !== 0) {
             whichaccount = 'GLACCOUNT'; // Set account type to GLACCOUNT
             req.body.whichaccount = whichaccount;
+        } else if (propertyAccountResult.rowCount !== 0) {
+            whichaccount = 'PROPERTY'; // Set account type to PROPERTY
+            req.body.whichaccount = whichaccount;
         }
         // Establish the personal account number  
         if (!req.body['personalaccountnumber']) {
             req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${user.phone}`;
         }
-        req.body.phone = user.phone;
         if (!personnalaccount) {
+            req.body.phone = user.phone;
             personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`;
         }
 
-        if (accountResult.rowCount === 0 && accountnumber && !accountnumber.toString().startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0 && glAccountResult.rowCount === 0) {
+        if (accountResult.rowCount === 0 && accountnumber && !accountnumber.toString().startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0 && glAccountResult.rowCount === 0 && propertyAccountResult.rowCount === 0) {
             // If account number is invalid, save the transaction as failed
             await saveFailedTransaction(client, req, res, 'Invalid account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
             await client.query('COMMIT'); // Commit the transaction
@@ -378,6 +384,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
             if(Number(req.body.debit)>0)await glAccountDebit(client, req, res, next, req.body.accountnumber, debit, description, ttype, transactionStatus, whichaccount);
         }
         
+        // Handle transactions for property accounts
+        if (whichaccount === 'PROPERTY') {
+            if(Number(req.body.credit)>0)await propertyAccountCredit(client, req, res, next, req.body.accountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            if(Number(req.body.debit)>0)await propertyDebit(client, req, res, next, req.body.accountnumber, debit, description, ttype, transactionStatus, whichaccount);
+        }
+
         // Log activity for successful transaction save
         await activityMiddleware(req, req.user.id, 'Transaction saved successfully', 'TRANSACTION');
 

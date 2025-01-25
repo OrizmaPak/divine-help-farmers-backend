@@ -13,7 +13,7 @@ const processCashCollection = async (req, res) => {
     let { branch, userid, rowsize, location="OUTSIDE", cashref } = req.body;
     const reqCashref = cashref
     if (!cashref) {
-        cashref = `CR-${dateString}-${userid}`;
+        cashref = `DP-${dateString}-${userid}`;
     }
     // location can be "OUTSIDE" or "INSIDE".... inside is when it is made from the branch
     const user = req.user;

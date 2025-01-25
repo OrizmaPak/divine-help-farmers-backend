@@ -39,6 +39,11 @@ const getUserMonthlyCollection = async (req, res) => {
     let totalPenalty = 0;
 
     try {
+        // Fetch organisation settings to get default_cash_account
+        const orgSettingsQuery = `SELECT default_cash_account FROM divine."Organisationsettings"`;
+        const { rows: orgSettings } = await pg.query(orgSettingsQuery);
+        const defaultCashAccount = orgSettings[0].default_cash_account;
+
         // Fetch transactions for the user within the specified month
         const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
         const monthEnd = new Date(Date.UTC(year, month, 1, 0, 0, 0));
@@ -51,20 +56,21 @@ const getUserMonthlyCollection = async (req, res) => {
                 AND "cashref" <> ''
                 AND ttype IN ('CREDIT', 'DEBIT')
                 AND status = 'ACTIVE'
+                AND accountnumber != $4
         `;
-        const monthDataResult = await pg.query(monthDataQuery, [userid, monthStart.toISOString(), monthEnd.toISOString()]);
+        const monthDataResult = await pg.query(monthDataQuery, [userid, monthStart.toISOString(), monthEnd.toISOString(), defaultCashAccount]);
         const monthData = monthDataResult.rows;
         
         for (let day = 1; day <= daysInMonth; day++) {
-            const currentDate = new Date(Date.UTC(year, month - 1, day));
-            const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-            const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-            
-            // Filter transactions for the current day
-            const dayData = monthData.filter(tx => {
-                const txDate = new Date(tx.transactiondate);
-                return txDate >= startOfDay && txDate <= endOfDay;
-            });
+            const today = new Date(Date.UTC(year, month - 1, day));
+            const yearStr = today.getUTCFullYear();
+            const monthStr = String(today.getUTCMonth() + 1).padStart(2, '0');
+            const dayStr = String(today.getUTCDate()).padStart(2, '0');
+            const dateString = `${yearStr}${monthStr}${dayStr}`;
+            const cashRefPrefix = `CR-${dateString}-${userid}`;
+
+            // Filter transactions for the current day using cashref
+            const dayData = monthData.filter(tx => tx.cashref.startsWith(cashRefPrefix));
             
             // Calculate number of credit transactions and amount collected
             const creditTransactions = dayData.filter(tx => tx.ttype === 'CREDIT');
@@ -82,7 +88,7 @@ const getUserMonthlyCollection = async (req, res) => {
             if (transactionRefs.length > 0) {
                 const bankTxQuery = `
                     SELECT credit, debit FROM divine."banktransaction"
-                    WHERE transactionref = ANY($1)
+                    WHERE transactionref = ANY($1) AND status = 'ACTIVE'
                 `;
                 const bankTxResult = await pg.query(bankTxQuery, [transactionRefs]);
                 const bankTransactions = bankTxResult.rows;
@@ -98,7 +104,7 @@ const getUserMonthlyCollection = async (req, res) => {
             if (penaltyRefs.length > 0) {
                 const penaltyQuery = `
                     SELECT debit, credit FROM divine."transaction"
-                    WHERE cashref = ANY($1)
+                    WHERE cashref = ANY($1) AND status = 'ACTIVE'
                 `;
                 const penaltyResult = await pg.query(penaltyQuery, [penaltyRefs]);
                 const penaltyTransactions = penaltyResult.rows;
@@ -126,7 +132,7 @@ const getUserMonthlyCollection = async (req, res) => {
             totalPenalty += penaltySum;
 
             results.push({
-                day: currentDate.toISOString().split('T')[0], // Format day as YYYY-MM-DD
+                day: today.toISOString().split('T')[0], // Format day as YYYY-MM-DD
                 noofcollections,
                 amountcollected,
                 remitted,

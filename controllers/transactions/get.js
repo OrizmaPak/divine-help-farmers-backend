@@ -17,12 +17,21 @@ const getTransactions = async (req, res) => {
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
             if (key !== 'q' && key !== 'startdate' && key !== 'enddate' && key !== 'transactiondate') {
+                let operator = '=';
+                let actualKey = key;
+
+                // Check for the [!] prefix indicating a NOT condition
+                if (key.endsWith('[!]')) {
+                    operator = '!=';
+                    actualKey = key.slice(0, -3);
+                }
+
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
                     whereClause += ` WHERE `;
                 }
-                whereClause += `"${key}" = $${valueIndex}`;
+                whereClause += `"${actualKey}" ${operator} $${valueIndex}`;
                 query.values.push(req.query[key]);
                 valueIndex++;
             }
@@ -133,9 +142,22 @@ const getTransactions = async (req, res) => {
                         accountName = `${firstname} ${lastname} ${othernames}`.trim();
                     }
                 }
-            } else if (whichaccount === 'GLACCOUNT') {
-                accountName = 'SYSTEM AUTOMATION';
-            }
+            } else if (whichaccount == 'PROPERTY') {
+                const { rows: propertyAccounts } = await pg.query(`SELECT productid FROM divine."propertyaccount" WHERE accountnumber = $1`, [accountnumber]);
+                if (propertyAccounts.length > 0) {
+                    const { userid } = propertyAccounts[0];
+                    const { rows: theuser } = await pg.query(`SELECT firstname, lastname, othernames FROM divine."User" WHERE id = $1`, [userid]);
+                    if (theuser.length > 0) {
+                        const { firstname, lastname, othernames } = theuser[0];
+                        accountName = `${firstname} ${lastname} ${othernames}`.trim();
+                    }
+                }
+            } else if (whichaccount == 'GLACCOUNT') {
+                const { rows: glAccounts } = await pg.query(`SELECT accountnumber FROM divine."Accounts" WHERE accountnumber = $1`, [accountnumber]);
+                if (glAccounts.length > 0) {
+                    accountName = glAccounts[0].groupname;
+                }
+            } 
 
             transaction.accountname = accountName;
         }
