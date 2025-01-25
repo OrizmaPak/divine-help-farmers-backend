@@ -852,10 +852,11 @@ model propertyitems {
 model propertyinstallments {
   id                 Int       @id @default(autoincrement())
   accountnumber      String
-  itemid             Int
-  qty                Int
-  price              Int
+  amount             Float @default(0)
+  duedate            DateTime
+  delivered          Boolean @default(false)
   userid             Int
+  description        String? @default("")
   createdby          Int
   status             String @default("ACTIVE")
   dateadded          DateTime @default(now())

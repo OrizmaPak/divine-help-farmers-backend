@@ -2,19 +2,19 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
-const saveOrUpdateCategoryTimeline = async (req, res) => {
+const deleteCategoryTimeline = async (req, res) => {
     const user = req.user;
-    const { id, valuefrom, valueto, numberofdays, status = 'ACTIVE' } = req.body;
+    const { id, status = 'DELETED' } = req.body;
 
     try {
-        // Validate input
-        if (!valuefrom || !valueto || !numberofdays) {
+
+        if (!id) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: "Invalid input",
+                message: "ID must be provided",
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
-                errors: ["valuefrom, valueto, and numberofdays are required"]
+                errors: ["ID is required to delete a category timeline"]
             });
         }
 
@@ -23,22 +23,15 @@ const saveOrUpdateCategoryTimeline = async (req, res) => {
             // Update existing categorytimeline
             query = {
                 text: `UPDATE divine."categorytimeline" 
-                       SET valuefrom = $1, valueto = $2, numberofdays = $3, createdby = $4, dateadded = NOW(), status = $5
-                       WHERE id = $6`,
-                values: [valuefrom, valueto, numberofdays, user.id, status, id]
+                       SET status = $1
+                       WHERE id = $2`,
+                values: [status, id]
             };
-        } else {
-            // Insert new categorytimeline
-            query = {
-                text: `INSERT INTO divine."categorytimeline" (valuefrom, valueto, numberofdays, createdby, dateadded, status) 
-                       VALUES ($1, $2, $3, $4, NOW(), $5)`,
-                values: [valuefrom, valueto, numberofdays, user.id, status]
-            };
-        }
+        } 
 
         await pg.query(query);
 
-        const action = id ? 'updated' : 'saved';
+        const action = id ? 'deleted' : 'saved';
         await activityMiddleware(req, user.id, `Category timeline ${action} successfully`, 'CATEGORY_TIMELINE');
 
         return res.status(StatusCodes.OK).json({
@@ -62,4 +55,4 @@ const saveOrUpdateCategoryTimeline = async (req, res) => {
     }
 };
 
-module.exports = { saveOrUpdateCategoryTimeline };
+module.exports = { deleteCategoryTimeline };

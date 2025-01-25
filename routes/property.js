@@ -5,6 +5,7 @@ const { saveOrUpdateCategoryTimeline } = require('../controllers/property/catego
 const { getCategoryTimeline } = require('../controllers/property/categorytimeline/getcategorytimeline');
 const { saveOrUpdatePropertyProduct } = require('../controllers/property/product/manageproduct');
 const { getPropertyProduct } = require('../controllers/property/product/getproduct');
+const { deleteCategoryTimeline } = require('../controllers/property/categorytimeline/deletecategorytimeline');
 const router = express.Router();
 
 
@@ -17,10 +18,14 @@ router.route('/buildproperty')
 router.route('/categorytimeline')
     .post(saveOrUpdateCategoryTimeline)
     .get(getCategoryTimeline)
+    .delete(deleteCategoryTimeline)
 
 router.route('/product')
     .post(saveOrUpdatePropertyProduct)
     .get(getPropertyProduct)
+
+router.route('/account')
+    .post(saveOrUpdatePropertyProduct)
 
 
 

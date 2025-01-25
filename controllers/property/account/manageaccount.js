@@ -1,6 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { generateNextDates } = require("../../../utils/datecode");
 
 const createPropertyAccount = async (req, res) => {
     let { accountnumber, productid, userid, registrationcharge, registrationdate, registrationpoint, accountofficer, rowsize, repaymentfrequency, numberofrepayments, percentagedelivery } = req.body;
@@ -18,8 +19,8 @@ const createPropertyAccount = async (req, res) => {
                 message: "Product does not exist",
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
-                errors: []
-            });
+                errors: [] 
+            }); 
         }
 
         // Check user's existing accounts for the product
@@ -143,9 +144,79 @@ const createPropertyAccount = async (req, res) => {
 
             await activityMiddleware(req, userid, 'Property account updated successfully', 'PROPERTY_ACCOUNT');
 
+            const dates = await generateNextDates(repaymentfrequency, numberofrepayments);
+            let totalValue = 0;
+            let itemDetails = [];
+
+            // Calculate total value and store item details
+            for (let i = 0; i < rowsize; i++) {
+                const itemid = req.body[`itemid${i + 1}`];
+                const qty = req.body[`qty${i + 1}`];
+                const price = req.body[`price${i + 1}`] || 0;
+
+                if (itemid && qty) {
+                    const itemTotalValue = qty * price;
+                    totalValue += itemTotalValue;
+
+                    // Store item-specific details for further processing
+                    itemDetails.push({
+                        itemid,
+                        qty,
+                        price,
+                        totalValue: itemTotalValue,
+                        percentageThreshold: (itemTotalValue * percentagedelivery) / 100, // Percentage delivery threshold for this item
+                        cumulativePaid: 0, // Tracks amount paid toward this item
+                        released: false // Tracks if the item has been released
+                    });
+                }
+            }
+
+            // Calculate amount per installment
+            const amountPerInstallment = totalValue / dates.length;
+
+            // Save installments and determine which items can be released
+            for (let i = 0; i < dates.length; i++) {
+                let installmentDescription = '';
+                let amountRemaining = amountPerInstallment;
+
+                // Iterate over itemDetails to allocate the installment amount
+                for (let item of itemDetails) {
+                    if (item.released) continue; // Skip already released items
+
+                    // Add installment amount toward the item's cumulative paid amount
+                    const amountTowardItem = Math.min(amountRemaining, item.totalValue - item.cumulativePaid);
+                    item.cumulativePaid += amountTowardItem;
+                    amountRemaining -= amountTowardItem;
+
+                    // Check if the item's cumulative paid amount meets or exceeds its percentage threshold
+                    if (!item.released && item.cumulativePaid >= item.percentageThreshold) {
+                        item.released = true;
+                        installmentDescription += `Release item with itemid ${item.itemid} to the customer.\n`;
+                    }
+
+                    if (amountRemaining <= 0) break; // Stop allocation if the installment amount is fully utilized
+                }
+
+                // Save the installment with the appropriate description
+                const propertyInstallmentsQuery = {
+                    text: `INSERT INTO divine."propertyinstallments" (accountnumber, amount, duedate, delivered, userid, description, createdby, status, dateadded) VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIVE', NOW())`,
+                    values: [
+                        accountnumber,
+                        amountPerInstallment,
+                        dates[i],
+                        false,
+                        userid,
+                        installmentDescription.trim(),
+                        userid
+                    ]
+                };
+                await pg.query(propertyInstallmentsQuery);
+            }
+
+
             pg.client('COMMIT')
-            return res.status(StatusCodes.OK).json({
-                status: true,
+            return res.status(StatusCodes.OK).json({ 
+                status: true, 
                 message: "Property account updated successfully",
                 statuscode: StatusCodes.OK,
                 data: { accountnumber, propertyAccountId },
