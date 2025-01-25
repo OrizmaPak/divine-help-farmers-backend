@@ -13,16 +13,12 @@ const getCategoryTimeline = async (req, res) => {
         };
 
         // Dynamically build the WHERE clause based on query parameters
-        let whereClause = '';
-        let valueIndex = 1;
+        let whereClause = ' WHERE status = $1';
+        query.values.push('ACTIVE');
+        let valueIndex = 2;
         Object.keys(req.query).forEach((key) => {
             if (key !== 'q' && key !== 'startdate' && key !== 'enddate') {
-                if (whereClause) {
-                    whereClause += ` AND `;
-                } else {
-                    whereClause += ` WHERE `;
-                }
-                whereClause += `"${key}" = $${valueIndex}`;
+                whereClause += ` AND "${key}" = $${valueIndex}`;
                 query.values.push(req.query[key]);
                 valueIndex++;
             }
@@ -30,23 +26,13 @@ const getCategoryTimeline = async (req, res) => {
 
         // Add date range filter if provided
         if (req.query.startdate) {
-            if (whereClause) {
-                whereClause += ` AND `;
-            } else {
-                whereClause += ` WHERE `;
-            }
-            whereClause += `"dateadded" >= $${valueIndex}`;
+            whereClause += ` AND "dateadded" >= $${valueIndex}`;
             query.values.push(req.query.startdate);
             valueIndex++;
         }
 
         if (req.query.enddate) {
-            if (whereClause) {
-                whereClause += ` AND `;
-            } else {
-                whereClause += ` WHERE `;
-            }
-            whereClause += `"dateadded" <= $${valueIndex}`;
+            whereClause += ` AND "dateadded" <= $${valueIndex}`;
             query.values.push(req.query.enddate);
             valueIndex++;
         }
@@ -64,11 +50,7 @@ const getCategoryTimeline = async (req, res) => {
 
             // Generate the dynamic SQL query
             const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
-            if (whereClause) {
-                whereClause += ` AND (${searchConditions})`;
-            } else {
-                whereClause += ` WHERE (${searchConditions})`;
-            }
+            whereClause += ` AND (${searchConditions})`;
             query.values.push(`%${req.query.q}%`);
             valueIndex++;
         }
