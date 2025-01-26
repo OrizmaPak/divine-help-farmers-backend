@@ -6,28 +6,29 @@ const getUserMonthlyviewCollection = async (req, res) => {
     const user = req.user;
     const { date, userid, branch, registrationpoint } = req.query;
 
+    // Validate input
     if (!date) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Date is required",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
-            errors: ["Missing date"]
+            errors: ["Missing date"],
         });
     }
 
-    const [year, month] = date.split('-').map(Number);
+    const [year, month] = date.split("-").map(Number);
     if (!year || !month || month < 1 || month > 12) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Invalid date format. Expected YYYY-MM",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
-            errors: ["Invalid date format"]
+            errors: ["Invalid date format"],
         });
     }
 
-    // Determine number of days in the month
+    // Determine the number of days in the month
     const daysInMonth = new Date(year, month, 0).getDate();
 
     let results = [];
@@ -39,39 +40,52 @@ const getUserMonthlyviewCollection = async (req, res) => {
     let totalPenalty = 0;
 
     try {
-        // Build the query dynamically based on optional filters
+        // Fetch the default cash account
+        const defaultCashAccountQuery = `
+            SELECT default_cash_account FROM divine."Organisationsettings"
+        `;
+        const { rows: defaultCashAccountRows } = await pg.query(defaultCashAccountQuery);
+        const defaultCashAccount = defaultCashAccountRows.length
+            ? defaultCashAccountRows[0].default_cash_account
+            : null;
 
+        if (!defaultCashAccount) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Default cash account not configured in organisation settings",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: [],
+            });
+        }
+
+        // Build the query dynamically based on optional filters
         const monthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
         const monthEnd = new Date(Date.UTC(year, month, 1, 0, 0, 0));
         let queryConditions = [];
-        let queryParams = [monthStart.toISOString(), monthEnd.toISOString()];
-        let paramIndex = 3;
+        let queryParams = [monthStart.toISOString(), monthEnd.toISOString(), defaultCashAccount];
+        let paramIndex = 4;
 
         if (userid) {
             queryConditions.push(`userid = $${paramIndex++}`);
             queryParams.push(userid);
         }
-        // if (branch) {
-        //     queryConditions.push(`branch = $${paramIndex++}`);
-        //     queryParams.push(branch);
-        // }
-        // if (registrationpoint) {
-        //     queryConditions.push(`registrationpoint = $${paramIndex++}`);
-        //     queryParams.push(registrationpoint);
-        // }
+
         const monthDataQuery = `
-                SELECT * FROM divine."transaction"
-                WHERE transactiondate >= $1
-                AND transactiondate < $2
-                AND "cashref" IS NOT NULL
-                AND "cashref" <> ''
-                AND ttype IN ('CREDIT', 'DEBIT')
-                AND status = 'ACTIVE'
-                ${queryConditions.length ? 'AND ' + queryConditions.join(' AND ') : ''}
+            SELECT * FROM divine."transaction"
+            WHERE transactiondate >= $1
+            AND transactiondate < $2
+            AND "cashref" IS NOT NULL
+            AND "cashref" <> ''
+            AND ttype IN ('CREDIT', 'DEBIT')
+            AND status = 'ACTIVE'
+            AND accountnumber != $3
+            ${queryConditions.length ? "AND " + queryConditions.join(" AND ") : ""}
         `;
         const monthDataResult = await pg.query(monthDataQuery, queryParams);
         const monthData = monthDataResult.rows;
 
+        // Create a map to store branch and registration point for each user
         const userBranchRegPointMap = {};
 
         // Fetch user details for each transaction to get branch and registration point
@@ -90,8 +104,8 @@ const getUserMonthlyviewCollection = async (req, res) => {
             }
         }
 
-        // Filter transactions by branch and registration point
-        const filteredMonthData = monthData.filter(tx => {
+        // Filter transactions by branch, registration point, and default cash account
+        const filteredMonthData = monthData.filter((tx) => {
             const userId = tx.userid;
             const userDetails = userBranchRegPointMap[userId];
             if (!userDetails) return false;
@@ -102,27 +116,30 @@ const getUserMonthlyviewCollection = async (req, res) => {
             return branchMatch && regPointMatch;
         });
 
-        // Use filteredMonthData for further processing
-
+        // Process transactions day by day
         for (let day = 1; day <= daysInMonth; day++) {
-            const currentDate = new Date(Date.UTC(year, month - 1, day));
-            const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-            const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-            
-            // Filter transactions for the current day
-            const dayData = filteredMonthData.filter(tx => {
-                const txDate = new Date(tx.transactiondate);
-                return txDate >= startOfDay && txDate <= endOfDay;
-            });
-            
+            const today = new Date(Date.UTC(year, month - 1, day));
+            const yearStr = today.getUTCFullYear();
+            const monthStr = String(today.getUTCMonth() + 1).padStart(2, '0');
+            const dayStr = String(today.getUTCDate()).padStart(2, '0');
+            const dateString = `${yearStr}${monthStr}${dayStr}`;
+            const cashRefPrefix = `CR-${dateString}-${userid}`;
+
+            // Filter transactions for the current day using cashref
+            const dayData = filteredMonthData.filter(tx => tx.cashref.startsWith(cashRefPrefix));
+
             // Calculate number of credit transactions and amount collected
-            const creditTransactions = dayData.filter(tx => tx.ttype == 'CREDIT');
-            console.log('dayData', day, creditTransactions);
+            const creditTransactions = dayData.filter(tx => tx.ttype === "CREDIT");
             const noofcollections = creditTransactions.length;
-            const amountcollected = creditTransactions.reduce((sum, tx) => sum + (tx.credit || 0), 0);
+            const amountcollected = creditTransactions.reduce(
+                (sum, tx) => sum + parseFloat(tx.credit || 0),
+                0
+            );
 
             // Calculate total debit amount
-            const debitSum = dayData.filter(tx => tx.ttype == 'DEBIT').reduce((sum, tx) => sum + (tx.debit || 0), 0);
+            const debitSum = dayData
+                .filter(tx => tx.ttype === "DEBIT")
+                .reduce((sum, tx) => sum + parseFloat(tx.debit || 0), 0);
 
             // Fetch related bank transactions
             const transactionRefs = dayData.map(tx => tx.cashref).filter(ref => ref);
@@ -131,15 +148,18 @@ const getUserMonthlyviewCollection = async (req, res) => {
             if (transactionRefs.length > 0) {
                 const bankTxQuery = `
                     SELECT credit, debit FROM divine."banktransaction"
-                    WHERE transactionref = $1
+                    WHERE transactionref = ANY($1) AND status = 'ACTIVE'
                 `;
                 const bankTxResult = await pg.query(bankTxQuery, [transactionRefs]);
                 const bankTransactions = bankTxResult.rows;
 
-                const bankTxSum = bankTransactions.reduce((sum, btx) => sum + (parseInt(btx.credit || 0) - parseInt(btx.debit || 0)), 0);
-                remitted = bankTxSum + debitSum;
+                const bankTxSum = bankTransactions.reduce(
+                    (sum, btx) => sum + (parseFloat(btx.credit || 0) - parseFloat(btx.debit || 0)),
+                    0
+                );
+                remitted = bankTxSum;
             }
- 
+
             // Calculate penalties
             const penaltyRefs = transactionRefs.map(ref => `${ref}-P`);
             let penaltySum = 0;
@@ -147,12 +167,15 @@ const getUserMonthlyviewCollection = async (req, res) => {
             if (penaltyRefs.length > 0) {
                 const penaltyQuery = `
                     SELECT debit, credit FROM divine."transaction"
-                    WHERE cashref = ANY($1)
+                    WHERE cashref = ANY($1) AND status = 'ACTIVE'
                 `;
                 const penaltyResult = await pg.query(penaltyQuery, [penaltyRefs]);
                 const penaltyTransactions = penaltyResult.rows;
 
-                penaltySum = penaltyTransactions.reduce((sum, ptx) => sum + (parseInt(ptx.debit || 0) - parseInt(ptx.credit || 0)), 0);
+                penaltySum = penaltyTransactions.reduce(
+                    (sum, ptx) => sum + (parseFloat(ptx.debit || 0) - parseFloat(ptx.credit || 0)),
+                    0
+                );
             }
 
             // Calculate excess and tobalance
@@ -175,14 +198,13 @@ const getUserMonthlyviewCollection = async (req, res) => {
             totalPenalty += penaltySum;
 
             results.push({
-                day: currentDate.toISOString().split('T')[0], // Format day as YYYY-MM-DD
+                day: today.toISOString().split('T')[0], // Format day as YYYY-MM-DD
                 noofcollections,
                 amountcollected,
                 remitted,
                 excess,
                 tobalance,
-                penalty: penaltySum,
-                transactions: creditTransactions
+                penalty: penaltySum
             });
         }
 
@@ -192,10 +214,10 @@ const getUserMonthlyviewCollection = async (req, res) => {
             totalRemitted,
             totalExcess,
             totalToBalance,
-            totalPenalty
+            totalPenalty,
         };
 
-        await activityMiddleware(req, user.id, 'User monthly collection fetched successfully', 'USER_MONTHLY_COLLECTION');
+        await activityMiddleware(req, user.id, "User monthly collection fetched successfully", "USER_MONTHLY_COLLECTION");
 
         return res.status(StatusCodes.OK).json({
             status: true,
@@ -203,20 +225,25 @@ const getUserMonthlyviewCollection = async (req, res) => {
             statuscode: StatusCodes.OK,
             data: results,
             totals,
-            errors: []
+            errors: [],
         });
     } catch (error) {
-        console.error('Error fetching user monthly collection:', error);
-        await activityMiddleware(req, user.id, 'An unexpected error occurred fetching user monthly collection', 'USER_MONTHLY_COLLECTION');
+        console.error("Error fetching user monthly collection:", error);
+        await activityMiddleware(
+            req,
+            user.id,
+            "An unexpected error occurred fetching user monthly collection",
+            "USER_MONTHLY_COLLECTION"
+        );
 
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
             message: "An unexpected error occurred",
             statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
             data: null,
-            errors: [error.message]
+            errors: [error.message],
         });
     }
-}; 
+};
 
 module.exports = { getUserMonthlyviewCollection };

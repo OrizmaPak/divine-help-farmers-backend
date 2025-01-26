@@ -69,6 +69,20 @@ async function getMaturedPropertyAccount(req, res) {
       };
       const { rows: itemRows } = await pg.query(itemsQuery);
 
+      // Fetch item names from Inventory table
+      for (const item of itemRows) {
+        const inventoryQuery = {
+          text: `SELECT itemname FROM divine."Inventory" WHERE itemid = $1`,
+          values: [item.itemid]
+        };
+        const { rows: inventoryRows } = await pg.query(inventoryQuery);
+        if (inventoryRows.length > 0) {
+          item.itemname = inventoryRows[0].itemname;
+        } else {
+          item.itemname = null; // or some default value if itemname is not found
+        }
+      }
+
       // --- 4b) Get installments, sorted by duedate
       const installmentsQuery = {
         text: `

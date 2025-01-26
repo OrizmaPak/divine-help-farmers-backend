@@ -16,7 +16,7 @@ const { activityMiddleware } = require("../../../middleware/activity");
  *  4) Computes leftover "accountbalance" if everything is fully paid.
  *  5) Summarizes totalRemitted, totalOwed, etc.
  */
-async function getPropertyAccount(req, res) {
+async function getPropertyAccount(req, res) { 
   const { accountnumber } = req.query;
   const user = req.user || {};
 
@@ -58,6 +58,14 @@ async function getPropertyAccount(req, res) {
     // 4) Process each account individually
     for (const accountRow of accountRows) {
       const currentAccountNumber = accountRow.accountnumber;
+
+      // Fetch user details to get fullname
+      const userQuery = {
+        text: `SELECT firstname, lastname, othernames FROM divine."User" WHERE id = $1`,
+        values: [accountRow.userid]
+      };
+      const { rows: userRows } = await pg.query(userQuery);
+      const userFullname = userRows.length > 0 ? `${userRows[0].firstname} ${userRows[0].lastname} ${userRows[0].othernames}`.trim() : "Unknown User";
 
       // --- 4a) Get property items
       const itemsQuery = {
@@ -189,7 +197,7 @@ async function getPropertyAccount(req, res) {
       // 8) Final object
       const finalAccountObj = {
         ...accountRow,
-        // We can add these extra fields to the account object
+        fullname: userFullname, // Add fullname to the account object
         accountbalance: accountBalance,
         totalRemitted,
         totalOwed

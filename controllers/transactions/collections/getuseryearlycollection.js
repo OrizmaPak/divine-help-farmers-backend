@@ -151,7 +151,7 @@ const getUserYearlyCollection = async (req, res) => {
             (sum, btx) => sum + ((btx.credit || 0) - (btx.debit || 0)),
             0
           );
-          remitted = bankTxSum + debitSum;
+          remitted = bankTxSum ;
         }
 
         // Calculate penalty

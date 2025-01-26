@@ -5,7 +5,9 @@ const { performTransactionOneWay, performTransaction } = require("../../../../mi
 
 const processWithdrawal = async (req, res) => {
     // Destructure and set default values for request body parameters
-    const { allocation = 0, branch, userid, rowsize, location = "OUTSIDE" } = req.body;
+    let { allocation = 0, branch, userid, rowsize, location = "OUTSIDE", cashref } = req.body;
+
+    const originalCashref = cashref
 
     const user = req.user;
 
@@ -99,7 +101,11 @@ const processWithdrawal = async (req, res) => {
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
-        const cashref = `WD-${year}${month}${day}-${userid}`;
+        if(cashref){
+            cashref = cashref
+        }else{
+            cashref = `WD-${year}${month}${day}-${userid}`;
+        }
 
         let failedTransactions = [];
 
@@ -184,7 +190,7 @@ const processWithdrawal = async (req, res) => {
 
             const accountfromBalance = accountfromTransactions[0].balance || 0;
 
-            if (allocation == 0 && Number(debit) > accountfromBalance) {
+            if (!originalCashref && allocation == 0 && Number(debit) > accountfromBalance) {
                 await pg.query('ROLLBACK');
                 return res.status(StatusCodes.FORBIDDEN).json({
                     status: false,
@@ -197,7 +203,7 @@ const processWithdrawal = async (req, res) => {
 
             let accountnumberuserid
 
-            if(allocation == 1){
+            if(!originalCashref &&allocation == 1){
                 // Remove the personal_account_prefix from the accountnumber to extract the phonenumber
                 const phonenumber = accountnumber.replace(orgPersonalAccountPrefix, '');
 
@@ -277,9 +283,11 @@ const processWithdrawal = async (req, res) => {
             };
 
             // Perform the transaction
-            const transactionResult = await performTransaction(transactionDetails.debitAccount, transactionDetails.debitcashAccount, allocation == 1 ? accountnumberuserid : userCheckData[0].id);
+            const transactionResult = originalCashref 
+                ? await performTransactionOneWay(transactionDetails.debitAccount, allocation == 1 ? accountnumberuserid : userCheckData[0].id)
+                : await performTransaction(transactionDetails.debitcashAccount, allocation == 1 ? accountnumberuserid : userCheckData[0].id);
 
-            if(allocation == 1){
+            if(!originalCashref && allocation == 1){
             const creditTransactionDetails = {
                 accountnumber: accountnumber,
                 credit: Number(debit),

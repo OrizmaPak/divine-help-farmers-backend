@@ -94,7 +94,7 @@ const getUserMonthlyCollection = async (req, res) => {
                 const bankTransactions = bankTxResult.rows;
 
                 const bankTxSum = bankTransactions.reduce((sum, btx) => sum + ((btx.credit || 0) - (btx.debit || 0)), 0);
-                remitted = bankTxSum + debitSum;
+                remitted = bankTxSum;
             }
  
             // Calculate penalties

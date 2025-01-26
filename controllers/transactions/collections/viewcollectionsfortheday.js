@@ -128,7 +128,7 @@
                         registrationpointname: tx.registrationpointname,
                         collected: 0,
                         remitted: 0,
-                        penalty: 0,
+                        penalty: 0, 
                         excess: 0,
                         balance: 0,
                         depositcode: tx.cashref,
