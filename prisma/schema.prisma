@@ -825,6 +825,7 @@ model propertyaccount {
   productid          Int
   accountnumber      String
   userid             Int
+  membershipid       Int?
   registrationcharge  Int
   registrationdate    DateTime @default(now())
   registrationpoint   String?
