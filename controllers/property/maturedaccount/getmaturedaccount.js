@@ -62,6 +62,22 @@ async function getMaturedPropertyAccount(req, res) {
     for (const accountRow of accountRows) {
       const currentAccountNumber = accountRow.accountnumber;
 
+      // Fetch user details to get fullname and branch
+      const userQuery = {
+        text: `SELECT firstname, lastname, othernames, branch FROM divine."User" WHERE id = $1`,
+        values: [accountRow.userid]
+      };
+      const { rows: userRows } = await pg.query(userQuery);
+      const userFullname = userRows.length > 0 ? `${userRows[0].firstname} ${userRows[0].lastname} ${userRows[0].othernames}`.trim() : "Unknown User";
+
+      // Fetch branch details to get branchname
+      const branchQuery = {
+        text: `SELECT branch FROM divine."Branch" WHERE id = $1`,
+        values: [userRows[0].branch]
+      };
+      const { rows: branchRows } = await pg.query(branchQuery);
+      const branchName = branchRows.length > 0 ? branchRows[0].branch : "Unknown Branch";
+
       // --- 4a) Get property items
       const itemsQuery = {
         text: `SELECT * FROM divine."propertyitems" WHERE accountnumber = $1`,
@@ -81,6 +97,8 @@ async function getMaturedPropertyAccount(req, res) {
         } else {
           item.itemname = null; // or some default value if itemname is not found
         }
+        // Initialize the 'open' key to false
+        item.open = false;
       }
 
       // --- 4b) Get installments, sorted by duedate
@@ -211,6 +229,7 @@ async function getMaturedPropertyAccount(req, res) {
             if (itemMatch) {
               // We found at least one completed installment referencing an undelivered, active item
               meetsCondition = true;
+              itemMatch.open = true; // Set the 'open' key to true for this item
               break; // no need to check further installments
             }
           }
@@ -227,7 +246,9 @@ async function getMaturedPropertyAccount(req, res) {
         ...accountRow,
         accountbalance: accountBalance,
         totalRemitted,
-        totalOwed
+        totalOwed,
+        fullname: userFullname,
+        branchname: branchName
       };
 
       results.push({

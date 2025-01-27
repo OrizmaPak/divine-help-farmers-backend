@@ -848,6 +848,7 @@ model propertyitems {
   deliverystatus     String @default("NOT STARTED")
   deliveryrequested  Boolean @default(false)
   deliveryrequestdate DateTime?
+  readyfordelivery   Boolean @default(false)
   createdby          Int
   status             String @default("ACTIVE")
   dateadded          DateTime @default(now())

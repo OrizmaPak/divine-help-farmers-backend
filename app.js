@@ -26,6 +26,7 @@ const purchasesRouter = require('./routes/purchases');
 const expenseRouter = require('./routes/expense');
 const incomingsRouter = require('./routes/incomings');
 const propertyRouter = require('./routes/property');
+const salesRouter = require('./routes/sales');
 const aiRouter = require('./routes/ai');
 
 // error handler
@@ -71,6 +72,7 @@ app.use('/node/api/v1/payment2', transactionMiddleware, paymentRouter);
 app.use('/node/api/v1/transactions', authMiddleware, transactionsRouter); 
 app.use('/node/api/v1/purchases', authMiddleware, purchasesRouter);
 app.use('/node/api/v1/expense', authMiddleware, expenseRouter);
+app.use('/node/api/v1/sales', authMiddleware, salesRouter);
 app.use('/node/api/v1/property', authMiddleware, propertyRouter);
 
 app.use('/node/api/v1/incomings', incomingsRouter); 

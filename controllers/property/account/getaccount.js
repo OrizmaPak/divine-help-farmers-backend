@@ -61,11 +61,37 @@ async function getPropertyAccount(req, res) {
 
       // Fetch user details to get fullname
       const userQuery = {
-        text: `SELECT firstname, lastname, othernames FROM divine."User" WHERE id = $1`,
+        text: `SELECT firstname, lastname, othernames, branch FROM divine."User" WHERE id = $1`,
         values: [accountRow.userid]
       };
       const { rows: userRows } = await pg.query(userQuery);
       const userFullname = userRows.length > 0 ? `${userRows[0].firstname} ${userRows[0].lastname} ${userRows[0].othernames}`.trim() : "Unknown User";
+
+      // Fetch branch details to get branchname
+      const branchQuery = {
+        text: `SELECT branch FROM divine."Branch" WHERE id = $1`,
+        values: [userRows[0].branch]
+      };
+      const { rows: branchRows } = await pg.query(branchQuery);
+      const branchName = branchRows.length > 0 ? branchRows[0].branch : "Unknown Branch";
+
+      // Fetch member names
+      let memberNames = "No Members";
+      if (accountRow.member) {
+        const memberIds = accountRow.member.includes('||') ? accountRow.member.split('||') : [accountRow.member];
+        const memberNamesArray = [];
+        for (const memberId of memberIds) {
+          const memberQuery = {
+            text: `SELECT member FROM divine."DefineMember" WHERE id = $1`,
+            values: [memberId]
+          };
+          const { rows: memberRows } = await pg.query(memberQuery);
+          if (memberRows.length > 0) {
+            memberNamesArray.push(memberRows[0].member);
+          }
+        }
+        memberNames = memberNamesArray.join(', ');
+      }
 
       // --- 4a) Get property items
       const itemsQuery = {
@@ -73,6 +99,16 @@ async function getPropertyAccount(req, res) {
         values: [currentAccountNumber]
       };
       const { rows: itemRows } = await pg.query(itemsQuery);
+
+      // Fetch item names from Inventory and add to itemRows
+      for (const item of itemRows) {
+        const inventoryQuery = {
+          text: `SELECT itemname FROM divine."Inventory" WHERE itemid = $1`,
+          values: [item.itemid]
+        };
+        const { rows: inventoryRows } = await pg.query(inventoryQuery);
+        item.itemname = inventoryRows.length > 0 ? inventoryRows[0].itemname : "Unknown Item";
+      }
 
       // --- 4b) Get installments, sorted by duedate
       const installmentsQuery = {
@@ -198,6 +234,8 @@ async function getPropertyAccount(req, res) {
       const finalAccountObj = {
         ...accountRow,
         fullname: userFullname, // Add fullname to the account object
+        branchname: branchName, // Add branchname to the account object
+        membernames: memberNames, // Add member names to the account object
         accountbalance: accountBalance,
         totalRemitted,
         totalOwed
@@ -206,7 +244,7 @@ async function getPropertyAccount(req, res) {
       results.push({
         account: finalAccountObj,    // propertyaccount + new fields
         product: accountRow,         // product details (since we did SELECT pa.*, pp.*)
-        items: itemRows,             // propertyitems
+        items: itemRows,             // propertyitems with itemname added
         installments: installmentRows
       });
     }

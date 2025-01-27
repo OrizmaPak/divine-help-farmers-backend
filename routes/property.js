@@ -9,6 +9,8 @@ const { deleteCategoryTimeline } = require('../controllers/property/categorytime
 const { createPropertyAccount } = require('../controllers/property/account/manageaccount');
 const { getPropertyAccount } = require('../controllers/property/account/getaccount');
 const { getMaturedPropertyAccount } = require('../controllers/property/maturedaccount/getmaturedaccount');
+const { updateItemStatus } = require('../controllers/property/maturedaccount/updateitemstatus');
+const { getMissedMaturity } = require('../controllers/property/missedmaturity/getmissedmaturity');
 const router = express.Router();
 
 
@@ -33,6 +35,12 @@ router.route('/account')
 
 router.route('/maturedaccount')
     .get(getMaturedPropertyAccount)
+
+router.route('/updateitemstatus')
+    .post(updateItemStatus)
+
+router.route('/missedmaturity')
+    .get(getMissedMaturity)
 
 
 
