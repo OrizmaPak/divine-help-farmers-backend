@@ -134,6 +134,24 @@ const createPropertyAccount = async (req, res) => {
             }
             const propertyAccountId = updatedAccountRows[0].id;
 
+            const checkDeliveredItemsQuery = {
+                text: `SELECT COUNT(*) FROM divine."propertyitems" WHERE accountnumber = $1 AND status = 'ACTIVE' AND delivered = true`,
+                values: [accountnumber]
+            };
+            const { rows: deliveredItemsRows } = await pg.query(checkDeliveredItemsQuery);
+            const deliveredItemsCount = parseInt(deliveredItemsRows[0].count, 10);
+
+            if (deliveredItemsCount > 0) {
+                await pg.query('ROLLBACK');
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "Cannot update account. Some items have already been delivered.",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+
             // Delete existing items associated with the accountnumber
             const deleteItemsQuery = {
                 text: `DELETE FROM divine."propertyitems" WHERE accountnumber = $1`,
