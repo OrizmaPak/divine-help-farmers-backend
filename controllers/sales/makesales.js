@@ -1,12 +1,14 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../db/pg");
 const { activityMiddleware } = require("../../middleware/activity");
+const { performTransaction } = require("../../middleware/transactions/performTransaction");
 
 const makesales = async (req, res) => {
+    const user = req.user;
     // Destructure the request body to extract necessary fields
     const { branchfrom, description, transactiondate, departmentfrom, rowsize, tfrom, reference, amountpaid, ...inventoryData } = req.body;
     // Generate a unique reference for the transaction
-    const uniformReference = tfrom == 'BANK' ? reference :new Date().getTime().toString();
+    const uniformReference = tfrom == 'BANK' ? reference : new Date().getTime().toString();
 
     let refamount = 0;
 
@@ -15,13 +17,23 @@ const makesales = async (req, res) => {
             status: false,
             message: "Reference is required when payment method is BANK",
             statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
+            data: null, 
             errors: ["Reference is required when payment method is BANK",]
         });
     }
 
     if(reference){
         // YOU WILL PUT THE FUNCTION TO VALIDATE THE TRANSACTION
+        const { rows: existingTransactionRows } = await pg.query(`SELECT * FROM divine."transaction" WHERE transactionref = $1`, [reference]);
+        if (existingTransactionRows.length > 0) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "This payment reference has already been used for another transaction",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["This payment reference has already been used for another transaction"]
+            });
+        }
         refamount = parseFloat(amountpaid);
     }
 
@@ -73,6 +85,7 @@ const makesales = async (req, res) => {
     const transactiondates = [];
     let totalPrice = 0;
     let totalProfit = 0;
+    let totalCost = 0;
     
 
     // Loop through each item in the request body
@@ -82,13 +95,9 @@ const makesales = async (req, res) => {
         const priceKey = `price${i}`;
         const costKey = `cost${i}`;
         const requiredFields = [itemIdKey, qtyKey, priceKey, costKey];
-        
-        console.log(`Processing item ${i}:`, { itemIdKey, qtyKey, priceKey, costKey });
-
         // Check for missing fields
         const missingFields = requiredFields.filter(field => !inventoryData[field]);
         if (missingFields.length > 0) {
-            console.log(`Missing fields for item ${i}:`, missingFields);
             // Return a bad request response if any required field is missing
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -98,7 +107,6 @@ const makesales = async (req, res) => {
                 errors: [`${missingFields.join(', ')} are required`]
             });
         }
-
         // Push item details to respective arrays
         itemids.push(inventoryData[itemIdKey]);
         qtys.push(inventoryData[qtyKey]);
@@ -106,19 +114,10 @@ const makesales = async (req, res) => {
         cost.push(inventoryData[costKey]);
         descriptions.push(inventoryData[description]);
         transactiondates.push(inventoryData[transactiondate]);
-
-        console.log(`Item ${i} details:`, {
-            itemid: inventoryData[itemIdKey],
-            qty: inventoryData[qtyKey],
-            price: inventoryData[priceKey],
-            cost: inventoryData[costKey]
-        });
-
+ 
         // Calculate total price
         totalPrice += parseFloat(inventoryData[qtyKey]) * parseFloat(inventoryData[priceKey]);
         totalCost += parseFloat(inventoryData[qtyKey]) * parseFloat(inventoryData[costKey]);
-
-        console.log(`Running totals after item ${i}:`, { totalPrice, totalCost });
     }
     
     // Calculate total profit
@@ -154,6 +153,8 @@ const makesales = async (req, res) => {
                 });
             } 
         }
+
+        await pg.query('BEGIN')
 
         // Process each itemid
         for (let i = 0; i < itemids.length; i++) {
@@ -199,7 +200,7 @@ const makesales = async (req, res) => {
                 'ACTIVE', 
                 uniformReference, 
                 transactiondates[i] ?? new Date(), 
-                'DEP-SALES' + '||' + descriptions[i], 
+                'DEP-SALES', 
                 new Date(), 
                 req.user.id, 
                 prices[i]
@@ -231,7 +232,22 @@ const makesales = async (req, res) => {
                 errors: ["Failed to fetch organisation settings"]
             });
         }
+
+        const itemnames = [];
+        for (let i = 0; i < itemids.length; i++) {
+            const { rows: itemRows } = await pg.query(`SELECT itemname FROM divine."Inventory" WHERE id = $1`, [itemids[i]]);
+            if (itemRows.length > 0) {
+                itemnames.push(itemRows[0].name);
+            } else {
+                itemnames.push(`Unknown Item ${itemids[i]}`);
+            }
+        }
         const { default_cost_of_sales_account, default_income_account } = orgSettingsRows[0];
+
+        console.log('totalcost', totalCost);
+        console.log('totalprofit', totalProfit);
+        console.log('totalprice', totalPrice);
+
 
         if(tfrom == 'CASH'){
             const today = new Date();
@@ -246,10 +262,11 @@ const makesales = async (req, res) => {
                 debit: 0, 
                 reference: uniformReference,
                 transactiondate: new Date(),
-                transactiondesc: 'Payment for sales',
+                transactiondesc: `Cost of Sales by ${user.firstname} ${user.lastname} ${user.othernames}`,
+                transactionref: uniformReference,
                 currency: 'NGN',
-                description: 'Sales payment reference',
-                branch: 'Main', // Assuming branch information is available
+                description: itemnames.join(', '),
+                branch: req.user.branch, // Assuming branch information is available
                 registrationpoint: req.user.registrationpoint, // Assuming registration point is online
                 ttype: 'CREDIT',
                 cashref,
@@ -263,10 +280,11 @@ const makesales = async (req, res) => {
                 debit: 0,
                 reference: uniformReference,
                 transactiondate: new Date(),
-                transactiondesc: 'Received payment for sales',
+                transactiondesc: `Profit of Sales by ${user.firstname} ${user.lastname} ${user.othernames}`,
+                transactionref: uniformReference,
                 currency: 'NGN',
-                description: '',
-                branch: 'Main',
+                description: itemnames.join(', '),
+                branch: req.user.branch,
                 registrationpoint: req.user.registrationpoint,
                 ttype: 'CREDIT',
                 cashref,
@@ -275,7 +293,7 @@ const makesales = async (req, res) => {
             };
 
             try {
-                const transactionResult = await performTransaction(fromTransaction, toTransaction, req.user.id, 0);
+                const transactionResult = await performTransaction(fromTransaction, toTransaction, req.user.id, req.user.id);
                 if (!transactionResult.status) {
                     console.error('Failed to perform transaction');
                     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -296,22 +314,100 @@ const makesales = async (req, res) => {
                     errors: [error.message]
                 });
             }
-        }else if(tfrom == 'BANK'){        
-            
+        } else if (tfrom == 'BANK') {
+            // Implement bank transaction logic here
+            const bankTransaction = {
+                accountnumber: default_income_account,
+                credit: totalPrice,
+                debit: 0,
+                reference: uniformReference,
+                transactiondate: new Date(),
+                transactiondesc: `Bank sales by ${req.user.firstname} ${req.user.lastname}`,
+                transactionref: uniformReference,
+                currency: 'NGN',
+                description: itemnames.join(', '),
+                branch: req.user.branch,
+                registrationpoint: req.user.registrationpoint,
+                ttype: 'CREDIT',
+                cashref: reference,
+                tfrom: 'BANK',
+                tax: false
+            };
+
+            try {
+                const transactionResult = await performTransaction(bankTransaction, null, req.user.id, req.user.id);
+                if (!transactionResult.status) {
+                    console.error('Failed to perform bank transaction');
+                    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                        status: false,
+                        message: "Failed to perform bank transaction",
+                        statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                        data: null,
+                        errors: ["Failed to perform bank transaction"]
+                    });
+                }
+            } catch (error) {
+                console.error('Error processing bank transaction:', error);
+                return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                    status: false,
+                    message: "Error processing bank transaction",
+                    statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    data: null,
+                    errors: [error.message]
+                });
+            }
         }
 
         // Log activity for successful makesales
         await activityMiddleware(res, req.user.id, `Sales processed for branch ${branchfrom}`, 'SALES PROCESSED');
 
-        // Return success response
-        return res.status(StatusCodes.OK).json({
+        // Prepare sales data for the receipt
+        // Fetch branch name from Branch table using branchfrom
+        const { rows: branchRows } = await pg.query(`SELECT branch FROM divine."Branch" WHERE id = $1`, [branchfrom]);
+        const branchName = branchRows.length > 0 ? branchRows[0].branch : "Unknown Branch";
+
+        const salesData = {
+            branch: branchName,
+            department: departmentfrom,
+            reference: uniformReference,
+            transactionDate: new Date(),
+            totalPrice,
+            totalCost,
+            totalProfit,
+            items: await Promise.all(itemids.map(async (itemId, index) => {
+                // Fetch item name from Inventory table using itemId
+                const { rows: inventoryRows } = await pg.query(`SELECT itemname FROM divine."Inventory" WHERE itemid = $1`, [itemId]);
+                const itemName = inventoryRows.length > 0 ? inventoryRows[0].itemname : "Unknown Item";
+
+                return {
+                    itemId,
+                    itemname: itemName,
+                    quantity: qtys[index],
+                    price: prices[index],
+                    cost: cost[index],
+                    value: parseFloat(qtys[index]) * parseFloat(prices[index])
+                };
+            })),
+            amountPaid: parseFloat(amountpaid),
+            paymentMethod: tfrom,
+            description: description || ''
+        };
+
+        // Commit the transaction
+        await pg.query('COMMIT');
+
+        // Return success response with sales data
+        return res.status(StatusCodes.OK).json({ 
             status: true,
             message: "Sales processed successfully",
             statuscode: StatusCodes.OK,
-            data: null,
+            data: salesData,
             errors: []
         });
+
     } catch (error) {
+        // Rollback the transaction in case of error
+        await pg.query('ROLLBACK');
         // Log and return error response
         console.error(error);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
