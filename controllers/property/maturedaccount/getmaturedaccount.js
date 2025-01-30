@@ -13,7 +13,7 @@ const { activityMiddleware } = require("../../../middleware/activity");
  *  4) **Condition**: We only return an account if:
  *      - There's at least one COMPLETED installment whose description matches
  *        "Release item with itemid XXX to the customer."
- *      - That item (XXX) exists in propertyitems with status='ACTIVE' AND delivered=false
+ *      - That item (XXX) exists in propertyitems with status='ACTIVE' AND delivered='NO'
  */
 async function getMaturedPropertyAccount(req, res) {
   const { accountnumber } = req.query;
@@ -109,7 +109,7 @@ async function getMaturedPropertyAccount(req, res) {
           WHERE accountnumber = $1
           ORDER BY duedate ASC
         `,
-        values: [currentAccountNumber]
+        values: [currentAccountNumber]    
       };
       const { rows: rawInstallments } = await pg.query(installmentsQuery);
 
@@ -121,7 +121,7 @@ async function getMaturedPropertyAccount(req, res) {
         paymentstatus: "NOT PAID",
         transactionrefs: []
       }));
-
+ 
       // --- 4c) Fetch all transactions for this account
       const transactionsQuery = {
         text: `
@@ -209,7 +209,7 @@ async function getMaturedPropertyAccount(req, res) {
       // 8) Condition:
       //    Must have at least one COMPLETED installment with a description like
       //    "Release item with itemid XXX to the customer."
-      //    Then we parse the itemid and check the propertyitems for status='ACTIVE', delivered=false.
+      //    Then we parse the itemid and check the propertyitems for status='ACTIVE', delivered='NO'.
       let meetsCondition = false;
 
       for (const inst of installmentRows) {
@@ -218,12 +218,12 @@ async function getMaturedPropertyAccount(req, res) {
           if (match) {
             const itemid = Number(match[1]);
 
-            // Check if there's a propertyitems row with that itemid, status=ACTIVE, delivered=false
+            // Check if there's a propertyitems row with that itemid, status=ACTIVE, delivered='NO'
             const itemMatch = itemRows.find(
               (item) =>
                 Number(item.itemid) === itemid &&
                 item.status === "ACTIVE" &&
-                item.delivered === false
+                item.delivered === "NO"
             );
 
             if (itemMatch) {

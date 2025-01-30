@@ -222,14 +222,16 @@ model Organisationsettings {
 
   personal_transaction_prefix                String?
   loan_transaction_prefix                    String?
-  savings_transaction_prefix                 String?
+  rotary_transaction_prefix                  String? @default("")
   gl_transaction_prefix                      String?
+  savings_transaction_prefix                 String?
   property_transaction_prefix                String? @default("")
 
   savings_account_prefix                     String?
   personal_account_prefix                    String   @default("DHF")
   loan_account_prefix                        String?
   property_account_prefix                        String? @default("")
+  rotary_account_prefix                        String? @default("")
   asset_account_prefix                       String?
   cash_account_prefix                        String?
   current_assets_account_prefix              String?
@@ -274,6 +276,7 @@ model Organisationsettings {
   default_excess_account                      Float?
   default_allocation_account                  Float? @default(0)
   default_property_account                  Float? @default(0)
+  default_rotary_account                  Float? @default(0)
   status                                      String @default("ACTIVE")
 }
 
@@ -845,11 +848,11 @@ model propertyitems {
   qty                Int
   price              Int
   userid             Int
-  delivered          Boolean @default(false)
+  delivered          String @default("NO")
   deliverystatus     String @default("NOT STARTED")
-  deliveryrequested  Boolean @default(false)
+  deliveryrequested  String @default("NO")
   deliveryrequestdate DateTime?
-  readyfordelivery   Boolean @default(false)
+  readyfordelivery   String @default("NO")
   createdby          Int
   status             String @default("ACTIVE")
   dateadded          DateTime @default(now())
@@ -860,7 +863,7 @@ model propertyinstallments {
   accountnumber      String
   amount             Float @default(0)
   duedate            DateTime
-  delivered          Boolean @default(false)
+  delivered          String @default("NO")
   userid             Int
   transactionref     String? @default("")
   description        String? @default("")
@@ -889,14 +892,25 @@ model rotaryProduct {
 
 model rotaryaccount {
   id                 Int      @id @default(autoincrement())
-  name               String
-  description        String?  @default("")
-  currency           String @default("NGN")
-  productofficer     Int?
-  poolnumber         String // "SEQUENCE", "RANDOM"
-  rotaryschedule     String? @default("PRODUCT") // "PRODUCT", "ACCOUNT"
+  accountnumber      String
+  userid             Int @default(0)
+  member             Int @default(0)
+  productid          Int
+  amount             Float
   frequency          String?
   frequencynumber    Int?
+  autorunnew         String @default("YES")
   dateadded          DateTime @default(now())
+  status             String @default("ACTIVE")
+}
+
+model rotaryschedule {
+  id                 Int      @id @default(autoincrement())
+  accountnumber      Int
+  amount             Float
+  duedate            String?
+  dateadded          DateTime @default(now())
+  currentschedule    String @default("YES")
+  createdby          Int
   status             String @default("ACTIVE")
 }
