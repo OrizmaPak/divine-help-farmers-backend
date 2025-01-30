@@ -1,5 +1,6 @@
 require('dotenv').config(); // Load environment variables from .env file
 const OpenAI = require('openai');
+const { generateNextDates } = require('../../utils/datecode');
 
 const client = new OpenAI({
   apiKey: process.env.OPEN_AI_KEY, // This is the default and can be omitted
@@ -474,6 +475,8 @@ async function generateSentenceController(req, res) {
   try {
     const { code } = req.query;
 
+    const exampledates = await generateNextDates(code, 5)
+
     // Validate that the code is provided
     if (!code || typeof code !== "string") {
       return res.status(400).json({ error: "code is required and must be a string" });
@@ -842,15 +845,31 @@ Sentence:
       });
     }
 
+    const formattedDates = exampledates.map((date, index) => {
+      const [year, month, day] = date.split('-');
+      const dateObj = new Date(year, month - 1, day);
+      const options = { day: 'numeric', month: 'long', year: 'numeric' };
+      const formattedDate = dateObj.toLocaleDateString('en-US', options).replace(',', '');
+      
+      // Add ordinal suffixes
+      const dayWithSuffix = new Intl.DateTimeFormat('en-US', { day: 'numeric' }).format(dateObj);
+      const dayNumber = parseInt(dayWithSuffix, 10);
+      const suffix = (dayNumber % 10 === 1 && dayNumber !== 11) ? 'st' :
+                     (dayNumber % 10 === 2 && dayNumber !== 12) ? 'nd' :
+                     (dayNumber % 10 === 3 && dayNumber !== 13) ? 'rd' : 'th';
+      
+      return `<li>${formattedDate.replace(dayWithSuffix, `${dayWithSuffix}${suffix}`)}</li>`;
+    }).join('');
+
     // Return the generated sentence
     res.status(200).json({
       status: true,
       message: "Sentence generated successfully",
       statuscode: 200,
-      data: { sentence: dateCode },
+      data: { sentence: `${dateCode} 😊 <span style="color: red">Examples of the next five dates are:</span><ol>${formattedDates.replace(/<li>(.*?)<\/li>/g, '<li><b>$1</b></li>')}</ol>,  Please let me know how the system performed` },
       errors: []
     });
-
+   
   } catch (error) {
     console.error("Error in generateSentenceController:", error);
     res.status(500).json({

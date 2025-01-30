@@ -97,8 +97,8 @@ async function getMaturedPropertyAccount(req, res) {
         } else {
           item.itemname = null; // or some default value if itemname is not found
         }
-        // Initialize the 'open' key to false
-        item.open = false;
+        // Initialize the 'matured' key to false
+        item.matured = false;
       }
 
       // --- 4b) Get installments, sorted by duedate
@@ -229,7 +229,7 @@ async function getMaturedPropertyAccount(req, res) {
             if (itemMatch) {
               // We found at least one completed installment referencing an undelivered, active item
               meetsCondition = true;
-              itemMatch.open = true; // Set the 'open' key to true for this item
+              itemMatch.matured = true; // Set the 'matured' key to true for this item
               break; // no need to check further installments
             }
           }

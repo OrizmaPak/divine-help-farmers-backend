@@ -2,9 +2,9 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
-const saveOrUpdatePropertyProduct = async (req, res) => {
+const saveOrUpdateRotaryProduct = async (req, res) => {
     const user = req.user;
-    const { id, product, member, useraccount, registrationcharge, productofficer, currency, description } = req.body;
+    const { id, product, member, useraccount, registrationcharge, productofficer, currency, description, poolnumber, rotaryschedule, frequency, frequencynumber } = req.body;
 
     try {
         // Validate input
@@ -15,6 +15,17 @@ const saveOrUpdatePropertyProduct = async (req, res) => {
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
                 errors: ["Product is required"]
+            });
+        }
+
+        // Ensure that the poolnumber is either sequence or random
+        if (!poolnumber || (poolnumber != 'SEQUENCE' && poolnumber != 'RANDOM')) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Pool number must be either 'sequence' or 'random'",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["Pool number must be either 'sequence' or 'random'"]
             });
         }
 
@@ -60,40 +71,40 @@ const saveOrUpdatePropertyProduct = async (req, res) => {
         }
 
         if (id) {
-            // Update existing property product
+            // Update existing rotary product
             const updateQuery = {
-                text: `UPDATE divine."propertyproduct" 
-                       SET product = $1, member = $2, useraccount = $3, registrationcharge = $4, productofficer = $5, currency = $6, description = $7, status = 'ACTIVE'
-                       WHERE id = $8`,
-                values: [product, member, useraccount || 1, registrationcharge, productofficer, currency || 'NGN', description, id]
+                text: `UPDATE divine."rotaryProduct" 
+                       SET product = $1, member = $2, useraccount = $3, registrationcharge = $4, productofficer = $5, currency = $6, description = $7, poolnumber = $8, rotaryschedule = $9, frequency = $10, frequencynumber = $11, status = 'ACTIVE'
+                       WHERE id = $12`,
+                values: [product, member, useraccount || 1, registrationcharge, productofficer, currency || 'NGN', description, poolnumber, rotaryschedule || 'PRODUCT', frequency, frequencynumber, id]
             };
 
             await pg.query(updateQuery);
 
-            await activityMiddleware(req, user.id, 'Property product updated successfully', 'PROPERTY_PRODUCT');
+            await activityMiddleware(req, user.id, 'Rotary product updated successfully', 'ROTARY_PRODUCT');
 
             return res.status(StatusCodes.OK).json({
                 status: true,
-                message: "Property product updated successfully",
+                message: "Rotary product updated successfully",
                 statuscode: StatusCodes.OK,
                 data: null,
                 errors: []
             });
         } else {
-            // Insert new property product
+            // Insert new rotary product
             const insertQuery = {
-                text: `INSERT INTO divine."propertyproduct" (product, member, useraccount, registrationcharge, createdby, productofficer, currency, description, dateadded, status) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'ACTIVE')`,
-                values: [product, member, useraccount || 1, registrationcharge, user.id, productofficer, currency || 'NGN', description]
+                text: `INSERT INTO divine."rotaryProduct" (product, member, useraccount, registrationcharge, createdby, productofficer, currency, description, poolnumber, rotaryschedule, frequency, frequencynumber, dateadded, status) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), 'ACTIVE')`,
+                values: [product, member, useraccount || 1, registrationcharge, user.id, productofficer, currency || 'NGN', description, poolnumber, rotaryschedule || 'PRODUCT', frequency, frequencynumber]
             };
 
             await pg.query(insertQuery);
 
-            await activityMiddleware(req, user.id, 'Property product saved successfully', 'PROPERTY_PRODUCT');
+            await activityMiddleware(req, user.id, 'Rotary product saved successfully', 'ROTARY_PRODUCT');
 
             return res.status(StatusCodes.OK).json({
                 status: true,
-                message: "Property product saved successfully",
+                message: "Rotary product saved successfully",
                 statuscode: StatusCodes.OK,
                 data: null,
                 errors: []
@@ -101,7 +112,7 @@ const saveOrUpdatePropertyProduct = async (req, res) => {
         }
     } catch (error) {
         console.error('Unexpected Error:', error);
-        await activityMiddleware(req, user.id, 'An unexpected error occurred saving or updating property product', 'PROPERTY_PRODUCT');
+        await activityMiddleware(req, user.id, 'An unexpected error occurred saving or updating rotary product', 'ROTARY_PRODUCT');
 
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
@@ -113,4 +124,4 @@ const saveOrUpdatePropertyProduct = async (req, res) => {
     }
 };
 
-module.exports = { saveOrUpdatePropertyProduct };
+module.exports = { saveOrUpdateRotaryProduct };

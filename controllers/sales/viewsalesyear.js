@@ -101,10 +101,10 @@ const viewSalesByYear = async (req, res) => {
             let cashier = 'Multiple Cashiers';
             
             if (userid) {
-                try { 
+                try {  
                     // Fetch branch information based on user ID
                     const branchQuery = {
-                        text: `
+                        text: `  
                             SELECT B.id, B.branch  
                             FROM divine."Branch" B
                             INNER JOIN divine."User" U ON U.branch = B.id

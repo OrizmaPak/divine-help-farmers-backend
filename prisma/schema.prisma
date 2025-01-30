@@ -868,3 +868,35 @@ model propertyinstallments {
   status             String @default("ACTIVE")
   dateadded          DateTime @default(now())
 }
+
+model rotaryProduct {
+  id                 Int       @id @default(autoincrement())
+  product            String @unique
+  member             String?
+  useraccount        Int @default(1)
+  registrationcharge String?
+  createdby          Int
+  description        String?  @default("")
+  currency           String @default("NGN")
+  productofficer     Int?
+  poolnumber         String // "SEQUENCE", "RANDOM"
+  rotaryschedule     String? @default("PRODUCT") // "PRODUCT", "ACCOUNT"
+  frequency          String?
+  frequencynumber    Int?
+  dateadded          DateTime @default(now())
+  status             String @default("ACTIVE")
+}
+
+model rotaryaccount {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  description        String?  @default("")
+  currency           String @default("NGN")
+  productofficer     Int?
+  poolnumber         String // "SEQUENCE", "RANDOM"
+  rotaryschedule     String? @default("PRODUCT") // "PRODUCT", "ACCOUNT"
+  frequency          String?
+  frequencynumber    Int?
+  dateadded          DateTime @default(now())
+  status             String @default("ACTIVE")
+}
