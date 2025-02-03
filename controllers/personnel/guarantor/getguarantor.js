@@ -15,16 +15,11 @@ const getGuarantors = async (req, res) => {
         };
 
         // Dynamically build the WHERE clause based on query parameters
-        let whereClause = '';
+        let whereClause = ' WHERE g.status = \'ACTIVE\'';
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
             if (key !== 'q') {
-                if (whereClause) {
-                    whereClause += ` AND `;
-                } else {
-                    whereClause += ` WHERE `;
-                }
-                whereClause += `"${key}" = $${valueIndex}`;
+                whereClause += ` AND "${key}" = $${valueIndex}`;
                 query.values.push(req.query[key]);
                 valueIndex++;
             }
@@ -43,11 +38,7 @@ const getGuarantors = async (req, res) => {
 
             // Generate the dynamic SQL query
             const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
-            if (whereClause) {
-                whereClause += ` AND (${searchConditions})`;
-            } else {
-                whereClause += ` WHERE (${searchConditions})`;
-            }
+            whereClause += ` AND (${searchConditions})`;
             query.values.push(`%${req.query.q}%`);
             valueIndex++;
         }
