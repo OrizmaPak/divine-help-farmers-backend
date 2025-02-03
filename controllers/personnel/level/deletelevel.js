@@ -4,7 +4,7 @@ const { activityMiddleware } = require("../../../middleware/activity");
 
 const deleteLevel = async (req, res) => {
     const user = req.user;
-    const { id } = req.params;
+    const { id } = req.body;
 
     try {
         // Check if the level exists
@@ -69,3 +69,4 @@ const deleteLevel = async (req, res) => {
 };
 
 module.exports = { deleteLevel };
+ 

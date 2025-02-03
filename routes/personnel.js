@@ -8,6 +8,7 @@ const { deleteLevel } = require('../controllers/personnel/level/deletelevel');
 const { saveOrUpdateEmploymentRecord } = require('../controllers/personnel/employmentrecord/manage');
 const { getEmploymentRecords } = require('../controllers/personnel/employmentrecord/get');
 const { deleteEmploymentRecord } = require('../controllers/personnel/employmentrecord/delete');
+const { saveOrUpdateReferee } = require('../controllers/personnel/referee/manage');
 const router = express.Router();
 
 
@@ -28,6 +29,8 @@ router.route('/employmentrecord')
     .get(getEmploymentRecords)
     .delete(deleteEmploymentRecord)
 
+router.route('/referee')
+    .post(saveOrUpdateReferee)
 
  
 module.exports = router; 

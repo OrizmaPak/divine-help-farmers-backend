@@ -988,3 +988,19 @@ model employmentrecord {
   createdby          Int
   status             String @default("ACTIVE")
 }
+
+model referee {
+  id                      Int       @id @default(autoincrement())
+  refereename             String
+  refereeofficeaddress    String
+  refereeresidentialaddress String
+  refereeoccupation       String
+  refereephone            String
+  refereeyearsknown       Int
+  relationship            String
+  imageone                String?
+  imagetwo                String?
+  dateadded               DateTime @default(now())
+  createdby               Int 
+  status                  String @default("ACTIVE")
+}
