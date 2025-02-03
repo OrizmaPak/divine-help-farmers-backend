@@ -967,8 +967,24 @@ model guarantor {
   guarantorresidentialaddress   String
   guarantoroccupation   String
   guarantorphone     String 
+  imageone           String?
+  imagetwo           String?
   yearsknown         Int
   createdby          Int
   dateadded          DateTime @default(now())
+  status             String @default("ACTIVE")
+}
+
+model employmentrecord {
+  id                 Int      @id @default(autoincrement())
+  userid             Int
+  employer           String
+  position           String
+  years              Int
+  reasonofleaving    String
+  doc                String?
+
+  dateadded          DateTime @default(now())
+  createdby          Int
   status             String @default("ACTIVE")
 }

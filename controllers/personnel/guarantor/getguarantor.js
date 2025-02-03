@@ -5,6 +5,7 @@ const { divideAndRoundUp } = require("../../../utils/pageCalculator");
 
 const getGuarantors = async (req, res) => {
     const user = req.user;
+    
 
     try {
         let query = {
