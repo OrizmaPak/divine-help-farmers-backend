@@ -928,7 +928,7 @@ model rotaryschedule {
 
 model level {
   id                 Int      @id @default(autoincrement())
-  level              String @unique
+  level              String 
   description        String?
   basicsalary        Float?
 

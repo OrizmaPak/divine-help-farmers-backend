@@ -1,6 +1,10 @@
 const express = require('express');
 const { saveOrUpdateLevel } = require('../controllers/personnel/level/managelevel');
 const { getLevel } = require('../controllers/personnel/level/getlevel');
+const { saveOrUpdateGuarantor } = require('../controllers/personnel/guarantor/manage');
+const { getGuarantors } = require('../controllers/personnel/guarantor/getguarantor');
+const { deleteGuarantor } = require('../controllers/personnel/guarantor/deleteguarantor');
+const { deleteLevel } = require('../controllers/personnel/level/deletelevel');
 const router = express.Router();
 
 
@@ -9,6 +13,12 @@ const router = express.Router();
 router.route('/level')
     .post(saveOrUpdateLevel) 
     .get(getLevel)
+    .delete(deleteLevel)
+
+router.route('/guarantor')
+    .post(saveOrUpdateGuarantor)
+    .get(getGuarantors)
+    .delete(deleteGuarantor)
 
     
  

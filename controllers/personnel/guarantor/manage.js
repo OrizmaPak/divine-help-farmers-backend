@@ -4,10 +4,26 @@ const { activityMiddleware } = require("../../../middleware/activity");
 
 const saveOrUpdateGuarantor = async (req, res) => {
     const user = req.user;
-    const { id, userid, guarantorname, guarantorofficeaddress, guarantorresidentialaddress, guarantoroccupation, guarantorphone, yearsknown } = req.body;
+    let { id, userid, guarantorname, guarantorofficeaddress, guarantorresidentialaddress, guarantoroccupation, guarantorphone, yearsknown } = req.body;
 
     try {
         await pg.query('BEGIN');
+
+        const { rows: userRows } = await pg.query(
+            `SELECT id FROM divine."User" WHERE id = $1`,
+            [userid]
+        );
+
+        if (userRows.length === 0) {
+            await pg.query('ROLLBACK');
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "User ID does not exist",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["Invalid User ID"]
+            });
+        }
 
         if (id) {
             // Update existing guarantor
@@ -21,7 +37,7 @@ const saveOrUpdateGuarantor = async (req, res) => {
                 `INSERT INTO divine."guarantor" (userid, guarantorname, guarantorofficeaddress, guarantorresidentialaddress, guarantoroccupation, guarantorphone, yearsknown, dateadded, createdby, status) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, 'ACTIVE') RETURNING id`,
                 [userid, guarantorname, guarantorofficeaddress, guarantorresidentialaddress, guarantoroccupation, guarantorphone, yearsknown, user.id]
             );
-            id = rows[0].id;
+            // id = rows[0].id;
         }
 
         await pg.query('COMMIT');
