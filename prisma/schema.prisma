@@ -991,6 +991,7 @@ model employmentrecord {
 
 model referee {
   id                      Int       @id @default(autoincrement())
+  userid                  Int
   refereename             String
   refereeofficeaddress    String
   refereeresidentialaddress String
@@ -1002,5 +1003,39 @@ model referee {
   imagetwo                String?
   dateadded               DateTime @default(now())
   createdby               Int 
+  status                  String @default("ACTIVE")
+}
+
+model qualification { 
+  id                      Int      @id @default(autoincrement())
+  userid                  Int
+  institution             String
+  certificationdate       DateTime
+  imageone                String?
+  imagetwo                String?
+  dateadded               DateTime @default(now())
+  qualification           String
+  createdby               Int
+  status                  String @default("ACTIVE")
+}
+
+model parentguardians {
+  id                      Int       @id @default(autoincrement())
+  userid                  Int
+  parentonename           String
+  parentoneoccupation     String
+  parentonestate          String
+  parentoneofficeaddress  String
+  parentonephone          String
+  parenttwoname           String
+  parenttwooccupation     String
+  parenttwoofficeaddress  String
+  parenttwostate          String
+  parenttwophone          String
+  parentoneimage          String
+  parenttwoimage          String
+  homeaddress             String
+  dateadded               DateTime @default(now())
+  createdby               Int
   status                  String @default("ACTIVE")
 }

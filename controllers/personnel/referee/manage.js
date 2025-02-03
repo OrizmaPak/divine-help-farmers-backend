@@ -1,11 +1,14 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { uploadToGoogleDrive } = require("../../../utils/uploadToGoogleDrive");
 
 const saveOrUpdateReferee = async (req, res) => {
+    if (req.files) await uploadToGoogleDrive(req, res);
     const user = req.user;
     const {
         id,
+        userid,
         refereename,
         refereeofficeaddress,
         refereeresidentialaddress,
@@ -17,7 +20,7 @@ const saveOrUpdateReferee = async (req, res) => {
         imagetwo
     } = req.body;
 
-    if (!refereename || !refereeofficeaddress || !refereeresidentialaddress || !refereeoccupation || !refereephone || !refereeyearsknown || !relationship) {
+    if (!userid || !refereename || !refereeofficeaddress || !refereeresidentialaddress || !refereeoccupation || !refereephone || !refereeyearsknown || !relationship) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "All required fields must be provided",
@@ -28,6 +31,22 @@ const saveOrUpdateReferee = async (req, res) => {
     }
 
     try {
+        // Check if the user exists
+        const { rows: userRows } = await pg.query(
+            `SELECT id FROM divine."User" WHERE id = $1 AND status = 'ACTIVE'`,
+            [userid]
+        );
+
+        if (userRows.length === 0) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                status: false,
+                message: "User not found",
+                statuscode: StatusCodes.NOT_FOUND,
+                data: null,
+                errors: ["User ID does not exist"]
+            });
+        }
+
         let query;
         let message;
 
@@ -43,18 +62,19 @@ const saveOrUpdateReferee = async (req, res) => {
                         refereeyearsknown = COALESCE($6, refereeyearsknown),
                         relationship = COALESCE($7, relationship),
                         imageone = COALESCE($8, imageone),
-                        imagetwo = COALESCE($9, imagetwo)
-                       WHERE id = $10 AND status = 'ACTIVE'`,
-                values: [refereename, refereeofficeaddress, refereeresidentialaddress, refereeoccupation, refereephone, refereeyearsknown, relationship, imageone, imagetwo, id]
+                        imagetwo = COALESCE($9, imagetwo),
+                        userid = COALESCE($10, userid)
+                       WHERE id = $11 AND status = 'ACTIVE'`,
+                values: [refereename, refereeofficeaddress, refereeresidentialaddress, refereeoccupation, refereephone, refereeyearsknown, relationship, imageone, imagetwo, userid, id]
             };
             message = 'Referee updated successfully';
         } else {
             // Insert new referee
             query = {
                 text: `INSERT INTO divine."referee" 
-                        (refereename, refereeofficeaddress, refereeresidentialaddress, refereeoccupation, refereephone, refereeyearsknown, relationship, imageone, imagetwo, createdby) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-                values: [refereename, refereeofficeaddress, refereeresidentialaddress, refereeoccupation, refereephone, refereeyearsknown, relationship, imageone, imagetwo, user.id]
+                        (userid, refereename, refereeofficeaddress, refereeresidentialaddress, refereeoccupation, refereephone, refereeyearsknown, relationship, imageone, imagetwo, createdby) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                values: [userid, refereename, refereeofficeaddress, refereeresidentialaddress, refereeoccupation, refereephone, refereeyearsknown, relationship, imageone, imagetwo, user.id]
             };
             message = 'Referee saved successfully';
         }
