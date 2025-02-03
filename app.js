@@ -22,16 +22,17 @@ const savingsRouter = require('./routes/savings');
 const loanRouter = require('./routes/loan');
 const paymentRouter = require('./routes/payment');
 const transactionsRouter = require('./routes/transactions');
-const purchasesRouter = require('./routes/purchases');
+const purchasesRouter = require('./routes/purchases'); 
 const expenseRouter = require('./routes/expense');
 const incomingsRouter = require('./routes/incomings');
 const propertyRouter = require('./routes/property');
 const rotaryRouter = require('./routes/rotary');
 const salesRouter = require('./routes/sales');
+const personnelRouter = require('./routes/personnel');
 const aiRouter = require('./routes/ai');
 
 // error handler
-const notFoundMiddleware = require('./middleware/not-found');
+const notFoundMiddleware = require('./middleware/not-found'); 
 const errorHandlerMiddleware = require('./middleware/error-handler');
 
 // middleware
@@ -76,6 +77,7 @@ app.use('/node/api/v1/expense', authMiddleware, expenseRouter);
 app.use('/node/api/v1/sales', authMiddleware, salesRouter);
 app.use('/node/api/v1/property', authMiddleware, propertyRouter);
 app.use('/node/api/v1/rotary', authMiddleware, rotaryRouter);
+app.use('/node/api/v1/personnel', authMiddleware, personnelRouter);
 
 app.use('/node/api/v1/incomings', incomingsRouter); 
 app.use('/node/api/v1/ai', aiRouter);

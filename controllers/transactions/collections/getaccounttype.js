@@ -18,7 +18,7 @@ const getAccountType = async (req, res) => {
 
     try {
         const { rows: settings } = await pg.query(`
-            SELECT savings_account_prefix, personal_account_prefix, loan_account_prefix
+            SELECT savings_account_prefix, personal_account_prefix, loan_account_prefix, rotary_account_prefix
             FROM divine."Organisationsettings"
             LIMIT 1
         `);
@@ -33,9 +33,9 @@ const getAccountType = async (req, res) => {
             });
         }
 
-        const { savings_account_prefix, personal_account_prefix, loan_account_prefix } = settings[0];
+        const { savings_account_prefix, personal_account_prefix, loan_account_prefix, rotary_account_prefix } = settings[0];
         let accountType = null;
-        let accountname 
+        let accountname;
 
         if (accountnumber.startsWith(savings_account_prefix)) {
             accountType = "Savings";
@@ -55,7 +55,7 @@ const getAccountType = async (req, res) => {
                     errors: []
                 });
             }
-            accountname = accountDetails[0].fullname
+            accountname = accountDetails[0].fullname;
         } else if (accountnumber.startsWith(personal_account_prefix)) {
             accountType = "Personal";
             const { rows: accountDetails } = await pg.query(`
@@ -74,7 +74,7 @@ const getAccountType = async (req, res) => {
                     errors: []
                 });
             }
-            accountname = accountDetails[0].fullname
+            accountname = accountDetails[0].fullname;
         } else if (accountnumber.startsWith(loan_account_prefix)) {
             accountType = "Loan";
             const { rows: accountDetails } = await pg.query(`
@@ -93,7 +93,26 @@ const getAccountType = async (req, res) => {
                     errors: []
                 });
             }
-            accountname = accountDetails[0].fullname
+            accountname = accountDetails[0].fullname;
+        } else if (accountnumber.startsWith(rotary_account_prefix)) {
+            accountType = "Rotary";
+            const { rows: accountDetails } = await pg.query(`
+                SELECT ra.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname
+                FROM divine."rotaryaccount" ra
+                JOIN divine."User" u ON ra.userid = u.id
+                WHERE ra.accountnumber = $1
+            `, [accountnumber]);
+            
+            if (accountDetails.length === 0) {
+                return res.status(StatusCodes.NOT_FOUND).json({
+                    status: false,
+                    message: "Account not found in rotary account table",
+                    statuscode: StatusCodes.NOT_FOUND,
+                    data: null,
+                    errors: []
+                });
+            }
+            accountname = accountDetails[0].fullname;
         } else {
             accountType = "Personal";
             const { rows: accountDetails } = await pg.query(`
@@ -112,8 +131,7 @@ const getAccountType = async (req, res) => {
                 });
             }
             accountname = accountDetails[0].fullname;
-            accountnumber = `${personal_account_prefix}${accountnumber}`
-
+            accountnumber = `${personal_account_prefix}${accountnumber}`;
         } 
 
         await activityMiddleware(req, user.id, 'Account type retrieved successfully', 'ACCOUNT_TYPE');
@@ -122,7 +140,7 @@ const getAccountType = async (req, res) => {
             status: true,
             message: "Account type retrieved successfully",
             statuscode: StatusCodes.OK,
-            data: { accounttype:accountType, accountnumber, accountname },
+            data: { accounttype: accountType, accountnumber, accountname },
             errors: []
         });
     } catch (error) {

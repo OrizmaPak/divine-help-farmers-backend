@@ -23,6 +23,8 @@ const { loanDebit } = require('./loan/debit');
 const { glAccountCredit } = require('./gl/credit');
 const { glAccountDebit } = require('./gl/debit');
 const { propertyAccountCredit } = require('./property/credit');
+const { rotaryCredit } = require('./rotary/credit');
+const { rotaryDebit } = require('./rotary/debit');
 
 // Middleware function to save a transaction
 const saveTransactionMiddleware = async (req, res, next) => {
@@ -135,10 +137,40 @@ const saveTransactionMiddleware = async (req, res, next) => {
             return next();
         }
 
+         // Validate the account number and status based on organisation settings prefixes
+        //  const { savings_account_prefix, loan_account_prefix, rotary_account_prefix, property_account_prefix } = orgSettings;
+
+        //  let whichaccount;
+        //  let accountResult;
+ 
+        //  if (savings_account_prefix && accountnumber.startsWith(savings_account_prefix)) {
+        //      whichaccount = 'SAVINGS';
+        //      const savingsAccountQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
+        //      accountResult = await client.query(savingsAccountQuery, [accountnumber]);
+        //  } else if (loan_account_prefix && accountnumber.startsWith(loan_account_prefix)) {
+        //      whichaccount = 'LOAN';
+        //      const loanAccountQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
+        //      accountResult = await client.query(loanAccountQuery, [accountnumber]);
+        //  } else if (rotary_account_prefix && accountnumber.startsWith(rotary_account_prefix)) {
+        //      whichaccount = 'ROTARY';
+        //      const rotaryAccountQuery = `SELECT * FROM divine."rotaryaccount" WHERE accountnumber = $1`;
+        //      accountResult = await client.query(rotaryAccountQuery, [accountnumber]);
+        //  } else if (property_account_prefix && accountnumber.startsWith(property_account_prefix)) {
+        //      whichaccount = 'PROPERTY';
+        //      const propertyAccountQuery = `SELECT * FROM divine."propertyaccount" WHERE accountnumber = $1`;
+        //      accountResult = await client.query(propertyAccountQuery, [accountnumber]);
+        //  } else {
+        //      // Default to GLACCOUNT if no prefix matches
+        //      whichaccount = 'GLACCOUNT';
+        //      const glAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
+        //      accountResult = await client.query(glAccountQuery, [accountnumber]);
+        //  }
+
         // Validate the account number and status
         const savingsAccountQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
         const loanAccountQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
         const glAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
+        const rotaryAccountQuery = `SELECT * FROM divine."rotaryaccount" WHERE accountnumber = $1`;
         const propertyAccountQuery = `SELECT * FROM divine."propertyaccount" WHERE accountnumber = $1`;
         let parsedAccountNumber = accountnumber;
         if (isNaN(accountnumber)) {
@@ -151,6 +183,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
         const loanAccountResult = await client.query(loanAccountQuery, [parsedAccountNumber]);
         const glAccountResult = await client.query(glAccountQuery, [parsedAccountNumber]);
         const propertyAccountResult = await client.query(propertyAccountQuery, [parsedAccountNumber]);
+        const rotaryAccountResult = await client.query(rotaryAccountQuery, [parsedAccountNumber]);
         console.log('accountnumber', accountnumber);
 
         if (accountResult.rowCount !== 0) {
@@ -198,7 +231,11 @@ const saveTransactionMiddleware = async (req, res, next) => {
         } else if (propertyAccountResult.rowCount !== 0) {
             whichaccount = 'PROPERTY'; // Set account type to PROPERTY
             req.body.whichaccount = whichaccount;
+        }else if (rotaryAccountResult.rowCount !== 0) {
+            whichaccount = 'ROTARY'; // Set account type to ROTARY
+            req.body.whichaccount = whichaccount;
         }
+
         // Establish the personal account number  
         if (!req.body['personalaccountnumber']) {
             req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${user.phone}`;
@@ -208,11 +245,16 @@ const saveTransactionMiddleware = async (req, res, next) => {
             personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`;
         }
 
-        if (accountResult.rowCount === 0 && accountnumber && !accountnumber.toString().startsWith(orgSettings.personal_account_prefix) && loanAccountResult.rowCount === 0 && glAccountResult.rowCount === 0 && propertyAccountResult.rowCount === 0) {
+        if (accountResult.rowCount === 0 && accountnumber 
+                && !accountnumber.toString().startsWith(orgSettings.personal_account_prefix) 
+                && loanAccountResult.rowCount === 0 
+                && glAccountResult.rowCount === 0 
+                && propertyAccountResult.rowCount === 0 
+                && rotaryAccountResult.rowCount === 0) {
             // If account number is invalid, save the transaction as failed
             await saveFailedTransaction(client, req, res, 'Invalid account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
             await client.query('COMMIT'); // Commit the transaction
-            await activityMiddleware(req, req.user.id, 'Transaction committed after invalid personal account number', 'TRANSACTION');
+            await activityMiddleware(req, req.user.id, 'Transaction committed after invalid account number', 'TRANSACTION');
             req.transactionError = {
                 status: StatusCodes.EXPECTATION_FAILED,
                 message: 'Invalid account number.',
@@ -388,6 +430,12 @@ const saveTransactionMiddleware = async (req, res, next) => {
         if (whichaccount === 'PROPERTY') {
             if(Number(req.body.credit)>0)await propertyAccountCredit(client, req, res, next, req.body.accountnumber, credit, description, ttype, transactionStatus, whichaccount);
             if(Number(req.body.debit)>0)await propertyDebit(client, req, res, next, req.body.accountnumber, debit, description, ttype, transactionStatus, whichaccount);
+        }
+
+        // Handle transactions for rotary accounts
+        if (whichaccount === 'ROTARY') {
+            if(Number(req.body.credit)>0)await rotaryCredit(client, req, res, next, req.body.accountnumber, credit, description, ttype, transactionStatus, whichaccount);
+            if(Number(req.body.debit)>0)await rotaryDebit(client, req, res, next, req.body.accountnumber, debit, description, ttype, transactionStatus, whichaccount);
         }
 
         // Log activity for successful transaction save

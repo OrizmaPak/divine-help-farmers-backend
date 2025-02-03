@@ -5,7 +5,7 @@ const { activityMiddleware } = require("../../../middleware/activity");
 /**
  * GET /propertyaccount
  * Query Param: ?accountnumber=xxxx
- *
+ * 
  * Logic:
  *  1) Fetch propertyaccount, product, items, installments
  *  2) Fetch all transactions, net out credits vs. debits

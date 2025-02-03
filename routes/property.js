@@ -11,6 +11,7 @@ const { getPropertyAccount } = require('../controllers/property/account/getaccou
 const { getMaturedPropertyAccount } = require('../controllers/property/maturedaccount/getmaturedaccount');
 const { updateItemStatus } = require('../controllers/property/maturedaccount/updateitemstatus');
 const { getMissedMaturity } = require('../controllers/property/missedmaturity/getmissedmaturity');
+const { notifyCustomer } = require('../controllers/property/missedmaturity/notifycustomer');
 const router = express.Router();
 
 
@@ -41,6 +42,9 @@ router.route('/updateitemstatus')
 
 router.route('/missedmaturity')
     .get(getMissedMaturity)
+
+router.route('/notifycustomer')
+    .post(notifyCustomer)
 
 
 

@@ -152,6 +152,16 @@ const getTransactions = async (req, res) => {
                         accountName = `${firstname} ${lastname} ${othernames}`.trim();
                     }
                 }
+            } else if (whichaccount == 'ROTARY') {
+                const { rows: rotaryAccounts } = await pg.query(`SELECT userid FROM divine."rotaryaccount" WHERE accountnumber = $1`, [accountnumber]);
+                if (rotaryAccounts.length > 0) {
+                    const { userid } = rotaryAccounts[0];
+                    const { rows: theuser } = await pg.query(`SELECT firstname, lastname, othernames FROM divine."User" WHERE id = $1`, [userid]);
+                    if (theuser.length > 0) {
+                        const { firstname, lastname, othernames } = theuser[0];
+                        accountName = `${firstname} ${lastname} ${othernames}`.trim();
+                    }
+                }
             } else if (whichaccount == 'GLACCOUNT') {
                 const { rows: glAccounts } = await pg.query(`SELECT accountnumber FROM divine."Accounts" WHERE accountnumber = $1`, [accountnumber]);
                 if (glAccounts.length > 0) {

@@ -18,7 +18,7 @@ const getfullAccountType = async (req, res) => {
 
     try {
         const { rows: settings } = await pg.query(`
-            SELECT savings_account_prefix, personal_account_prefix, loan_account_prefix, property_account_prefix, *
+            SELECT savings_account_prefix, personal_account_prefix, loan_account_prefix, property_account_prefix, rotary_account_prefix, *
             FROM divine."Organisationsettings"
             LIMIT 1
         `);
@@ -33,7 +33,7 @@ const getfullAccountType = async (req, res) => {
             });
         }
 
-        const { savings_account_prefix, personal_account_prefix, loan_account_prefix, property_account_prefix } = settings[0];
+        const { savings_account_prefix, personal_account_prefix, loan_account_prefix, property_account_prefix, rotary_account_prefix } = settings[0];
         let accountType = null;
         let accountname;
         let status;
@@ -173,6 +173,31 @@ const getfullAccountType = async (req, res) => {
                 return res.status(StatusCodes.NOT_FOUND).json({
                     status: false,
                     message: "Account not found in savings account table",
+                    statuscode: StatusCodes.NOT_FOUND,
+                    data: null,
+                    errors: []
+                });
+            }
+            accountname = accountDetails[0].fullname;
+            status = accountDetails[0].status;
+            person = { 
+                ...accountDetails[0],
+                age: calculateAge(accountDetails[0].dateofbirth),
+                branchname: await getBranchName(accountDetails[0].branch)
+            };
+        } else if (accountnumber.startsWith(rotary_account_prefix)) {
+            accountType = "Rotary";
+            const { rows: accountDetails } = await pg.query(`
+                SELECT sa.*, u.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname
+                FROM divine."rotaryaccount" sa
+                JOIN divine."User" u ON sa.userid = u.id
+                WHERE sa.accountnumber = $1
+            `, [accountnumber]);
+            
+            if (accountDetails.length === 0) {
+                return res.status(StatusCodes.NOT_FOUND).json({
+                    status: false,
+                    message: "Account not found in rotary account table",
                     statuscode: StatusCodes.NOT_FOUND,
                     data: null,
                     errors: []

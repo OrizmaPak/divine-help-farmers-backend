@@ -3,7 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
 /**
- * GET /missedmaturity
+ * GET /
  * Query Param: ?accountnumber=xxxx
  *
  * Logic:

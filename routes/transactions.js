@@ -16,7 +16,7 @@ const { processWithdrawal } = require('../controllers/transactions/withdrawal/ca
 const { processCashCollection } = require('../controllers/transactions/deposit/cash/deposit');
 const router = express.Router();
 
-
+ 
 
 // CREATE INVENTORY
 router.route('/')

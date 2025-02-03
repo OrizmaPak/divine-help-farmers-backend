@@ -94,6 +94,7 @@ model User {
   sessions      Session[]
   activities    Activity[] 
   pin          String?   @default("")
+  level         Int?       @default(0)
 }
 
 model Roles {
@@ -588,7 +589,7 @@ model Accounts {
   accounttype              String?
   description              String?
   status                   String @default("ACTIVE")
-  dateadded                DateTime
+  dateadded                DateTime @default(now())
   createdby                Int
 }
  
@@ -894,13 +895,21 @@ model rotaryaccount {
   id                 Int      @id @default(autoincrement())
   accountnumber      String
   userid             Int @default(0)
+  branch             Int @default(0)
+  registrationcharge  Float? @default(0)
+  registrationdate    DateTime @default(now())
+  registrationpoint   Int? @default(0)
+  registrationdesc    String? @default("")
   member             Int @default(0)
   productid          Int
   amount             Float
   frequency          String?
   frequencynumber    Int?
   autorunnew         String @default("YES")
+  createdby          Int @default(0)
   dateadded          DateTime @default(now())
+  dateupdated        DateTime? @default(now())
+  takeout            Int @default(0)
   status             String @default("ACTIVE")
 }
 
@@ -910,7 +919,56 @@ model rotaryschedule {
   amount             Float
   duedate            String?
   dateadded          DateTime @default(now())
-  currentschedule    String @default("YES")
+  currentschedule    String @default("true")
   createdby          Int
+  payout             String @default("NO")
+  payoutref          String? @default("")
+  status             String @default("ACTIVE")
+}
+
+model level {
+  id                 Int      @id @default(autoincrement())
+  level              String @unique
+  description        String?
+  basicsalary        Float?
+
+  dateadded          DateTime @default(now())
+  createdby          Int
+  status             String @default("ACTIVE")
+}
+
+model allowances {
+  id                 Int      @id @default(autoincrement())
+  level              Int
+  allowance          Float //PERCENTAGE
+  allowancetype      String //AMOUNT, PERCENTAGE
+
+  dateadded          DateTime @default(now())
+  createdby          Int
+  status             String @default("ACTIVE")
+}
+
+model deductions {
+  id                 Int      @id @default(autoincrement())
+  level              Int
+  deduction          Float //PERCENTAGE
+  deductiontype      String //AMOUNT, PERCENTAGE
+
+  dateadded          DateTime @default(now())
+  createdby          Int
+  status             String @default("ACTIVE")
+}
+
+model guarantor {
+  id                 Int      @id @default(autoincrement())
+  userid             Int
+  guarantorname      String 
+  guarantorofficeaddress   String
+  guarantorresidentialaddress   String
+  guarantoroccupation   String
+  guarantorphone     String 
+  yearsknown         Int
+  createdby          Int
+  dateadded          DateTime @default(now())
   status             String @default("ACTIVE")
 }
