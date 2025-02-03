@@ -1,11 +1,25 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { uploadToGoogleDrive } = require("../../../utils/uploadToGoogleDrive");
 
 const saveOrUpdateGuarantor = async (req, res) => {
     if (req.files) await uploadToGoogleDrive(req, res);
     const user = req.user;
     let { id, userid, guarantorname, guarantorofficeaddress, guarantorresidentialaddress, guarantoroccupation, guarantorphone, yearsknown, imageone, imagetwo } = req.body;
+
+    const requiredFields = { userid, guarantorname, guarantorofficeaddress, guarantorresidentialaddress, guarantoroccupation, guarantorphone, yearsknown };
+    const missingFields = Object.entries(requiredFields).filter(([_, value]) => !value).map(([key]) => key);
+
+    if (missingFields.length > 0) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+            status: false,
+            message: `Please fill all the fields: ${missingFields.join(', ')}`,
+            statuscode: StatusCodes.BAD_REQUEST,
+            data: null,
+            errors: [`Missing fields: ${missingFields.join(', ')}`]
+        });
+    }
 
     try {
         await pg.query('BEGIN');

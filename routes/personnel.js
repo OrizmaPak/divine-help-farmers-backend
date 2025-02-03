@@ -5,6 +5,8 @@ const { saveOrUpdateGuarantor } = require('../controllers/personnel/guarantor/ma
 const { getGuarantors } = require('../controllers/personnel/guarantor/getguarantor');
 const { deleteGuarantor } = require('../controllers/personnel/guarantor/deleteguarantor');
 const { deleteLevel } = require('../controllers/personnel/level/deletelevel');
+const { saveOrUpdateEmploymentRecord } = require('../controllers/personnel/employmentrecord/manage');
+const { getEmploymentRecords } = require('../controllers/personnel/employmentrecord/get');
 const router = express.Router();
 
 
@@ -19,6 +21,10 @@ router.route('/guarantor')
     .post(saveOrUpdateGuarantor)
     .get(getGuarantors)
     .delete(deleteGuarantor)
+
+router.route('/employmentrecord')
+    .post(saveOrUpdateEmploymentRecord)
+    .get(getEmploymentRecords)
 
     
  
