@@ -7,6 +7,7 @@ const { deleteGuarantor } = require('../controllers/personnel/guarantor/deletegu
 const { deleteLevel } = require('../controllers/personnel/level/deletelevel');
 const { saveOrUpdateEmploymentRecord } = require('../controllers/personnel/employmentrecord/manage');
 const { getEmploymentRecords } = require('../controllers/personnel/employmentrecord/get');
+const { deleteEmploymentRecord } = require('../controllers/personnel/employmentrecord/delete');
 const router = express.Router();
 
 
@@ -25,7 +26,8 @@ router.route('/guarantor')
 router.route('/employmentrecord')
     .post(saveOrUpdateEmploymentRecord)
     .get(getEmploymentRecords)
+    .delete(deleteEmploymentRecord)
 
-    
+
  
 module.exports = router; 
