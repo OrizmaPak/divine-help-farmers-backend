@@ -17,6 +17,24 @@ const { deleteQualification } = require('../controllers/personnel/qualification/
 const { manageParentGuardian } = require('../controllers/personnel/parentguardian/manage');
 const { getParentGuardians } = require('../controllers/personnel/parentguardian/get');
 const { deleteParentGuardian } = require('../controllers/personnel/parentguardian/delete');
+const { manageQuery } = require('../controllers/personnel/query/manage');
+const { getQueries } = require('../controllers/personnel/query/get');
+const { deleteQuery } = require('../controllers/personnel/query/delete');
+const { saveOrUpdatePromotion } = require('../controllers/personnel/promotiondemotion/manage');
+const { getPromotions } = require('../controllers/personnel/promotiondemotion/get');
+const { saveOrUpdateTerminationResignation } = require('../controllers/personnel/terminationresignation/manage');
+const { getTerminationResignation } = require('../controllers/personnel/terminationresignation/get');
+const { saveOrUpdateSuspension } = require('../controllers/personnel/suspension/manage');
+const { getSuspensions } = require('../controllers/personnel/suspension/get');
+const { saveOrUpdateLeave } = require('../controllers/personnel/leave/manage');
+const { getLeaves } = require('../controllers/personnel/leave/get');
+const { deleteLeave } = require('../controllers/personnel/leave/delete');
+const { saveOrUpdateWarning } = require('../controllers/personnel/warning/manage');
+const { getWarnings } = require('../controllers/personnel/warning/get');
+const { deleteWarning } = require('../controllers/personnel/warning/delete');
+const { saveOrUpdateMonitoringEvaluation } = require('../controllers/personnel/monitoringevaluation/manage');
+const { getMonitoringEvaluations } = require('../controllers/personnel/monitoringevaluation/get');
+const { deleteMonitoringEvaluation } = require('../controllers/personnel/monitoringevaluation/delete');
 const router = express.Router();
 
 
@@ -51,6 +69,40 @@ router.route('/parentguardians')
     .post(manageParentGuardian)
     .get(getParentGuardians)
     .delete(deleteParentGuardian)
+
+router.route('/query')
+    .post(manageQuery)
+    .get(getQueries)
+    .delete(deleteQuery)
+
+router.route('/promotiondemotion')
+    .post(saveOrUpdatePromotion)
+    .get(getPromotions)
+
+router.route('/terminationresignation')
+    .post(saveOrUpdateTerminationResignation)
+    .get(getTerminationResignation)
+
+router.route('/suspension')
+    .post(saveOrUpdateSuspension)
+    .get(getSuspensions)
+
+router.route('/leave')
+    .post(saveOrUpdateLeave)
+    .get(getLeaves)
+    .delete(deleteLeave)
+
+router.route('/warning')
+    .post(saveOrUpdateWarning) 
+    .get(getWarnings)
+    .delete(deleteWarning)
+
+router.route('/monitoringevaluation')
+    .post(saveOrUpdateMonitoringEvaluation)
+    .get(getMonitoringEvaluations)
+    .delete(deleteMonitoringEvaluation)
+
+
 
  
 module.exports = router; 

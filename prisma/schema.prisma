@@ -1032,9 +1032,83 @@ model parentguardians {
   parenttwoofficeaddress  String
   parenttwostate          String
   parenttwophone          String
-  parentoneimage          String
-  parenttwoimage          String
+  parentoneimage          String?
+  parenttwoimage          String?
   homeaddress             String
+  dateadded               DateTime @default(now())
+  createdby               Int
+  status                  String @default("ACTIVE")
+}
+
+model query {
+  id                      Int       @id @default(autoincrement())
+  userid                  Int
+  query                   String
+  imageone                String?
+  dateadded               DateTime @default(now())
+  createdby               Int
+  status                  String @default("ACTIVE")
+}
+
+model promotiondemotion {
+  id                      Int       @id @default(autoincrement())
+  userid                  Int
+  title                   String
+  type                   String //PROMOTION , DEMOTION
+  level                   Int
+  dateadded               DateTime @default(now())
+  createdby               Int
+  status                  String @default("ACTIVE")
+}
+
+model terminationresignation {
+  id                      Int       @id @default(autoincrement())
+  userid                  Int
+  title                   String
+  type                   String //TERMINATION , RESIGNATION
+  image                   String?
+  dateadded               DateTime @default(now())
+  createdby               Int
+  status                  String @default("ACTIVE")
+}
+
+model suspension {
+  id                      Int       @id @default(autoincrement())
+  userid                  Int
+  title                   String
+  image                   String?
+  dateadded               DateTime @default(now())
+  createdby               Int
+  status                  String @default("ACTIVE")
+}
+
+model leave {
+  id                      Int       @id @default(autoincrement())
+  userid                  Int
+  title                   String
+  startdate               DateTime
+  enddate                 DateTime
+  image                   String?
+  dateadded               DateTime @default(now())
+  createdby               Int
+  status                  String @default("ACTIVE")
+}
+
+model warning {
+  id                      Int       @id @default(autoincrement())
+  userid                  Int
+  title                   String  
+  image                   String?
+  dateadded               DateTime @default(now())
+  createdby               Int
+  status                  String @default("ACTIVE")
+}
+
+model monitoringevaluation {
+  id                      Int       @id @default(autoincrement())
+  userid                  Int
+  title                   String  
+  image                   String?
   dateadded               DateTime @default(now())
   createdby               Int
   status                  String @default("ACTIVE")
