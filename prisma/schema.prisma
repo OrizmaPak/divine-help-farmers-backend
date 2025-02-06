@@ -1112,4 +1112,4 @@ model monitoringevaluation {
   dateadded               DateTime @default(now())
   createdby               Int
   status                  String @default("ACTIVE")
-}
+} 

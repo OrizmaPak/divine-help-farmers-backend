@@ -35,6 +35,7 @@ const { deleteWarning } = require('../controllers/personnel/warning/delete');
 const { saveOrUpdateMonitoringEvaluation } = require('../controllers/personnel/monitoringevaluation/manage');
 const { getMonitoringEvaluations } = require('../controllers/personnel/monitoringevaluation/get');
 const { deleteMonitoringEvaluation } = require('../controllers/personnel/monitoringevaluation/delete');
+const { getHistory } = require('../controllers/personnel/history/gethistory');
 const router = express.Router();
 
 
@@ -101,6 +102,9 @@ router.route('/monitoringevaluation')
     .post(saveOrUpdateMonitoringEvaluation)
     .get(getMonitoringEvaluations)
     .delete(deleteMonitoringEvaluation)
+
+router.route('/history')
+    .get(getHistory)
 
 
 

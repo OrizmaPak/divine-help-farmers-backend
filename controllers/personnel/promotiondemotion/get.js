@@ -8,7 +8,9 @@ const getPromotions = async (req, res) => {
 
     try {
         let query = {
-            text: `SELECT * FROM divine."promotiondemotion"`,
+            text: `SELECT pd.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS personnelname 
+                   FROM divine."promotiondemotion" pd
+                   JOIN divine."User" u ON pd.userid = u.id`,
             values: []
         };
 
