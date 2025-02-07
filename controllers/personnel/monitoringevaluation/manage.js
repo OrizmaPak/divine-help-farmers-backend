@@ -4,11 +4,11 @@ const { activityMiddleware } = require("../../../middleware/activity");
 const { uploadToGoogleDrive } = require("../../../utils/uploadToGoogleDrive");
 
 const saveOrUpdateMonitoringEvaluation = async (req, res) => {
-    if(req.files) await uploadToGoogleDrive(req, res);
-    const user = req.user;
-    const { id, userid, title, image, status } = req.body;
-
     try {
+        if (req.files) await uploadToGoogleDrive(req, res);
+        const user = req.user;
+        const { id, userid, title, image, status } = req.body;
+
         let query;
         if (id) {
             // Update existing record

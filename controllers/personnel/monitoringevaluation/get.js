@@ -23,21 +23,23 @@ const getMonitoringEvaluations = async (req, res) => {
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
             if (key !== 'q' && key !== 'startdate' && key !== 'enddate') {
-                whereClause += ` AND "${key}" = $${valueIndex}`;
-                query.values.push(req.query[key]);
-                valueIndex++;
+                if (req.query[key]) {
+                    whereClause += ` AND me."${key}" = $${valueIndex}`;
+                    query.values.push(req.query[key]);
+                    valueIndex++;
+                }
             }
         });
 
         // Add date range filter if provided
         if (req.query.startdate) {
-            whereClause += ` AND "createddate" >= $${valueIndex}`;
+            whereClause += ` AND me."dateadded" >= $${valueIndex}`;
             query.values.push(req.query.startdate);
             valueIndex++;
         }
 
         if (req.query.enddate) {
-            whereClause += ` AND "createddate" <= $${valueIndex}`;
+            whereClause += ` AND me."dateadded" <= $${valueIndex}`;
             query.values.push(req.query.enddate);
             valueIndex++;
         }
