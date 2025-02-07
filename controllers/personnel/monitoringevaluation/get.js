@@ -13,6 +13,7 @@ const getMonitoringEvaluations = async (req, res) => {
                        CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS personnelname
                 FROM divine."monitoringevaluation" me
                 JOIN divine."User" u ON me.userid = u.id
+                WHERE me.status = 'ACTIVE'
             `,
             values: []
         };
@@ -22,12 +23,7 @@ const getMonitoringEvaluations = async (req, res) => {
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
             if (key !== 'q' && key !== 'startdate' && key !== 'enddate') {
-                if (whereClause) {
-                    whereClause += ` AND `;
-                } else {
-                    whereClause += ` WHERE `;
-                }
-                whereClause += `"${key}" = $${valueIndex}`;
+                whereClause += ` AND "${key}" = $${valueIndex}`;
                 query.values.push(req.query[key]);
                 valueIndex++;
             }
@@ -35,23 +31,13 @@ const getMonitoringEvaluations = async (req, res) => {
 
         // Add date range filter if provided
         if (req.query.startdate) {
-            if (whereClause) {
-                whereClause += ` AND `;
-            } else {
-                whereClause += ` WHERE `;
-            }
-            whereClause += `"createddate" >= $${valueIndex}`;
+            whereClause += ` AND "createddate" >= $${valueIndex}`;
             query.values.push(req.query.startdate);
             valueIndex++;
         }
 
         if (req.query.enddate) {
-            if (whereClause) {
-                whereClause += ` AND `;
-            } else {
-                whereClause += ` WHERE `;
-            }
-            whereClause += `"createddate" <= $${valueIndex}`;
+            whereClause += ` AND "createddate" <= $${valueIndex}`;
             query.values.push(req.query.enddate);
             valueIndex++;
         }
@@ -69,11 +55,7 @@ const getMonitoringEvaluations = async (req, res) => {
 
             // Generate the dynamic SQL query
             const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
-            if (whereClause) {
-                whereClause += ` AND (${searchConditions})`;
-            } else {
-                whereClause += ` WHERE (${searchConditions})`;
-            }
+            whereClause += ` AND (${searchConditions})`;
             query.values.push(`%${req.query.q}%`);
             valueIndex++;
         }
@@ -94,7 +76,7 @@ const getMonitoringEvaluations = async (req, res) => {
 
         // Get total count for pagination
         const countQuery = {
-            text: `SELECT COUNT(*) FROM divine."monitoringevaluation" ${whereClause}`,
+            text: `SELECT COUNT(*) FROM divine."monitoringevaluation" WHERE status = 'ACTIVE' ${whereClause}`,
             values: query.values.slice(0, -2) // Exclude limit and offset
         };
         const { rows: [{ count: total }] } = await pg.query(countQuery);

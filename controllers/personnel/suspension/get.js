@@ -8,7 +8,9 @@ const getSuspensions = async (req, res) => {
 
     try {
         let query = {
-            text: `SELECT * FROM divine."suspension"`,
+            text: `SELECT s.*, CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS personnelname 
+                   FROM divine."suspension" s
+                   JOIN divine."User" u ON s.userid = u.id`,
             values: []
         };
 
@@ -60,7 +62,7 @@ const getSuspensions = async (req, res) => {
                 WHERE table_name = 'suspension'
             `);
 
-            const cols = columns.map(row => row.column_name);
+            const cols = columns.map(row => row.column_name); 
 
             // Generate the dynamic SQL query
             const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');

@@ -23,7 +23,7 @@ const getPromotions = async (req, res) => {
                     whereClause += ` AND `;
                 } else {
                     whereClause += ` WHERE `;
-                }
+                } 
                 whereClause += `"${key}" = $${valueIndex}`;
                 query.values.push(req.query[key]);
                 valueIndex++;
