@@ -19,7 +19,7 @@ const getHistory = async (req, res) => {
     try {
         // Fetch user data, level, allowances, and deductions
         const userQuery = {
-            text: `SELECT u.*, l.level, 
+            text: `SELECT u.*, l.level as levelname, 
                           (SELECT json_agg(a) FROM divine."allowances" a WHERE a.level = l.id AND a.status = 'ACTIVE') as allowances,
                           (SELECT json_agg(d) FROM divine."deductions" d WHERE d.level = l.id AND d.status = 'ACTIVE') as deductions
                    FROM divine."User" u
@@ -41,12 +41,24 @@ const getHistory = async (req, res) => {
         }
 
         // Fetch related data
-        const tables = ['guarantor', 'employmentrecord', 'referee', 'qualification', 'parentguardians', 'query', 'promotiondemotion', 'terminationresignation', 'suspension', 'leave', 'warning', 'monitoringevaluation'];
+        const tables = ['guarantor', 'employmentrecord', 'referee', 'qualification', 'parentguardians', 'query', 'promotiondemotion', 'terminationresignation', 'suspension', 'leave', 'warning', 'monitoringevaluation', 'level'];
         const promises = tables.map(table => {
-            const query = {
-                text: `SELECT * FROM divine."${table}" WHERE userid = $1 AND status = 'ACTIVE'`,
-                values: [userid]
-            };
+            let query;
+            if (table === 'level') {
+                query = {
+                    text: `SELECT l.*, 
+                                  (SELECT json_agg(a) FROM divine."allowances" a WHERE a.level = l.id AND a.status = 'ACTIVE') as allowances,
+                                  (SELECT json_agg(d) FROM divine."deductions" d WHERE d.level = l.id AND d.status = 'ACTIVE') as deductions
+                           FROM divine."level" l
+                           WHERE l.id = $1 AND l.status = 'ACTIVE'`,
+                    values: [userData.level]
+                };
+            } else {
+                query = {
+                    text: `SELECT * FROM divine."${table}" WHERE userid = $1 AND status = 'ACTIVE'`,
+                    values: [userid]
+                };
+            }
             return pg.query(query);
         });
 
