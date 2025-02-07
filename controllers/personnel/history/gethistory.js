@@ -19,9 +19,7 @@ const getHistory = async (req, res) => {
     try {
         // Fetch user data, level, allowances, and deductions
         const userQuery = {
-            text: `SELECT u.*, l.level as levelname, 
-                          (SELECT json_agg(a) FROM divine."allowances" a WHERE a.level = l.id AND a.status = 'ACTIVE') as allowances,
-                          (SELECT json_agg(d) FROM divine."deductions" d WHERE d.level = l.id AND d.status = 'ACTIVE') as deductions
+            text: `SELECT u.*, l.level as levelname
                    FROM divine."User" u
                    LEFT JOIN divine."level" l ON u.level = l.id
                    WHERE u.id = $1`,
