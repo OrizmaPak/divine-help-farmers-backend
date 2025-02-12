@@ -58,20 +58,12 @@ const updateRequisitionStatus = async (req, res) => {
                 });
             }
 
-            return res.status(StatusCodes.OK).json({
-                status: true,
-                message: "Requisition operation completed successfully",
-                statuscode: StatusCodes.OK, 
-                data: inventories,
-                errors: []
-            });
-
             // Check if both inventories have the status 'PENDING REQUISITION'
             const pendingRequisitionInventories = inventories.filter(inv => inv.status == 'PENDING REQUISITION');
-            if (pendingRequisitionInventories.length !== 2) {
+            if (pendingRequisitionInventories.length !== 1) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: `Both inventory records must have status 'PENDING REQUISITION' for the given itemid and reference for row ${i}`,
+                    message: `One inventory records must have status 'PENDING REQUISITION' for the given itemid and reference for row ${i}`,
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: []
