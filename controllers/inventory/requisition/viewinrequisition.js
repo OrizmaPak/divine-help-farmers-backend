@@ -140,7 +140,7 @@ const viewinrequisition = async (req, res) => {
             status: true,
             message: "Inventory fetched successfully",
             statuscode: StatusCodes.OK,
-            data: uniqueInventory.filter(item => (!branch || item.branchfrom == branch)).filter(item => (!department || item.departmentfrom == department)),
+            data: uniqueInventory.filter(item => (!branch || item.branchto == branch)).filter(item => (!department || item.departmentto == department)),
             pagination: { 
                 total: Number(uniqueInventory.length),
                 pages: divideAndRoundUp(uniqueInventory.length, limit),
