@@ -26,7 +26,7 @@ const getHistory = async (req, res) => {
             values: [userid]
         };
         const userResult = await pg.query(userQuery);
-        const userData = userResult.rows[0];
+        const userData = userResult.rows[0];  
 
         if (!userData) {
             return res.status(StatusCodes.NOT_FOUND).json({
