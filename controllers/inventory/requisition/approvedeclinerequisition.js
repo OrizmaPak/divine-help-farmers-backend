@@ -59,7 +59,7 @@ const updateRequisitionStatus = async (req, res) => {
             }
 
             // Check if both inventories have the status 'PENDING REQUISITION'
-            const pendingRequisitionInventories = inventories.filter(inv => inv.status === 'PENDING REQUISITION');
+            const pendingRequisitionInventories = inventories.filter(inv => inv.status == 'PENDING REQUISITION');
             if (pendingRequisitionInventories.length !== 2) {
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,

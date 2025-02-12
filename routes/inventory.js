@@ -26,6 +26,7 @@ const { updateRequisitionStatus } = require('../controllers/inventory/requisitio
 const { updateLogQty } = require('../controllers/inventory/Issuesandreturn/updatelog');
 const { updateReturnItem } = require('../controllers/inventory/Issuesandreturn/returnitem');
 const { getAllUniqueItemIds } = require('../controllers/inventory/getallitems/getallitems');
+const { viewinrequisitionapprove } = require('../controllers/inventory/requisition/viewinrequisitionapprove');
 
 const router = express.Router();
  
@@ -77,6 +78,8 @@ router.route('/inrequisition')
     .post(inrequisition)
 router.route('/requisition/inview')
     .get(viewinrequisition)
+router.route('/requisition/inview/approve')
+    .get(viewinrequisitionapprove)
 router.route('/requisition/inapprovedecline')
     .post(updateinRequisitionStatus)
 
