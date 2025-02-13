@@ -119,8 +119,8 @@ const updateinventory = async (req, res) => {
             statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
             data: null,
             errors: []
-        });
-    }
+        }); 
+    } 
 };
 
 // Export the updateinventory function

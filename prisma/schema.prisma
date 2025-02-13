@@ -162,7 +162,7 @@ model Activity {
 
 model Session {
   id           Int       @id @default(autoincrement()) 
-  sessiontoken String    @unique @db.VarChar(7000)
+  sessiontoken String    @db.VarChar(10000)
   userid       Int
   expires      DateTime
   device       String?
