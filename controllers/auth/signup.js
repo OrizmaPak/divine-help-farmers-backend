@@ -188,7 +188,7 @@ const signup = async (req, res) => {
         await pg.query(`INSERT INTO divine."Session" 
             (sessiontoken, userid, expires, device) 
             VALUES ($1, $2, $3, $4) 
-            `, [token, userId, calculateExpiryDate(process.env.SESSION_EXPIRATION_HOUR), device])
+            `, [token, userId, calculateExpiryDate(process.env.SESSION_EXPIRATION_HOUR), device]);
 
             // RECORD THE ACTIVITY
         await activityMiddleware(res, user.id, `Registered and Logged in Successfully ${user.permissions == 'NEWUSER' ? 'and its the first login after registering' : ''} on a ${device} device`, 'AUTH')

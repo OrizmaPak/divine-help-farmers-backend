@@ -40,7 +40,7 @@ const updateRequisitionStatus = async (req, res) => {
 
             // Determine the new status
             const newStatus = status === 'APPROVED' ? 'ACTIVE' : status;
-
+ 
             // Fetch inventories with the given itemid and reference
             const { rows: inventories } = await pg.query(
                 `SELECT * FROM divine."Inventory" WHERE itemid = $1 AND reference = $2`,

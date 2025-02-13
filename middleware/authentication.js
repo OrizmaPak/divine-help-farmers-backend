@@ -19,14 +19,14 @@ const authMiddleware = async (req, res, next) => {
       errors: errors
     });
   }
-
-  try {
+  
+  try { 
     // const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // CHECK IF THE SESSION IS IN THE SERVER
     const { rows: [user] } = await pg.query(`SELECT * FROM divine."Session" WHERE sessiontoken = $1`, [token]);
 
-    // CHECK IF THE SESSION TIME IS EXPIRED
+    // CHECK IF THE SESSION TIME IS EXPIRED 
     if (user && user.sessiontoken === token && user.expires > new Date()) {
       const { rows: [loggedinuser] } = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [user.userid]);
       // CHECK IF USER IS AN ACTIVE USER

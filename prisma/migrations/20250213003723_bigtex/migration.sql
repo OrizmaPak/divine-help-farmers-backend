@@ -1,0 +1,1 @@
+ALTER TABLE "Session" DROP CONSTRAINT "Session_sessiontoken_key";

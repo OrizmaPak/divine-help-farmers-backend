@@ -40,14 +40,6 @@ const updateinventory = async (req, res) => {
             maxIdDepartment = maxIdDepartment.rows;
         }
 
-        
-        // If department is not provided, fetch all departments for the itemid
-        // if (!department) {
-        //     const { rows: allDepartments } = await pg.query(`SELECT department FROM divine."Inventory" WHERE itemid = $1 GROUP BY department`, [itemid]);
-        //     departments = allDepartments.map(d => d.department);
-        // } 
-
-
         // DECLARING THE ITEM NAME CAUSE SOME PEOPLE MIGHT DECIDE TO CHANGE IT ACROSS DEPARTMENTS
         let itmn 
 
@@ -65,10 +57,6 @@ const updateinventory = async (req, res) => {
                 branches.push(null); // or handle the case where no branch is found for the department
             }
         }
-
-        // console.log('Branches:', branches);
-        // console.log('departments:', departments);
-        // return;
 
         // Iterate over each department
         for (let i = 0; i < departments.length; i++) {
@@ -103,9 +91,9 @@ const updateinventory = async (req, res) => {
             itmn = data.itemname;
 
             // Insert the data into the Inventory table
-            await pg.query(`INSERT INTO divine."Inventory" (itemid, branch, department, itemname, units, cost, price, pricetwo, beginbalance, qty, minimumbalance, "group", applyto, itemclass, composite, compositeid, description, imageone, imagetwo, imagethree, status, "reference", transactiondate, transactiondesc, dateadded, createdby) 
-                                                    VALUES ($1,     $2,     $3,         $4,       $5,    $6,   $7,    $8,       $9,           $10, $11,            $12,     $13,     $14,       $15,       $16,         $17,         $18,      $19,      $20,        $21,    $22,         $23,             $24,             $25,       $26)`, 
-                                                    [data.itemid, data.branch, data.department, data.itemname, data.units, data.cost, data.price, data.pricetwo, data.beginbalance, 0, data.minimumbalance, data.group, data.applyto, data.itemclass, data.composite, data.compositeid, data.description, data.imageone, data.imagetwo, data.imagethree, data.status, new Date().getTime().toString(), new Date, 'Update details of the item', new Date(), req.user.id]);
+            await pg.query(`INSERT INTO divine."Inventory" (itemid, branch, department, itemname, units, cost, price, pricetwo, beginbalance, qty, minimumbalance, "group", applyto, itemclass, composite, compositeid, description, imageone, imagetwo, imagethree, status, "reference", transactiondate, transactiondesc, dateadded, createdby, reorderlevel) 
+                                                    VALUES ($1,     $2,     $3,         $4,       $5,    $6,   $7,    $8,       $9,           $10, $11,            $12,     $13,     $14,       $15,       $16,         $17,         $18,      $19,      $20,        $21,    $22,         $23,             $24,             $25,       $26,        $27)`, 
+                                                    [data.itemid, data.branch, data.department, data.itemname, data.units, data.cost, data.price, data.pricetwo, data.beginbalance, 0, data.minimumbalance, data.group, data.applyto, data.itemclass, data.composite, data.compositeid, data.description, data.imageone, data.imagetwo, data.imagethree, data.status, new Date().getTime().toString(), new Date, 'Update details of the item', new Date(), req.user.id, data.reorderlevel]);
         }
 
         // Log activity
