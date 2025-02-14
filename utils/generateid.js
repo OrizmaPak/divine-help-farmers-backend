@@ -12,4 +12,9 @@ function generateid() {
     return `${year}${month}${day}${hours}${minutes}${seconds}${milliseconds}`;
 }
 
-module.exports = {generateid};
+const generateOfllineCode = (userId, phone, branch, registrationPoint) => {
+    const today = new Date().toISOString().slice(5, 10).replace(/-/g, '');
+    return `${userId}-${today}-${registrationPoint}-${branch}`;
+};
+
+module.exports = {generateid, generateOfllineCode};

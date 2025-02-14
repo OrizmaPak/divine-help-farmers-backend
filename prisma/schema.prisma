@@ -94,6 +94,7 @@ model User {
   sessions      Session[]
   activities    Activity[] 
   pin          String?   @default("")
+  offlinepass  String? @default("")
   level         Int?       @default(0)
 }
 

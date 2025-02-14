@@ -30,6 +30,7 @@ const rotaryRouter = require('./routes/rotary');
 const salesRouter = require('./routes/sales');
 const personnelRouter = require('./routes/personnel');
 const aiRouter = require('./routes/ai');
+const offlineRouter = require('./routes/offline');
 
 // error handler
 const notFoundMiddleware = require('./middleware/not-found'); 
@@ -78,6 +79,7 @@ app.use('/node/api/v1/sales', authMiddleware, salesRouter);
 app.use('/node/api/v1/property', authMiddleware, propertyRouter);
 app.use('/node/api/v1/rotary', authMiddleware, rotaryRouter);
 app.use('/node/api/v1/personnel', authMiddleware, personnelRouter);
+app.use('/node/api/v1/offline', offlineRouter);
 
 app.use('/node/api/v1/incomings', incomingsRouter); 
 app.use('/node/api/v1/ai', aiRouter);

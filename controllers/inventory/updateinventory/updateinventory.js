@@ -120,7 +120,7 @@ const updateinventory = async (req, res) => {
             data: null,
             errors: []
         }); 
-    } 
+    }  
 };
 
 // Export the updateinventory function
