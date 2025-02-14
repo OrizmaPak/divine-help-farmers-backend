@@ -132,7 +132,7 @@ const { generateOfllineCode } = require("../../utils/generateid");
                    accounts: paginatedAccounts,
                    marketers: marketers
                },
-               pagination: {
+               pagination: { 
                    total: Number(total),
                    pages,
                    page,
