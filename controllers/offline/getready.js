@@ -2,7 +2,7 @@
    const pg = require("../../db/pg");
    const { activityMiddleware } = require("../../middleware/activity");
    const { divideAndRoundUp } = require("../../utils/pageCalculator");
-const { generateOfllineCode } = require("../../utils/generateid");
+   const { generateOfllineCode } = require("../../utils/generateid");
 
    const getofflineready = async (req, res) => {
        try {
@@ -25,7 +25,7 @@ const { generateOfllineCode } = require("../../utils/generateid");
            const loanAccountsQuery = {
                text: `
                    SELECT 
-                       la.accountnumber, 
+                       la.accountnumber::text AS accountnumber, 
                        CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname, 
                        'LOAN' AS accounttype
                    FROM divine."loanaccounts" la
@@ -37,7 +37,7 @@ const { generateOfllineCode } = require("../../utils/generateid");
            const propertyAccountsQuery = {
                text: `
                    SELECT 
-                       pa.accountnumber, 
+                       pa.accountnumber::text AS accountnumber, 
                        CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname, 
                        'PROPERTY' AS accounttype
                    FROM divine."propertyaccount" pa
@@ -49,7 +49,7 @@ const { generateOfllineCode } = require("../../utils/generateid");
            const rotaryAccountsQuery = {
                text: `
                    SELECT 
-                       ra.accountnumber, 
+                       ra.accountnumber::text AS accountnumber, 
                        CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname, 
                        'ROTARY' AS accounttype
                    FROM divine."rotaryaccount" ra
@@ -61,7 +61,7 @@ const { generateOfllineCode } = require("../../utils/generateid");
            const savingsAccountsQuery = {
                text: `
                    SELECT 
-                       sa.accountnumber, 
+                       sa.accountnumber::text AS accountnumber, 
                        CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS fullname, 
                        'SAVINGS' AS accounttype
                    FROM divine."savings" sa
