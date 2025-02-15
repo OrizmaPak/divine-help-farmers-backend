@@ -116,7 +116,7 @@ const offlineProcessCollection = async (req, res) => {
 
         for (let i = 1; i <= rowsize; i++) {
             const accountnumber = req.body[`accountnumber${i}`];
-            const credit = req.body[`credit${i}`];
+            const credit = req.body[`amount${i}`];
 
             if (!accountnumber || !credit) {
                 await pg.query('ROLLBACK');
