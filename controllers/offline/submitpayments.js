@@ -1,7 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
-const pg = require("../../../db/pg");
-const { activityMiddleware } = require("../../../middleware/activity");
-const { performTransactionOneWay } = require("../../../middleware/transactions/performTransaction");
+const pg = require("../../db/pg");
+const { activityMiddleware } = require("../../middleware/activity");
+const { performTransactionOneWay } = require("../../middleware/transactions/performTransaction");
 
 const offlineProcessCollection = async (req, res) => {
     const { branch, userid, rowsize, location="OUTSIDE" } = req.body;
