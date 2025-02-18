@@ -4,7 +4,7 @@ const { activityMiddleware } = require("../../../middleware/activity");
 const { generateNextDates, validateCode } = require("../../../utils/datecode");
 
 const createPropertyAccount = async (req, res) => {
-    let { accountnumber, productid, userid, registrationcharge, registrationdate, registrationpoint, accountofficer, rowsize, repaymentfrequency, numberofrepayments, percentagedelivery, member } = req.body;
+    let { accountnumber, productid, userid, registrationcharge, registrationdate, registrationpoint, accountofficer, rowsize, repaymentfrequency, numberofrepayments, percentagedelivery, membershipid } = req.body;
 
     try {
         if (accountnumber) {
@@ -42,18 +42,18 @@ const createPropertyAccount = async (req, res) => {
         if(!accountnumber){
             // Check user's existing accounts for the product
             const memberAccountQuery = {
-                text: `SELECT COUNT(*) FROM divine."propertyaccount" WHERE member = $1 AND productid = $2 AND status = 'ACTIVE'`,
-                values: [member, productid]
+                text: `SELECT COUNT(*) FROM divine."propertyaccount" WHERE membershipid = $1 AND productid = $2 AND status = 'ACTIVE'`,
+                values: [membershipid, productid]
             };
             const { rows: memberAccountRows } = await pg.query(memberAccountQuery);
             const memberAccountCount = parseInt(memberAccountRows[0].count, 10);
 
-            // Check if the member has reached the maximum number of accounts for the product
+            // Check if the membershipid has reached the maximum number of accounts for the product
             const productMemberAccountLimit = productRows[0].useraccount;
             if (memberAccountCount >= productMemberAccountLimit) {
                 return res.status(StatusCodes.BAD_REQUEST).json({  
                     status: false,
-                    message: "Maximum number of accounts for this product reached for the member",
+                    message: "Maximum number of accounts for this product reached for the membershipid",
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: []
@@ -77,7 +77,7 @@ const createPropertyAccount = async (req, res) => {
             });
         }
 
-        // Check if account officer is not a member
+        // Check if account officer is not a membershipid
         const accountOfficerQuery = {
             text: `SELECT * FROM divine."User" WHERE id = $1 AND role != 'member'`,
             values: [accountofficer]
@@ -237,8 +237,8 @@ const createPropertyAccount = async (req, res) => {
 
             // Save to propertyaccount table
             const propertyAccountQuery = {
-                text: `INSERT INTO divine."propertyaccount" (productid, accountnumber, userid, member, registrationcharge, registrationdate, registrationpoint, accountofficer, createdby, repaymentfrequency, numberofrepayments, percentagedelivery, status, dateadded) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'ACTIVE', NOW()) RETURNING id`,
-                values: [productid, accountnumber, userid, member, registrationcharge, registrationdate, registrationpoint, accountofficer, userid, repaymentfrequency, numberofrepayments, percentagedelivery]
+                text: `INSERT INTO divine."propertyaccount" (productid, accountnumber, userid, membershipid, registrationcharge, registrationdate, registrationpoint, accountofficer, createdby, repaymentfrequency, numberofrepayments, percentagedelivery, status, dateadded) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'ACTIVE', NOW()) RETURNING id`,
+                values: [productid, accountnumber, userid, membershipid, registrationcharge, registrationdate, registrationpoint, accountofficer, userid, repaymentfrequency, numberofrepayments, percentagedelivery]
             };
             const { rows: propertyAccountRows } = await pg.query(propertyAccountQuery);
             const propertyAccountId = propertyAccountRows[0].id;

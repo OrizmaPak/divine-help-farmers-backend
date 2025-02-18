@@ -1,6 +1,8 @@
+ // Start of Selection
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { generateText } = require("../../ai/ai");
 
 const getMemberPropertyAccounts = async (req, res) => {
   const { member } = req.query;
@@ -236,6 +238,10 @@ const getMemberPropertyAccounts = async (req, res) => {
       });
     }
 
+    // 7a) Analyze data using generateText
+    const prompt = `Analyze the following property account data: ${JSON.stringify(results)}`;
+    const analyzedData = await generateText(prompt);
+
     // 8) Log activity
     await activityMiddleware(req, user.id, "Fetched member property account(s) successfully", "PROPERTY_ACCOUNT");
 
@@ -245,7 +251,8 @@ const getMemberPropertyAccounts = async (req, res) => {
       message: "Successfully fetched member property account(s)",
       statuscode: StatusCodes.OK,
       data: {
-        accounts: results
+        accounts: results,
+        details: analyzedData // Updated to include analyzed data
       },
       errors: []
     });
