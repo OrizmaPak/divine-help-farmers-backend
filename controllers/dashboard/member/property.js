@@ -239,7 +239,8 @@ const getMemberPropertyAccounts = async (req, res) => {
     }
 
     // 7a) Analyze data using generateText
-    const prompt = `Analyze the following property account data: ${JSON.stringify(results)}`;
+    const prompt = `very very very Briefly analyze this property account data: ${JSON.stringify(results)}. Highlight the next payment due date and encourage prompt payment to claim the item. thats all. do it like you are addressing the person by greeting. and for date put it in sentence for july 23rd 2025
+    `;
     const analyzedData = await generateText(prompt);
 
     // 8) Log activity
