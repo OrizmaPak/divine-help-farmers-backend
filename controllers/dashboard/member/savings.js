@@ -19,8 +19,8 @@ const getMemberSavings = async (req, res) => {
     try {
         // Fetch all accounts for the member from the savings table
         const savingsQuery = {
-            text: `SELECT accountnumber, savingsproductid FROM divine."savings" WHERE member = $1`,
-            values: [memberId]
+            text: `SELECT accountnumber, savingsproductid FROM divine."savings" WHERE member = $1 AND userid = $2`,            
+            values: [memberId, user.id]
         };
         const { rows: accounts } = await pg.query(savingsQuery);
 
