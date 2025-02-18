@@ -245,6 +245,56 @@ const saveTransactionMiddleware = async (req, res, next) => {
             personnalaccount = `${orgSettings.personal_account_prefix}${user.phone}`;
         }
 
+        if (accountResult.rowCount) {
+            const userQuery = `SELECT phone FROM divine."User" WHERE id = $1`;
+            const userResult = await client.query(userQuery, [accountResult.rows[0].userid]);
+            if (userResult.rowCount > 0) {
+                const phone = userResult.rows[0].phone;
+                req.body['personalaccountnumber'] = `${orgSettings.personal_account_prefix}${phone}`;
+                req.body.phone = phone;
+            }
+        }
+
+        if (loanAccountResult.rowCount) {
+            const loanUserQuery = `SELECT phone FROM divine."User" WHERE id = $1`;
+            const loanUserResult = await client.query(loanUserQuery, [loanAccountResult.rows[0].userid]);
+            if (loanUserResult.rowCount > 0) {
+                const phone = loanUserResult.rows[0].phone;
+                req.body['loanaccountnumber'] = `${orgSettings.personal_account_prefix}${phone}`;
+                req.body.phone = phone;
+            }
+        }
+
+        if (propertyAccountResult.rowCount) {
+            const propertyUserQuery = `SELECT phone FROM divine."User" WHERE id = $1`;
+            const propertyUserResult = await client.query(propertyUserQuery, [propertyAccountResult.rows[0].userid]);
+            if (propertyUserResult.rowCount > 0) {
+                const phone = propertyUserResult.rows[0].phone;
+                req.body['propertyaccountnumber'] = `${orgSettings.personal_account_prefix}${phone}`;
+                req.body.phone = phone;
+            }
+        }
+
+        if (rotaryAccountResult.rowCount) {
+            const rotaryUserQuery = `SELECT phone FROM divine."User" WHERE id = $1`;
+            const rotaryUserResult = await client.query(rotaryUserQuery, [rotaryAccountResult.rows[0].userid]);
+            if (rotaryUserResult.rowCount > 0) {
+                const phone = rotaryUserResult.rows[0].phone;
+                req.body['rotaryaccountnumber'] = `${orgSettings.personal_account_prefix}${phone}`;
+                req.body.phone = phone;
+            }
+        }
+
+        // if(!req.body['personalaccountnumber']){
+        //     return res.status(StatusCodes.BAD_REQUEST).json({
+        //         status: false,
+        //         message: 'phone number not found.',
+        //         statuscode: StatusCodes.BAD_REQUEST,
+        //         data: null,
+        //         errors: ['Phone number not found.']
+        //     });
+        // }
+
         if (accountResult.rowCount === 0 && accountnumber 
                 && !accountnumber.toString().startsWith(orgSettings.personal_account_prefix) 
                 && loanAccountResult.rowCount === 0 

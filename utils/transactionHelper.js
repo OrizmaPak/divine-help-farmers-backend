@@ -485,6 +485,7 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
 
         if (userResult.rowCount > 0) {
             // If user is found, set the personal account number
+            
         } else {
             // If user is not found, set the personal account number to the default excess account
             req.body.personalaccountnumber = req.orgSettings.default_excess_account || '999999999';

@@ -99,7 +99,7 @@ const offlineProcessCollection = async (req, res) => {
         //     });
         // }
 
-        const depositLimit = cashierLimitData[0].depositlimit;
+        const depositLimit = cashierLimitData[0].depositlimit??200000000;
 
         const timestamp = new Date().getTime();
         const today = new Date();
@@ -130,7 +130,7 @@ const offlineProcessCollection = async (req, res) => {
             }
 
             if (Number(credit) > depositLimit) {
-                await pg.query('ROLLBACK');
+                await pg.query('ROLLBACK'); 
                 return res.status(StatusCodes.FORBIDDEN).json({
                     status: false,
                     message: `Transaction amount for row ${i} exceeds the cashier limit of ${depositLimit}. The customer associated with account number ${accountnumber} has already been informed about this issue. Please proceed to refund the customer.`,

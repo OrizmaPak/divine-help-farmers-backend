@@ -119,7 +119,7 @@ const processCashCollection = async (req, res) => {
         //     });
         // }
 
-        const depositLimit = cashierLimitData[0].depositlimit;
+        const depositLimit = cashierLimitData[0].depositlimit??200000000;
 
         
         
@@ -259,7 +259,7 @@ const processCashCollection = async (req, res) => {
 
             if (!creditTransactiondefault) {
                 failedTransactions.push(i);
-            }
+            } 
         }
 
         if (failedTransactions.length > 0) {
@@ -284,8 +284,8 @@ const processCashCollection = async (req, res) => {
             errors: []
         });
     } catch (error) {
-        await pg.query('ROLLBACK');
         console.error('Unexpected Error:', error);
+        await pg.query('ROLLBACK');
         await activityMiddleware(req, user.id, 'An unexpected error occurred processing transactions', 'TRANSACTION');
 
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
