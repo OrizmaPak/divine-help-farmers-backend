@@ -24,6 +24,16 @@ const getMemberSavings = async (req, res) => {
         };
         const { rows: accounts } = await pg.query(savingsQuery);
 
+        if (accounts.length === 0) {
+            return res.status(StatusCodes.OK).json({
+                status: true,
+                message: "No active savings account found",
+                statuscode: StatusCodes.OK,
+                data: [],
+                errors: []
+            });
+        }
+
         // Prepare response data
         const accountDetails = await Promise.all(accounts.map(async (account) => {
             const { accountnumber, savingsproductid } = account;
