@@ -27,7 +27,7 @@ const getMemberPropertyAccounts = async (req, res) => {
       FROM divine."propertyaccount" pa
       JOIN divine."propertyproduct" pp 
         ON pa.productid = pp.id
-      WHERE pa.membershipid = $1 AND pa.status = 'ACTIVE'
+      WHERE pa.membershipid = $1 AND pa.status = 'ACTIVE' AND userid
       ORDER BY pa.dateadded DESC
     `;
     const { rows: accountRows } = await pg.query(propertyAccountQuery, [member]);
