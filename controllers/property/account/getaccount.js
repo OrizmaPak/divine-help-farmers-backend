@@ -206,9 +206,9 @@ async function getPropertyAccount(req, res) {
         // Update installment
         nextUnpaidInstallment.amountpaid += allocation;
         nextUnpaidInstallment.amountowed -= allocation;
-        // We'll consider it PARTLY PAID or COMPLETED
+        // We'll consider it PARTLY PAID or PAID
         if (nextUnpaidInstallment.amountowed === 0) {
-          nextUnpaidInstallment.paymentstatus = "COMPLETED";
+          nextUnpaidInstallment.paymentstatus = "PAID";
         } else if (nextUnpaidInstallment.amountowed < (nextUnpaidInstallment.amount || 0)) {
           nextUnpaidInstallment.paymentstatus = "PARTLY PAID";
         }
