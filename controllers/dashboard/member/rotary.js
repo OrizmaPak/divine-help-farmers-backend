@@ -25,21 +25,18 @@ const getMemberRotaryAccounts = async (req, res) => {
         const limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10);
         const offset = (page - 1) * limit;
 
-        let query = {
-            text: `SELECT * FROM divine."rotaryaccount" WHERE member = $1`,
-            values: [member]
+        const query = {
+            text: `SELECT * FROM divine."rotaryaccount" WHERE member = $1 AND userid = $2 AND status = $3 ORDER BY dateadded DESC LIMIT $4 OFFSET $5`,
+            values: [member, user.id, 'ACTIVE', limit, offset]
         };
-
-        query.text += ` LIMIT $2 OFFSET $3`;
-        query.values.push(limit, offset);
-
+        
         const accountResult = await pg.query(query);
         const accounts = accountResult.rows;
 
         // Get total count for pagination
         const countQuery = {
-            text: `SELECT COUNT(*) FROM divine."rotaryaccount" WHERE member = $1`,
-            values: [member]
+            text: `SELECT COUNT(*) FROM divine."rotaryaccount" WHERE member = $1 AND userid = $2 AND status = 'ACTIVE'`,
+            values: [member, user.id]
         };
         const { rows: [{ count: total }] } = await pg.query(countQuery);
         const pages = divideAndRoundUp(total, limit);
@@ -103,8 +100,8 @@ const getMemberRotaryAccounts = async (req, res) => {
         }));
 
         // Generate an overview for each processed account using AI
-            const prompt = `Hello! Here's a quick look at your rotary account: ${JSON.stringify(processedAccounts)}. Please note the next payment due date and make sure to pay on time. Thank you! thats all`;
-            let overviews = await generateText(prompt);
+        const prompt = `Hello! Here's a quick look at your rotary account: ${JSON.stringify(processedAccounts)}. Please note the next payment due date and make sure to pay on time. Thank you! thats all`;
+        let overviews = await generateText(prompt);
 
         await activityMiddleware(req, user.id, 'Member rotary accounts fetched successfully', 'ROTARY_ACCOUNT_FETCH');
 
@@ -114,14 +111,14 @@ const getMemberRotaryAccounts = async (req, res) => {
             statuscode: StatusCodes.OK,
             data: {
                 processedAccounts,
-                details:overviews
+                details: overviews
             },
-            pagination: {
+            pagination: { 
                 total: Number(total),
                 pages,
                 page,
                 limit
-            },
+            }, 
             errors: []
         });
     } catch (error) {

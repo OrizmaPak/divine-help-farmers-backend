@@ -1,64 +1,43 @@
 const { StatusCodes } = require("http-status-codes");
 const prisma = require("../../db/prisma");
 const bcrypt = require("bcryptjs");
-const {isValidEmail}  = require("../../utils/isValidEmail");
+const { isValidEmail } = require("../../utils/isValidEmail");
 const jwt = require("jsonwebtoken");
 const pg = require("../../db/pg");
 const { sendEmail } = require("../../utils/sendEmail");
 const { calculateExpiryDate } = require("../../utils/expiredate");
-const { activityMiddleware } = require("../../middleware/activity"); // Added tracker middleware
+const { activityMiddleware } = require("../../middleware/activity");
 const { uploadToGoogleDrive } = require("../../utils/uploadToGoogleDrive");
 const { autoAddMembershipAndAccounts } = require("../../middleware/autoaddmembershipandaccounts");
+const https = require('https');
 
 const signup = async (req, res) => {
     const { firstname, lastname, branch, email, password, phone, othernames = '', verify = false, device = '', country = '', state = '' } = req.body;
     console.log({ firstname, lastname, email, password, othernames, ema: isValidEmail(email) });
-    
 
     // Basic validation
     if (!firstname || !lastname || !email || !password || !phone || !isValidEmail(email) || !branch) {
         let errors = [];
         if (!firstname) {
-            errors.push({
-                field: 'First Name',
-                message: 'First name not found' 
-            }); 
+            errors.push({ field: 'First Name', message: 'First name not found' });
         }
         if (!branch) {
-            errors.push({
-                field: 'Branch',
-                message: 'Branch not found'
-            });
+            errors.push({ field: 'Branch', message: 'Branch not found' });
         }
         if (!lastname) {
-            errors.push({
-                field: 'Last Name',
-                message: 'Last name not found'
-            });
+            errors.push({ field: 'Last Name', message: 'Last name not found' });
         }
         if (!email) {
-            errors.push({
-                field: 'Email',
-                message: 'Email not found'
-            });
+            errors.push({ field: 'Email', message: 'Email not found' });
         }
         if (!phone) {
-            errors.push({
-                field: 'Phone',
-                message: 'Phone not found'
-            });
+            errors.push({ field: 'Phone', message: 'Phone not found' });
         }
         if (!isValidEmail(email)) {
-            errors.push({
-                field: 'Email',
-                message: 'Invalid email format'
-            });
+            errors.push({ field: 'Email', message: 'Invalid email format' });
         }
         if (!password) {
-            errors.push({
-                field: 'Password',
-                message: 'Password not found'
-            });
+            errors.push({ field: 'Password', message: 'Password not found' });
         }
 
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -176,9 +155,43 @@ const signup = async (req, res) => {
               </body>
               </html>
             `
-          });
-          
+        });
 
+        // Create a dedicated account using Paystack API
+        const params = JSON.stringify({
+            "email": email,
+            "first_name": firstname,
+            "last_name": lastname,
+            "phone": phone
+        });
+
+        const options = {
+            hostname: 'api.paystack.co',
+            port: 443,
+            path: '/customer',
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        };
+
+        const paystackReq = https.request(options, paystackRes => {
+            let data = '';
+
+            paystackRes.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            paystackRes.on('end', () => {
+                console.log(JSON.parse(data));
+            });
+        }).on('error', error => {
+            console.error(error);
+        }); 
+
+        paystackReq.write(params);
+        paystackReq.end();
 
         // WE WANT TO SIGN THE USER IN AUTOMATICALLY
         const token = jwt.sign({ user: userId }, process.env.JWT_SECRET, {
@@ -190,13 +203,12 @@ const signup = async (req, res) => {
             VALUES ($1, $2, $3, $4) 
             `, [token, userId, calculateExpiryDate(process.env.SESSION_EXPIRATION_HOUR), device]);
 
-            // RECORD THE ACTIVITY
+        // RECORD THE ACTIVITY
         await activityMiddleware(res, user.id, `Registered and Logged in Successfully ${user.permissions == 'NEWUSER' ? 'and its the first login after registering' : ''} on a ${device} device`, 'AUTH')
 
         const { rows: [details] } = await pg.query(`SELECT * FROM divine."User" WHERE id= $1`, [userId])
 
-
-        let messagestatus
+        let messagestatus;
         // CHECK IF THE USER HAS VALIDATED HIS EMAIL
         if (!details.emailverified && verify) {
             // create verification token
@@ -238,15 +250,15 @@ const signup = async (req, res) => {
                         </body>
                         </html>
                 `
-              })
-              
-            //   RECORD THE ACTIVITY
+            })
+
+            // RECORD THE ACTIVITY
             await activityMiddleware(res, user.id, 'Verification Email Sent', 'AUTH')
 
-            messagestatus = true
+            messagestatus = true;
         }
-        req.newuser = saveuser
-        let accountaction = await autoAddMembershipAndAccounts(req, res, 0)
+        req.newuser = saveuser;
+        let accountaction = await autoAddMembershipAndAccounts(req, res, 0);
 
         const responseData = {
             status: accountaction,

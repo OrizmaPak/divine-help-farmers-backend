@@ -1,4 +1,3 @@
- // Start of Selection
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
@@ -27,10 +26,10 @@ const getMemberPropertyAccounts = async (req, res) => {
       FROM divine."propertyaccount" pa
       JOIN divine."propertyproduct" pp 
         ON pa.productid = pp.id
-      WHERE pa.membershipid = $1 AND pa.status = 'ACTIVE' AND userid
+      WHERE pa.membershipid = $1 AND pa.status = 'ACTIVE' AND userid = $2
       ORDER BY pa.dateadded DESC
     `;
-    const { rows: accountRows } = await pg.query(propertyAccountQuery, [member]);
+    const { rows: accountRows } = await pg.query(propertyAccountQuery, [member, user.id]);
 
     if (accountRows.length === 0) {
       return res.status(StatusCodes.NOT_FOUND).json({
