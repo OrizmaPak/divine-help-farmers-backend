@@ -41,9 +41,17 @@ const getMemberRotaryAccounts = async (req, res) => {
         const { rows: [{ count: total }] } = await pg.query(countQuery);
         const pages = divideAndRoundUp(total, limit);
 
-        // Process each account to fetch its schedules and additional details
+        // Process each account to fetch its schedules, product name, and additional details
         const processedAccounts = await Promise.all(accounts.map(async (account) => {
             const accountNumber = account.accountnumber;
+
+            // Fetch product name for the account
+            const productQuery = {
+                text: `SELECT product FROM divine."rotaryProduct" WHERE id = $1`,
+                values: [account.productid]
+            };
+            const productResult = await pg.query(productQuery);
+            const productName = productResult.rows.length > 0 ? productResult.rows[0].product : null;
 
             // Fetch schedules for the account sorted by due date
             const scheduleQuery = {
@@ -93,6 +101,7 @@ const getMemberRotaryAccounts = async (req, res) => {
 
             return {
                 ...account,
+                productname: productName, // Add product name to the account
                 schedules: processedSchedules,
                 totalRemainingAmount, // Add total remaining amount to the account
                 nextduedate: nextDueDate // Add next due date to the account
@@ -122,7 +131,7 @@ const getMemberRotaryAccounts = async (req, res) => {
                 details: overviews
             },
             pagination: { 
-                total: Number(total),
+                total: Number(total), 
                 pages,
                 page,
                 limit
