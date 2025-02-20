@@ -237,7 +237,15 @@ const getMemberPropertyAccounts = async (req, res) => {
       });
     }
 
-    // 7a) Analyze data using generateText
+    // 7a) Fetch the last 10 transactions for the user considering all accounts
+    const accountNumbers = accountRows.map(account => account.accountnumber);
+    const allTransactionsQuery = {
+      text: `SELECT * FROM divine."transaction" WHERE accountnumber = ANY($1::text[]) ORDER BY transactiondate DESC LIMIT 10`,
+      values: [accountNumbers]
+    };
+    const { rows: lastTransactions } = await pg.query(allTransactionsQuery);
+
+    // 7b) Analyze data using generateText
     const prompt = `very very very Briefly analyze this property account data: ${JSON.stringify(results)}. Highlight the next payment due date and encourage prompt payment to claim the item. thats all. do it like you are addressing the person by greeting. and for date put it in sentence for july 23rd 2025
     `;
     const analyzedData = await generateText(prompt);
@@ -252,6 +260,7 @@ const getMemberPropertyAccounts = async (req, res) => {
       statuscode: StatusCodes.OK,
       data: {
         accounts: results,
+        lastTransactions, // Include the last 10 transactions
         details: analyzedData // Updated to include analyzed data
       },
       errors: []

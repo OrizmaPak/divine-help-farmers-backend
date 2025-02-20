@@ -216,6 +216,13 @@ const getMemberLoanAccounts = async (req, res) => {
             return await generateText(prompt);
         }));
 
+        // Fetch the last 10 transactions for the user considering all accounts
+        const allTransactionsQuery = {
+            text: `SELECT * FROM divine."transaction" WHERE accountnumber = ANY($1::text[]) ORDER BY transactiondate DESC LIMIT 10`,
+            values: [loanAccounts.map(account => account.accountnumber)]
+        };
+        const { rows: lastTenTransactions } = await pg.query(allTransactionsQuery);
+
         // Get total count for pagination
         const countQueryText = `
             SELECT COUNT(DISTINCT la.id) AS total
@@ -235,14 +242,15 @@ const getMemberLoanAccounts = async (req, res) => {
         // Log activity
         await activityMiddleware(req, user.id, 'Member loan accounts fetched successfully', 'LOAN_ACCOUNT');
 
-        // Respond with data, overviews, and pagination info
+        // Respond with data, overviews, last ten transactions, and pagination info
         return res.status(StatusCodes.OK).json({
             status: true,
             message: "Member loan accounts fetched successfully",
             statuscode: StatusCodes.OK,
             data: {
                 validDetailedAccounts,
-                details:overviews
+                details: overviews,
+                lastTenTransactions
             },
             pagination: {
                 total: Number(total),

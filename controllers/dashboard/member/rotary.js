@@ -99,6 +99,13 @@ const getMemberRotaryAccounts = async (req, res) => {
             };
         }));
 
+        // Fetch the last 10 transactions for all accounts of the member
+        const allTransactionsQuery = {
+            text: `SELECT * FROM divine."transaction" WHERE accountnumber = ANY($1::text[]) ORDER BY transactiondate DESC LIMIT 10`,
+            values: [accounts.map(account => account.accountnumber)]
+        };
+        const { rows: allTransactions } = await pg.query(allTransactionsQuery);
+
         // Generate an overview for each processed account using AI
         const prompt = `Hello! Here's a quick look at your rotary account: ${JSON.stringify(processedAccounts)}. Please note the next payment due date and make sure to pay on time. Thank you! thats all`;
         let overviews = await generateText(prompt);
@@ -111,6 +118,7 @@ const getMemberRotaryAccounts = async (req, res) => {
             statuscode: StatusCodes.OK,
             data: {
                 processedAccounts,
+                lastTransactions: allTransactions,
                 details: overviews
             },
             pagination: { 

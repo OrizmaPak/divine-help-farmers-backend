@@ -20,7 +20,7 @@ const offlineProcessCollection = async (req, res) => {
 
     try {
         // Validate branch
-        const { rows: branchData } = await pg.query(`
+        const { rows: branchData } = await pg.query(` 
             SELECT * FROM divine."Branch" WHERE id = $1 AND status = 'ACTIVE'
         `, [branch]);
 

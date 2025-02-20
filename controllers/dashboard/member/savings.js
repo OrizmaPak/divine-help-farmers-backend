@@ -67,6 +67,13 @@ const getMemberSavings = async (req, res) => {
             };
         }));
 
+        // Fetch last 10 transactions across all accounts for the member
+        const allTransactionsQuery = {
+            text: `SELECT * FROM divine."transaction" WHERE accountnumber = ANY($1::text[]) ORDER BY transactiondate DESC LIMIT 10`,
+            values: [accounts.map(account => account.accountnumber)]
+        };
+        const { rows: allTransactions } = await pg.query(allTransactionsQuery);
+
         const userFirstName = user.firstname;
         const currentHour = new Date().getHours();
         const greeting = currentHour < 12 ? "Good morning" : "Good afternoon";
@@ -97,6 +104,7 @@ const getMemberSavings = async (req, res) => {
             statuscode: StatusCodes.OK,
             data: {
                 accountDetails,
+                lastTenTransactions: allTransactions,
                 details: aiSummary
             },
             errors: []

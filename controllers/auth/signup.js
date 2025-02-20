@@ -191,7 +191,7 @@ const signup = async (req, res) => {
         }); 
 
         paystackReq.write(params);
-        paystackReq.end();
+        paystackReq.end(); 
 
         // WE WANT TO SIGN THE USER IN AUTOMATICALLY
         const token = jwt.sign({ user: userId }, process.env.JWT_SECRET, {

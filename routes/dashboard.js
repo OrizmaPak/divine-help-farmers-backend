@@ -4,6 +4,7 @@ const { getMemberSavings } = require('../controllers/dashboard/member/savings');
 const { getMemberPropertyAccounts } = require('../controllers/dashboard/member/property');
 const { getMemberLoanAccounts } = require('../controllers/dashboard/member/loan');
 const { getMemberRotaryAccounts } = require('../controllers/dashboard/member/rotary');
+const { getPersonalAccountDetails } = require('../controllers/dashboard/member/personal');
 const router = express.Router();
 
 // BRANCH MANAGEMENT
@@ -21,5 +22,8 @@ router.route('/loan')
 
 router.route('/rotary')
     .get(getMemberRotaryAccounts)
+
+router.route('/personal')
+    .get(getPersonalAccountDetails);
 
 module.exports = router; 
