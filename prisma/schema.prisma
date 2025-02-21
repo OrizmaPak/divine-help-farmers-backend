@@ -1114,3 +1114,14 @@ model monitoringevaluation {
   createdby               Int
   status                  String @default("ACTIVE")
 } 
+
+model notification {
+  id                      Int       @id @default(autoincrement())
+  userid                  Int
+  title                   String  
+  description             String?
+  location                String?
+  dateadded               DateTime @default(now())
+  createdby               Int @default(0)
+  status                  String @default("ACTIVE")
+}

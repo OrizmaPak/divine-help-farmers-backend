@@ -87,7 +87,11 @@ app.use('/node/api/v1/dashboard', authMiddleware, dashboardRouter);
 app.use('/node/api/v1/incomings', incomingsRouter); 
 app.use('/node/api/v1/ai', aiRouter);
 
-app.get('/node/', (req, res) => {
+// CRON JOBS
+const cronJobs = require('./cron/admin/testing');
+
+
+app.get('/node/', (req, res) => { 
     res.send('Welcome to the divine help farmers backend!');
 });
 app.use('/node/*', (req, res) => {
