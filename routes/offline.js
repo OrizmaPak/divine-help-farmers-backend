@@ -1,6 +1,8 @@
 const express = require('express');
 const { getofflineready } = require('../controllers/offline/getready');
 const { offlineProcessCollection } = require('../controllers/offline/submitpayments');
+const { getDailyCodeAndPin } = require('../controllers/offline/offlineboard');
+const authMiddleware = require('../middleware/authentication');
 const router = express.Router();
 
 
@@ -11,6 +13,9 @@ router.route('/getready')
 
 router.route('/submitpayments')
     .post(offlineProcessCollection)
+
+router.route('/offlinecodeandpin') 
+    .get(authMiddleware, getDailyCodeAndPin)
 
 
     

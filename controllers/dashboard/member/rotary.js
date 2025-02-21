@@ -103,10 +103,10 @@ const getMemberRotaryAccounts = async (req, res) => {
                 ...account,
                 productname: productName, // Add product name to the account
                 schedules: processedSchedules,
-                totalRemainingAmount, // Add total remaining amount to the account
+                totalRemainingAmount, // Add total remaining amount to the account 
                 nextduedate: nextDueDate // Add next due date to the account
             };
-        }));
+        }));  
 
         // Fetch the last 10 transactions for all accounts of the member
         const allTransactionsQuery = {
