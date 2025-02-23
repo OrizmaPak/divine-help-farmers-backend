@@ -14,7 +14,7 @@ const {
     applyMinimumCreditAmountPenalty
 } = require('../../utils/transactionHelper'); // Import all helper functions
 const { getTransactionPeriod, generateNextDates } = require('../../utils/datecode');
-const { savingsCredit } = require('./savings/credit');
+const { savingsCredit } = require('./savings/credit'); 
 const { savingsDebit } = require('./savings/debit');
 const { personalCredit } = require('./personal/credit');
 const { personalDebit } = require('./personal/debit');

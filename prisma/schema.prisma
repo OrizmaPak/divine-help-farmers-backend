@@ -96,6 +96,7 @@ model User {
   pin          String?   @default("")
   offlinepass  String? @default("")
   level         Int?       @default(0)
+  department    Int?       @default(0)
 }
 
 model Roles {
@@ -1117,8 +1118,10 @@ model monitoringevaluation {
 
 model notification {
   id                      Int       @id @default(autoincrement())
-  userid                  Int
-  title                   String  
+  userid                  Int?
+  department              Int?
+  branch                  Int?
+  title                   String?  
   description             String?
   location                String?
   dateadded               DateTime @default(now())

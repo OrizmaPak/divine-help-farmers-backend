@@ -1,6 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { sendEmail } = require("../../../utils/sendEmail");
 
 const manageMembership = async (req, res) => {
     const { id = "", member, userid, status="ACTIVE" } = req.body;
@@ -93,6 +94,35 @@ const manageMembership = async (req, res) => {
 
         // RECORD THE ACTIVITY
         await activityMiddleware(req, user.id, `Membership ${!id ? 'created' : 'updated'}`, 'MEMBERSHIP');
+
+        // Send email notification if membership is updated
+        if (id) {
+            const emailSubject = 'Membership Update Notification';
+            const emailBody = `
+                Dear User,
+
+                We are pleased to inform you that your membership status with Divine Help Farmers Multi-Purpose Cooperative Society has been updated to ${status}. As a valued member, you are part of a community dedicated to achieving financial freedom and prosperity through cooperative efforts.
+
+                Divine Help Farmers is committed to empowering our members by providing access to savings plans, loans, and financial growth strategies tailored to your needs. We believe in the power of community and collaboration to achieve shared goals.
+
+                Please log in to your account to review your updated membership status and explore the benefits available to you. If you have any questions or need assistance, feel free to reach out to our support team at support@divinehelp.com.
+
+                Thank you for being a part of Divine Help Farmers. Together, we are building a brighter financial future.
+
+                Best regards,
+                Divine Help Farmers 
+            `;
+            await sendEmail({
+                to: theuser[0].email,
+                subject: emailSubject,
+                text: emailBody
+            });
+
+            // Insert notification into the Notification table
+            const notificationTitle = 'Membership Update';
+            const notificationDescription = `Your membership status has been updated to ${status}.`;
+            await pg.query(`INSERT INTO divine."notification" (userid, title, description, location, createdby) VALUES ($1, $2, $3, $4, $5)`, [userid, notificationTitle, notificationDescription, 'dashboard', user.id]);
+        }
 
         const responseData = {
             status: true,

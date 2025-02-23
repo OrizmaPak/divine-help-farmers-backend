@@ -14,17 +14,6 @@ const registeruser = async (req, res) => {
     const { firstname, lastname, email, phone, othernames = '', verify = false, device = 'registered by staff', country = '', state = '', image = '', emailverified = null, address = '', role = 'USER', permissions = null, officeaddress = '', image2 = '', gender = '', occupation = '', lga = '', town = '', maritalstatus = '', spousename = '', stateofresidence = '', lgaofresidence = '', nextofkinfullname = '', nextofkinphone = '', nextofkinrelationship = '', nextofkinaddress = '', nextofkinofficeaddress = '', nextofkinoccupation = '', dateofbirth = null, branch = 1, registrationpoint = 0, dateadded = new Date(), lastupdated = null, status = 'ACTIVE', createdby = user.id??0, id = null } = req.body;
     console.log({ firstname, lastname, email, othernames, ema: isValidEmail(email) });
 
-
-    // if (user.registrationpoint == 0 || user.role == 'MEMBER') {
-    //     return res.status(StatusCodes.FORBIDDEN).json({
-    //         status: false,
-    //         message: "You are not permitted to register or update a user. You must be registered to a registration point as a staff member.",
-    //         statuscode: StatusCodes.FORBIDDEN,
-    //         data: null,
-    //         errors: []
-    //     });
-    // } 
-
     // Basic validation
     if (!firstname || !lastname || !email || !isValidEmail(email)) { 
         let errors = [];
@@ -160,8 +149,8 @@ const registeruser = async (req, res) => {
             const userId = saveuser.id;
             console.log(saveuser);
             const user = saveuser;
-                req.newuser = saveuser
-            let accountaction = await autoAddMembershipAndAccounts(req, res)
+            req.newuser = saveuser;
+            let accountaction = await autoAddMembershipAndAccounts(req, res);
 
             // send welcome email
             await sendEmail({
@@ -207,6 +196,43 @@ const registeruser = async (req, res) => {
                   </html>
                 `
             });
+
+            // send notification email to the user who created the new member
+            await sendEmail({
+                to: user.email,
+                subject: 'Congratulations on Your New Referral!',
+                text: 'A new member has been registered through you.',
+                html: `<!DOCTYPE html>
+                  <html lang="en">
+                  <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Congratulations on Your New Referral!</title>
+                  </head>
+                  <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                      <div style="background-color: #4CAF50; padding: 20px; text-align: center; color: #ffffff;">
+                        <h1 style="margin: 0;">Congratulations on Your New Referral!</h1>
+                      </div>
+                      <div style="padding: 20px;">
+                        <p style="font-size: 16px; color: #333333;">Hi <strong>${user.firstname}</strong>,</p>
+                        <p style="font-size: 16px; color: #333333;">We are thrilled to inform you that a new member has been successfully registered through your referral. Divine Help Farmers appreciates your effort and encourages you to follow up with your new member.</p>
+                        <p style="font-size: 16px; color: #333333;">You can view your referrals in the <strong>Your Referrals</strong> section of your account.</p>
+                        <p style="font-size: 16px; color: #333333;">Thank you for your continued support and dedication to our community.</p>
+                      </div>
+                      <div style="background-color: #f4f4f4; padding: 20px; text-align: center;">
+                        <p style="font-size: 12px; color: #666666;">&copy; 2024 divine Help Farmers Multi-Purpose Cooperative Society. All rights reserved.</p>
+                      </div>
+                    </div>
+                  </body>
+                  </html>
+                `
+            });
+
+            // Insert notification into the Notification table
+            const notificationTitle = 'New Referral Registered';
+            const notificationDescription = 'A new member has been registered through your referral.';
+            await pg.query(`INSERT INTO divine."notification" (userid, title, description, location, createdby) VALUES ($1, $2, $3, $4, $5)`, [user.id, notificationTitle, notificationDescription, 'referrals', user.id]);
 
             const responseData = {
                 status: accountaction,

@@ -32,6 +32,7 @@ const personnelRouter = require('./routes/personnel');
 const aiRouter = require('./routes/ai');
 const offlineRouter = require('./routes/offline');
 const dashboardRouter = require('./routes/dashboard');
+const notificationRouter = require('./routes/notification');
 
 // error handler
 const notFoundMiddleware = require('./middleware/not-found'); 
@@ -83,12 +84,19 @@ app.use('/node/api/v1/personnel', authMiddleware, personnelRouter);
 app.use('/node/api/v1/offline', offlineRouter);
 app.use('/node/api/v1/offline', offlineRouter);
 app.use('/node/api/v1/dashboard', authMiddleware, dashboardRouter);
+app.use('/node/api/v1/notification', authMiddleware, notificationRouter);
 
 app.use('/node/api/v1/incomings', incomingsRouter); 
 app.use('/node/api/v1/ai', aiRouter);
 
 // CRON JOBS
-const cronJobs = require('./cron/admin/testing');
+require('./cron/testing');
+// ADMIN
+require('./cron/admin/tastmanagement');
+// INVENTORY
+require('./cron/inventory/minbalance')
+// MEMBER
+require('./cron/member/referralreport');
 
 
 app.get('/node/', (req, res) => { 

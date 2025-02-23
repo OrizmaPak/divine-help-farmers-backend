@@ -48,7 +48,8 @@ async function updateuser(req, res) {
         registrationpoint,
         status,
         id,
-        email
+        email,
+        department // Added department
     } = req.body;
 
     const user = req.user;
@@ -99,9 +100,10 @@ async function updateuser(req, res) {
                                  nextofkinofficeaddress = COALESCE($27, nextofkinofficeaddress),
                                  nextofkinoccupation = COALESCE($28, nextofkinoccupation),
                                  dateofbirth = COALESCE($29, dateofbirth),
-                                 registrationpoint = COALESCE($30, registrationpoint)
-                         WHERE id = $31`, [
-                firstname, lastname, othernames, image, image2, role, new Date(), state, country, address, officeaddress, branch, permissions, userpermissions, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, registrationpoint, userid
+                                 registrationpoint = COALESCE($30, registrationpoint),
+                                 department = COALESCE($31, department)
+                         WHERE id = $32`, [
+                firstname, lastname, othernames, image, image2, role, new Date(), state, country, address, officeaddress, branch, permissions, userpermissions, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, registrationpoint, department, userid
             ]);
         } else if (!id && email) {
             await pg.query(`UPDATE divine."User" 
@@ -133,9 +135,10 @@ async function updateuser(req, res) {
                                  nextofkinofficeaddress = COALESCE($26, nextofkinofficeaddress),
                                  nextofkinoccupation = COALESCE($27, nextofkinoccupation),
                                  dateofbirth = COALESCE($28, dateofbirth),
-                                 registrationpoint = COALESCE($29, registrationpoint)
-                         WHERE email = $30`, [
-                firstname, lastname, othernames, image, image2, role, new Date(), state, country, address, officeaddress, permissions, userpermissions, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, registrationpoint, email
+                                 registrationpoint = COALESCE($29, registrationpoint),
+                                 department = COALESCE($30, department) 
+                         WHERE email = $31`, [
+                firstname, lastname, othernames, image, image2, role, new Date(), state, country, address, officeaddress, permissions, userpermissions, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, registrationpoint, department, email
             ]);
         }
         await activityMiddleware(req, user.id, `Updated Profile`, 'AUTH');

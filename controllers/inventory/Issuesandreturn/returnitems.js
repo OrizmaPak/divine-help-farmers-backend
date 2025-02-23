@@ -2,6 +2,7 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { sendEmail } = require("../../../utils/emailService");
 
 // Define the managereturnitems function
 const managereturnitems = async (req, res) => {
@@ -98,7 +99,6 @@ const managereturnitems = async (req, res) => {
             const itemExists = await pg.query(`SELECT * FROM divine."Inventory" WHERE itemid = $1 AND department = $2 AND branch = $3 AND status = 'ACTIVE'`, [itemids[i], department, branch]);
             if (itemExists.rows.length === 0) {
                 await pg.query('ROLLBACK');
-                // await pg.end(); // Close the transaction
                 await activityMiddleware(res, req.user.id, `Item ${itemids[i]} does not exist in the department of the branch, cannot return`, 'RETURNED ITEMS');
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
@@ -112,7 +112,6 @@ const managereturnitems = async (req, res) => {
             // Check if qty is not 0
             if (qtys[i] === 0) {
                 await pg.query('ROLLBACK');
-                // await pg.end(); // Close the transaction
                 await activityMiddleware(res, req.user.id, `Qty for item ${itemids[i]} cannot be 0 for returning`, 'RETURNED ITEMS');
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
@@ -129,7 +128,6 @@ const managereturnitems = async (req, res) => {
             // Check if the requested qty is greater than the available stock
             if (qtys[i] > totalQtyAvailable) {
                 await pg.query('ROLLBACK');
-                // await pg.end(); // Close the transaction
                 await activityMiddleware(res, req.user.id, `Qty ${qtys[i]} for item ${itemids[i]} is greater than available stock for returning`, 'RETURNED ITEMS');
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
@@ -144,7 +142,6 @@ const managereturnitems = async (req, res) => {
             const qtyWithIssues = await pg.query(`SELECT SUM(qty) FROM divine."Inventory" WHERE itemid = $1 AND department = $2 AND branch = $3 AND status = 'ACTIVE' AND transactiondesc LIKE '%Issue%'`, [itemids[i], department, branch]);
             if (qtyWithIssues.rows[0].sum && qtys[i] > qtyWithIssues.rows[0].sum) {
                 await pg.query('ROLLBACK');
-                // await pg.end(); // Close the transaction
                 await activityMiddleware(res, req.user.id, `Qty ${qtys[i]} for item ${itemids[i]} is greater than the qty that has issues for returning`, 'RETURNED ITEMS');
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
@@ -205,7 +202,18 @@ const managereturnitems = async (req, res) => {
 
         // Commit the transaction
         await pg.query('COMMIT');
-        // await pg.end(); // Close the transaction
+
+        // Fetch department name
+        const { rows: departmentRows } = await pg.query(`SELECT department FROM divine."Department" WHERE id = $1`, [department]);
+        const departmentName = departmentRows.length > 0 ? departmentRows[0].department : 'Unknown Department';
+
+        // Insert notification into the Notification table
+        const notificationTitle = 'Items Returned Notification';
+        const notificationDescription = 'Items have been successfully returned to your department.';
+        await pg.query(`INSERT INTO divine."notification" (department, title, description, location, createdby) VALUES ($1, $2, $3, $4, $5)`, [department, notificationTitle, notificationDescription, 'viewreturneditems', req.user.id]);
+
+        // Send email to the department
+        await sendEmail(departmentName, notificationTitle, notificationDescription);
 
         // Return success response
         return res.status(StatusCodes.OK).json({
@@ -219,7 +227,6 @@ const managereturnitems = async (req, res) => {
         // Log and return error response
         console.error(error);
         await pg.query('ROLLBACK');
-        // await pg.end(); // Close the transaction
         await activityMiddleware(res, req.user.id, 'An unexpected error occurred while managing return items', 'RETURNED ITEMS');
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,

@@ -1,6 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
+const { sendEmail } = require("../../../utils/sendEmail");
 
 const requisition = async (req, res) => {
     const { branchfrom, branchto, description, transactiondate, departmentfrom, departmentto, rowsize, ...inventoryData } = req.body;
@@ -149,6 +150,27 @@ const requisition = async (req, res) => {
             }
         }
 
+        // Create notification
+        const itemNames = await Promise.all(itemids.map(async (itemid) => {
+            const { rows } = await pg.query(`SELECT itemname FROM divine."Inventory" WHERE itemid = $1 LIMIT 1`, [itemid]);
+            return rows.length > 0 ? rows[0].itemname : 'Unknown Item';
+        }));
+
+        // Fetch department names
+        const { rows: departmentFromNameRows } = await pg.query(`SELECT department FROM divine."Department" WHERE id = $1`, [departmentfrom]);
+        const departmentFromName = departmentFromNameRows.length > 0 ? departmentFromNameRows[0].department : 'Unknown Department';
+
+        const { rows: departmentToNameRows } = await pg.query(`SELECT department FROM divine."Department" WHERE id = $1`, [departmentto]);
+        const departmentToName = departmentToNameRows.length > 0 ? departmentToNameRows[0].department : 'Unknown Department';
+
+        const title = `Pending In Requisition from ${departmentFromName} to ${departmentToName}`;
+        const notificationDescription = `Your department has a pending requisition of items: ${itemNames.join(', ')} from department ${departmentFromName} in branch ${branchfrom}.`;
+
+        await pg.query(`INSERT INTO divine."notification" (department, branch, title, description, location, createdby) VALUES ($1, $2, $3, $4, $5, $6)`, [departmentto, branchto, title, notificationDescription, 'approveinrequisition', req.user.id]);
+
+        // Send email notification
+        await sendEmail('divinehelpfarmers@gmail.com', title, notificationDescription);
+
         // Log activity for requisition
         await activityMiddleware(res, req.user.id, `Requisition processed for branchfrom ${branchfrom} to branchto ${branchto}`, 'REQUISITION PROCESSED');
 
@@ -171,9 +193,6 @@ const requisition = async (req, res) => {
             errors: []
         });
     }
-};
+}; 
 
-module.exports = { requisition };
-
-
-
+module.exports = { requisition }; 
