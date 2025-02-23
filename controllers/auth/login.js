@@ -69,7 +69,8 @@ async function login(req, res) {
         const isPasswordValid = await bcrypt.compare(password, existingUser.password);
 
         if (isPasswordValid) {
-            const token = jwt.sign({ user: existingUser }, process.env.JWT_SECRET, {
+            const { permissions, userpermissions, ...userWithoutPermissions } = existingUser;
+            const token = jwt.sign({ user: userWithoutPermissions }, process.env.JWT_SECRET, {
                 expiresIn: process.env.SESSION_EXPIRATION_HOUR + 'h',
             });
             console.log(token);
