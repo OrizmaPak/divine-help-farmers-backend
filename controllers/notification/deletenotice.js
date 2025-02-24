@@ -4,7 +4,7 @@ const { activityMiddleware } = require("../../middleware/activity");
 
 const deleteNotification = async (req, res) => {
     const user = req.user;
-    const notificationId = req.params.id;
+    const notificationId = req.body.id;
 
     if (!notificationId) {
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -15,7 +15,7 @@ const deleteNotification = async (req, res) => {
             errors: []
         });
     }
-
+    
     try {
         // Delete the notification with the given ID
         const deleteQuery = {
@@ -23,8 +23,8 @@ const deleteNotification = async (req, res) => {
             values: [notificationId]
         };
         const result = await pg.query(deleteQuery);
- 
-        if (result.rowCount === 0) {
+  
+        if (result.rowCount === 0) { 
             return res.status(StatusCodes.NOT_FOUND).json({
                 status: false,
                 message: "Notification not found",
