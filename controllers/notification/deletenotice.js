@@ -23,7 +23,7 @@ const deleteNotification = async (req, res) => {
             values: [notificationId]
         };
         const result = await pg.query(deleteQuery);
-
+ 
         if (result.rowCount === 0) {
             return res.status(StatusCodes.NOT_FOUND).json({
                 status: false,

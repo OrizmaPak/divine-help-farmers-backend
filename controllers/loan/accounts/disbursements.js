@@ -16,57 +16,54 @@ const updateDisbursementRef = async (req, res) => {
     }
 
     try {
-        // // Fetch the loan product and registration charge using the account number
-        // const loanAccountQuery = {
-        //     text: `SELECT loanproduct, registrationcharge FROM divine."loanaccounts" WHERE accountnumber = $1`,
-        //     values: [accountnumber]
-        // };
-        // const loanAccountResult = await pg.query(loanAccountQuery);
-
-        // // If no loan account found, return 404
-        // if (loanAccountResult.rowCount === 0) {
-        //     return res.status(StatusCodes.NOT_FOUND).json({
-        //         status: false,
-        //         message: "Loan account not found",
-        //         statuscode: StatusCodes.NOT_FOUND,
-        //         data: null,
-        //         errors: ["Loan account not found"]
-        //     });
-        // }
-
-        // const { loanproduct, registrationcharge } = loanAccountResult.rows[0];
-
-        // // Fetch the administration setting for additional loan registration charge
-        // const adminSettingQuery = {
-        //     text: `SELECT addition_loan_registration_charge FROM divine."Organisationsettings" WHERE loanproduct = $1`,
-        //     values: [loanproduct]
-        // };
-        // const adminSettingResult = await pg.query(adminSettingQuery);
-
-        // if (adminSettingResult.rowCount === 0) {
-        //     return res.status(StatusCodes.NOT_FOUND).json({
-        //         status: false,
-        //         message: "Administration setting not found for the loan product",
-        //         statuscode: StatusCodes.NOT_FOUND,
-        //         data: null,
-        //         errors: ["Administration setting not found for the loan product"]
-        //     });
-        // }
-
-        // const { addition_loan_registration_charge } = adminSettingResult.rows[0];
-
         // Update the disbursement reference for the given loan account
         const updateQuery = {
-            text: `UPDATE divine."loanaccounts" SET disbursementref = $1, disbursementdate = NOW() WHERE accountnumber = $2`,
+            text: `UPDATE divine."loanaccounts" SET disbursementref = $1, disbursementdate = NOW() WHERE accountnumber = $2 RETURNING userid`,
             values: [disbursementref, accountnumber]
         };
-        await pg.query(updateQuery);
+        const updateResult = await pg.query(updateQuery);
+
+        if (updateResult.rowCount === 0) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                status: false,
+                message: "Loan account not found",
+                statuscode: StatusCodes.NOT_FOUND,
+                data: null,
+                errors: ["Loan account not found"]
+            });
+        }
+
+        const { userid } = updateResult.rows[0];
+
+        // Fetch user email and name
+        const userQuery = {
+            text: `SELECT email, firstname FROM divine."users" WHERE id = $1`,
+            values: [userid]
+        };
+        const userResult = await pg.query(userQuery);
+        const user = userResult.rows[0];
+
+        if (user && user.email) {
+            // Send congratulatory email
+            const emailSubject = 'Loan Approved and Disbursed';
+            const emailBody = `Dear ${user.firstname},\n\nCongratulations! Your loan has been approved and disbursed. Please check your account for details.\n\nThank you.`;
+            await sendEmail(user.email, emailSubject, emailBody);
+        }
+
+        // Create congratulatory notification
+        const notificationQuery = {
+            text: `INSERT INTO divine."notification" (userid, title, description, dateadded, createdby, status, location) VALUES ($1, $2, $3, NOW(), $4, 'ACTIVE', $5)`,
+            values: [
+                userid,
+                'Loan Approved and Disbursed',
+                'Congratulations! Your loan has been approved and disbursed. Please check your account for details.',
+                0,
+                'loanaccount'
+            ]
+        };
+        await pg.query(notificationQuery);
 
         // Successfully updated the disbursement reference
-        // charge:addition_loan_registration_charge
-        // {
-        //     registrationcharge,
-        // },
         return res.status(StatusCodes.OK).json({
             status: true,
             message: "Disbursement reference updated successfully",
@@ -90,4 +87,3 @@ const updateDisbursementRef = async (req, res) => {
 module.exports = {
     updateDisbursementRef
 };
-

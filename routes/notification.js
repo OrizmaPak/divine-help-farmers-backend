@@ -8,7 +8,7 @@ const router = express.Router();
 router.route('/getnotifications')
     .get(getNotificationsByUserId)
     
-router.route('/userregistration')
+router.route('/delete')
     .delete(deleteNotification)
 
 

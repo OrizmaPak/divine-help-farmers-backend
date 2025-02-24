@@ -951,6 +951,16 @@ const manageLoanAccount = async (req, res) => {
             loandata = newaccountnumberRows[0];
         }
 
+        if (loandata.status !== 'ACTIVE') {
+            const notificationQuery = {
+                text: `INSERT INTO divine."notification" 
+                        (userid, title, description, dateadded, createdby, status) 
+                       VALUES ($1, $2, $3, NOW(), $4, 'PENDING') RETURNING *`,
+                values: [loandata.accountofficer, 'Account Activation Required', `Loan account ${loandata.accountnumber} requires activation.`, user.id]
+            };
+            await pg.query(notificationQuery);
+        }
+
         // Log activity and return success response
         await activityMiddleware(req, user.id, id ? 'Loan account updated successfully' : 'Loan account created successfully', 'LOAN_ACCOUNT');
 

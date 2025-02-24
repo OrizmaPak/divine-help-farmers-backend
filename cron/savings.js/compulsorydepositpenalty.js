@@ -15,7 +15,7 @@ schedule.scheduleJob('0 0 * * *', async () => {
 
         // Fetch all active savings products with compulsory deposit enabled and no deficit
         const productsResult = await pg.query(`
-            SELECT * FROM savingsproduct
+            SELECT * FROM divine."savingsproduct"
             WHERE status = $1 AND compulsorydeposit = $2 AND compulsorydepositdeficit = $3
         `, ['ACTIVE', true, false]);
         const products = productsResult.rows;
@@ -23,13 +23,13 @@ schedule.scheduleJob('0 0 * * *', async () => {
         for (const product of products) {
             // Fetch all frequency overrides for the current product
             const frequencyOverridesResult = await pg.query(`
-                SELECT * FROM frequencyoverride
+                SELECT * FROM divine."frequencyoverride"
                 WHERE savingsproductid = $1 AND status = $2
             `, [product.id, 'ACTIVE']);
             const frequencyOverrides = frequencyOverridesResult.rows;
 
             for (const freqOverride of frequencyOverrides) {
-                const { compulsorydepositfrequency, branch } = freqOverride;
+                const { compulsorydepositfrequency, branch, compulsorydepositfrequencyamount } = freqOverride;
 
                 // Generate the next dates based on the frequency
                 const nextDates = generateNextDates(compulsorydepositfrequency, 1, yesterdayDateStr);
@@ -38,7 +38,7 @@ schedule.scheduleJob('0 0 * * *', async () => {
                 if (nextDates.includes(todayDateStr)) {
                     // Fetch all active accounts for the product and branch
                     const accountsResult = await pg.query(`
-                        SELECT accountnumber, userid FROM savings
+                        SELECT accountnumber, userid FROM divine."savings"
                         WHERE savingsproductid = $1 AND branch = $2 AND status = $3
                     `, [product.id, branch, 'ACTIVE']);
                     const accounts = accountsResult.rows;
@@ -50,11 +50,12 @@ schedule.scheduleJob('0 0 * * *', async () => {
                         const { accountnumber, userid } = account;
 
                         // Check for any payment transactions between secondToLastDate and lastDate
-                        const paymentExistsResult = await pg.query(`
-                            SELECT 1 FROM transaction
+                        const transactionSumResult = await pg.query(`
+                            SELECT SUM(credit) - SUM(debit) AS balanceDifference FROM divine."transaction"
                             WHERE accountnumber = $1 AND transactiondate BETWEEN $2 AND $3 
                         `, [accountnumber, new Date(secondToLastDate), new Date(lastDate)]);
-                        const paymentExists = paymentExistsResult.rowCount > 0;
+                        const balanceDifference = transactionSumResult.rows[0].balancedifference || 0;
+                        const paymentExists = balanceDifference < compulsorydepositfrequencyamount;
 
                         if (paymentExists) {
                             // If a payment exists, skip penalty deduction
@@ -68,7 +69,7 @@ schedule.scheduleJob('0 0 * * *', async () => {
                         } else if (product.compulsorydepositpenaltytype == 'PERCENTAGE') {
                             // Calculate the current balance
                             const balanceDataResult = await pg.query(`
-                                SELECT SUM(credit) AS totalCredit, SUM(debit) AS totalDebit FROM transaction
+                                SELECT SUM(credit) AS totalCredit, SUM(debit) AS totalDebit FROM divine."transaction"
                                 WHERE accountnumber = $1 AND status = $2
                             `, [accountnumber, 'ACTIVE']);
                             const balanceData = balanceDataResult.rows[0];
@@ -90,7 +91,7 @@ schedule.scheduleJob('0 0 * * *', async () => {
 
                         // Fetch user details to verify branch
                         const userResult = await pg.query(`
-                            SELECT branch FROM "user"
+                            SELECT branch FROM divine."user"
                             WHERE id = $1
                         `, [userid]);
                         const user = userResult.rows[0];
@@ -148,4 +149,3 @@ schedule.scheduleJob('0 0 * * *', async () => {
         // Optionally, log this error using activityMiddleware or another logging mechanism
     }
 });
- 
