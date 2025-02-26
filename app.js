@@ -34,11 +34,11 @@ const offlineRouter = require('./routes/offline');
 const dashboardRouter = require('./routes/dashboard');
 const notificationRouter = require('./routes/notification');
 const paystackRouter = require('./routes/paystack');
-const videoRouter = require('./routes/video');
+const videoRouter = require('./routes/video'); 
 
 // error handler
 const notFoundMiddleware = require('./middleware/not-found'); 
-const errorHandlerMiddleware = require('./middleware/error-handler');
+const errorHandlerMiddleware = require('./middleware/error-handler');  
 
 // middleware
 const { requestprocessor } = require('./middleware/requestprocessor');
@@ -87,12 +87,12 @@ app.use('/node/api/v1/offline', offlineRouter);
 app.use('/node/api/v1/dashboard', authMiddleware, dashboardRouter);
 app.use('/node/api/v1/notification', authMiddleware, notificationRouter);
 app.use('/node/api/v1/paystack', paystackRouter);
-app.use('/node/api/v1/video', videoRouter);
+app.use('/node/api/v1/video', authMiddleware, videoRouter);
 
 app.use('/node/api/v1/incomings', incomingsRouter); 
-app.use('/node/api/v1/ai', aiRouter);
+app.use('/node/api/v1/ai', aiRouter); 
 
-// CRON JOBS
+// CRON JOBS 
 require('./cron/testing');
 // ADMIN
 require('./cron/admin/tastmanagement');

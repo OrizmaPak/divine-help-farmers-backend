@@ -2,29 +2,30 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../db/pg");
 
 const createOrUpdateVideo = async (req, res) => {
-    const { id, location, link, description, dateadded, createdby, status } = req.body;
+    const user = req.user;
+    const { id, location, link, description, dateadded, status='ACTIVE' } = req.body;
+
 
     try {
         // Check if a video with the same location already exists
-        const { rows: existingVideos } = await pg.query(`SELECT * FROM divine."Video" WHERE location = $1`, [location]);
+        const { rows: existingVideos } = await pg.query(`SELECT * FROM divine."Video" WHERE "location" = $1`, [location]);
 
         if (existingVideos.length > 0) {
             // If a video with the same location exists, update it
-            const existingVideoId = existingVideos[0].id;
-            const updateQuery = {
+            const existingVideoId = existingVideos[0].id; 
+            const updateQuery = { 
                 text: `
                     UPDATE divine."Video"
                     SET 
-                        location = COALESCE($1, location),
+                        "location" = COALESCE($1, "location"),
                         link = COALESCE($2, link),
                         description = COALESCE($3, description),
                         dateadded = COALESCE($4, dateadded),
-                        createdby = COALESCE($5, createdby),
-                        status = COALESCE($6, status)
+                        status = COALESCE($5, status)
                     WHERE id = $7
                     RETURNING *
                 `,
-                values: [location, link, description, dateadded, createdby, status, existingVideoId]
+                values: [location, link, description, dateadded, createdby, existingVideoId]
             };
 
             const { rows: updatedRows } = await pg.query(updateQuery);
@@ -40,11 +41,11 @@ const createOrUpdateVideo = async (req, res) => {
             // If no video with the same location exists, insert a new video
             const insertQuery = {
                 text: `
-                    INSERT INTO divine."Video" (location, link, description, dateadded, createdby, status)
+                    INSERT INTO divine."Video" ("location", link, description, dateadded, createdby, status)
                     VALUES ($1, $2, $3, $4, $5, $6)
                     RETURNING *
                 `,
-                values: [location, link, description, dateadded, createdby, status]
+                values: [location, link, description, dateadded, user.id, status]
             };
 
             const { rows: insertedRows } = await pg.query(insertQuery);
