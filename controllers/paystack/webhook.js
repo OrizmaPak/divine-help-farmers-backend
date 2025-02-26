@@ -26,7 +26,7 @@ const paystackWebhook = async (req, res) => {
             case "refund.processing":
                 await handleRefundProcessing(event.data);
                 break;
-            case "refund.processed":
+            case "refund.processed": 
                 await handleRefundProcessed(event.data);
                 break;
             case "refund.pending":
@@ -76,12 +76,24 @@ const paystackWebhook = async (req, res) => {
 };
 
 const handleChargeSuccess = async (transactionData) => {
+   
+
+    const orgSettingsQuery = {
+        text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
+        values: []
+    };
+
+    const { rows } = await pg.query(orgSettingsQuery);
+    const personalAccountPrefix = rows[0].personal_account_prefix;
+
+    console.log(`${personalAccountPrefix}${transactionData.customer.phone}`) 
+
     const bankTransaction = {
-        accountnumber: transactionData.authorization.receiver_bank_account_number,
-        userid: transactionData.customer.id,
+        accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,
+        userid: 0,
         description: transactionData.authorization.narration,
         debit: 0,
-        credit: transactionData.amount, // Assuming it's a debit transaction
+        credit: Math.floor(transactionData.amount / 100), // Remove the last two digits
         ttype: "CREDIT", // Assuming the type is DEPOSIT
         tfrom: transactionData.authorization.sender_bank,
         createdby: 0, // Assuming system created
@@ -96,7 +108,7 @@ const handleChargeSuccess = async (transactionData) => {
     };
 
     const query = {
-        text: `INSERT INTO banktransaction(
+        text: `INSERT INTO divine."banktransaction" (
             accountnumber, userid, description, debit, credit, ttype, tfrom, createdby, valuedate, reference, transactiondate, transactiondesc, transactionref, status, whichaccount, rawdata
         ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
         values: [
@@ -118,14 +130,6 @@ const handleChargeSuccess = async (transactionData) => {
             bankTransaction.rawdata
         ]
     };
-
-    const orgSettingsQuery = {
-        text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
-        values: []
-    };
-
-    const { rows } = await pg.query(orgSettingsQuery);
-    const personalAccountPrefix = rows[0].personal_account_prefix;
 
     const oneWayTransaction = {
         accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,

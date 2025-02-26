@@ -25,7 +25,7 @@ const createOrUpdateVideo = async (req, res) => {
                     WHERE id = $7
                     RETURNING *
                 `,
-                values: [location, link, description, dateadded, createdby, existingVideoId]
+                values: [location, link, description, dateadded, existingVideoId]
             };
 
             const { rows: updatedRows } = await pg.query(updateQuery);
