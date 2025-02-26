@@ -12,12 +12,14 @@ const { autoAddMembershipAndAccounts } = require("../../middleware/autoaddmember
 const https = require('https');
 
 const signup = async (req, res) => {
+    // Destructure and extract user details from the request body
     const { firstname, lastname, branch, email, password, phone, othernames = '', verify = false, device = '', country = '', state = '' } = req.body;
     console.log({ firstname, lastname, email, password, othernames, ema: isValidEmail(email) });
 
-    // Basic validation
+    // Basic validation to check for missing or invalid fields
     if (!firstname || !lastname || !email || !password || !phone || !isValidEmail(email) || !branch) {
         let errors = [];
+        // Collect errors for each missing or invalid field
         if (!firstname) {
             errors.push({ field: 'First Name', message: 'First name not found' });
         }
@@ -40,6 +42,7 @@ const signup = async (req, res) => {
             errors.push({ field: 'Password', message: 'Password not found' });
         }
 
+        // Return a response with the list of errors if validation fails
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Missing Fields",
@@ -50,10 +53,11 @@ const signup = async (req, res) => {
     }
 
     try {
-        // Check if the branch exists in the branch table
+        // Query to check if the branch exists in the database
         const branchExistsQuery = `SELECT * FROM divine."Branch" WHERE id = $1`;
         const { rows: branchExistsResult } = await pg.query(branchExistsQuery, [branch]);
 
+        // If the branch does not exist, return an error response
         if (branchExistsResult.length === 0) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -64,13 +68,13 @@ const signup = async (req, res) => {
             });
         }
 
-        // Check if email already exists using raw query
+        // Query to check if the email already exists in the database
         const { rows: theuser } = await pg.query(`SELECT * FROM divine."User" WHERE email = $1`, [email]);
 
-        // Check if phone number already exists using raw query
+        // Query to check if the phone number already exists in the database
         const { rows: phoneUser } = await pg.query(`SELECT * FROM divine."User" WHERE phone = $1`, [phone]);
 
-        // CHECKING IF ITS AN ACTIVE USER IF HE EXISTS
+        // Check if the user exists but is not active
         if (theuser.length > 0 && theuser[0].status != 'ACTIVE') {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -81,7 +85,7 @@ const signup = async (req, res) => {
             });
         }
 
-        // WHEN THE ACCOUNT IS ALREADY IN USE
+        // If the email is already in use, return an error response
         if (theuser.length > 0) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -92,7 +96,7 @@ const signup = async (req, res) => {
             });
         }
 
-        // WHEN THE PHONE NUMBER IS ALREADY IN USE
+        // If the phone number is already in use, return an error response
         if (phoneUser.length > 0) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -103,17 +107,19 @@ const signup = async (req, res) => {
             });
         }
 
-        // Hash the password
+        // Hash the user's password for security
         const hashedPassword = await bcrypt.hash(password, 10);
-        // Insert new user using raw query
+        
+        // Insert the new user into the database
         const { rows: [saveuser] } = await pg.query(`INSERT INTO divine."User" 
         (firstname, lastname, othernames, email, password, permissions, country, state, phone, dateadded) 
         VALUES ($1, $2, $3, $4, $5, 'NEWUSER', $6, $7, $8, $9) RETURNING id`, [firstname, lastname, othernames, email, hashedPassword, country, state, phone, new Date()]);
+        
         const userId = saveuser.id;
         console.log(saveuser)
         const user = saveuser;
 
-        // send welcome email
+        // Send a welcome email to the new user
         sendEmail({
             to: email,
             subject: 'Welcome to divine Help Farmers! 🎉',
@@ -157,68 +163,99 @@ const signup = async (req, res) => {
             `
         });
 
-        // Create a dedicated account using Paystack API
-        const params = JSON.stringify({
-            "email": email,
-            "first_name": firstname,
-            "last_name": lastname,
-            "phone": phone
-        });
-
-        const options = {
+        // Check if the user already exists in Paystack
+        const checkUserOptions = {
             hostname: 'api.paystack.co',
             port: 443,
-            path: '/customer',
-            method: 'POST',
+            path: `/customer/${email}`,
+            method: 'GET',
             headers: {
-                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
                 'Content-Type': 'application/json'
             }
         };
 
-        const paystackReq = https.request(options, paystackRes => {
+        const checkUserReq = https.request(checkUserOptions, checkUserRes => {
             let data = '';
 
-            paystackRes.on('data', (chunk) => {
+            checkUserRes.on('data', (chunk) => {
                 data += chunk;
             });
 
-            paystackRes.on('end', () => {
-                console.log(JSON.parse(data));
+            checkUserRes.on('end', () => {
+                const paystackResponse = JSON.parse(data);
+                if (!paystackResponse.status) {
+                    // If the user does not exist in Paystack, create the user
+                    const createUserParams = JSON.stringify({
+                        "email": email,
+                        "first_name": firstname,
+                        "last_name": lastname,
+                        "phone": phone
+                    });
+
+                    const createUserOptions = {
+                        hostname: 'api.paystack.co',
+                        port: 443,
+                        path: '/customer',
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
+                    };
+
+                    const createUserReq = https.request(createUserOptions, createUserRes => {
+                        let createUserData = '';
+
+                        createUserRes.on('data', (chunk) => {
+                            createUserData += chunk;
+                        });
+
+                        createUserRes.on('end', () => {
+                            console.log(JSON.parse(createUserData));
+                        });
+                    }).on('error', error => {
+                        console.error(error);
+                    });
+
+                    createUserReq.write(createUserParams);
+                    createUserReq.end();
+                }
             });
         }).on('error', error => {
             console.error(error);
-        }); 
+        });
 
-        paystackReq.write(params);
-        paystackReq.end(); 
+        checkUserReq.end();
 
-        // WE WANT TO SIGN THE USER IN AUTOMATICALLY
+        // Automatically sign the user in by generating a JWT token
         const token = jwt.sign({ user: userId }, process.env.JWT_SECRET, {
             expiresIn: process.env.SESSION_EXPIRATION_HOUR + 'h',
         });
 
+        // Insert the session details into the database
         await pg.query(`INSERT INTO divine."Session" 
             (sessiontoken, userid, expires, device) 
             VALUES ($1, $2, $3, $4) 
             `, [token, userId, calculateExpiryDate(process.env.SESSION_EXPIRATION_HOUR), device]);
 
-        // RECORD THE ACTIVITY
+        // Record the user's activity
         await activityMiddleware(res, user.id, `Registered and Logged in Successfully ${user.permissions == 'NEWUSER' ? 'and its the first login after registering' : ''} on a ${device} device`, 'AUTH')
 
+        // Retrieve the user's details from the database
         const { rows: [details] } = await pg.query(`SELECT * FROM divine."User" WHERE id= $1`, [userId])
 
         let messagestatus;
-        // CHECK IF THE USER HAS VALIDATED HIS EMAIL
+        // Check if the user's email is verified
         if (!details.emailverified && verify) {
-            // create verification token
+            // Create a verification token
             const vtoken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: process.env.VERIFICATION_EXPIRATION_HOUR + 'h' });
-            // create a verification link and code
+            // Insert the verification token into the database
             await pg.query(`INSERT INTO divine."VerificationToken" 
                                 (identifier, token, expires) 
                                 VALUES ($1, $2, $3)`, [user.id, vtoken, calculateExpiryDate(process.env.VERIFICATION_EXPIRATION_HOUR)])
 
-            // send confirmation email
+            // Send a confirmation email to the user
             await sendEmail({
                 to: email,
                 subject: 'Confirm Your Email to Begin Your Journey with divine Help Farmers Cooperative 🎉',
@@ -252,14 +289,16 @@ const signup = async (req, res) => {
                 `
             })
 
-            // RECORD THE ACTIVITY
+            // Record the activity of sending a verification email
             await activityMiddleware(res, user.id, 'Verification Email Sent', 'AUTH')
 
             messagestatus = true;
         }
         req.newuser = saveuser;
+        // Automatically add membership and accounts for the new user
         let accountaction = await autoAddMembershipAndAccounts(req, res, 0);
 
+        // Prepare the response data
         const responseData = {
             status: accountaction,
             message: accountaction ? `Welcome ${details.firstname}` : 'Something went wrong with creating memberships and other accounts, please contact support',
@@ -276,8 +315,10 @@ const signup = async (req, res) => {
             errors: accountaction ? [] : ['Membership and account creation failed']
         };
 
+        // Send the response back to the client
         return res.status(StatusCodes.OK).json(responseData);
     } catch (err) {
+        // Log and handle any unexpected errors
         console.error('Unexpected Error:', err);
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,

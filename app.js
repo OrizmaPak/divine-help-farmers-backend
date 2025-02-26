@@ -33,6 +33,7 @@ const aiRouter = require('./routes/ai');
 const offlineRouter = require('./routes/offline');
 const dashboardRouter = require('./routes/dashboard');
 const notificationRouter = require('./routes/notification');
+const paystackRouter = require('./routes/paystack');
 
 // error handler
 const notFoundMiddleware = require('./middleware/not-found'); 
@@ -82,9 +83,9 @@ app.use('/node/api/v1/property', authMiddleware, propertyRouter);
 app.use('/node/api/v1/rotary', authMiddleware, rotaryRouter);
 app.use('/node/api/v1/personnel', authMiddleware, personnelRouter);
 app.use('/node/api/v1/offline', offlineRouter);
-app.use('/node/api/v1/offline', offlineRouter);
 app.use('/node/api/v1/dashboard', authMiddleware, dashboardRouter);
 app.use('/node/api/v1/notification', authMiddleware, notificationRouter);
+app.use('/node/api/v1/paystack', paystackRouter);
 
 app.use('/node/api/v1/incomings', incomingsRouter); 
 app.use('/node/api/v1/ai', aiRouter);

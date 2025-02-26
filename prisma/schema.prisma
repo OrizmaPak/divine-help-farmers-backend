@@ -1128,3 +1128,13 @@ model notification {
   createdby               Int @default(0)
   status                  String @default("ACTIVE")
 }
+
+model Video {
+  id                      Int       @id @default(autoincrement())
+  location                String
+  link                    String?
+  description             String?
+  dateadded               String?
+  createdby               Int @default(0)
+  status                  String @default("ACTIVE")
+}

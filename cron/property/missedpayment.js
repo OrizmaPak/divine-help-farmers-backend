@@ -122,10 +122,12 @@ async function checkAndNotifyMissedPayments() {
                 if (dueDate < today && delivered === 'NO') {
                     const message = `Your installment of amount ${amount} for account number ${accountnumber} is past due. Please make the payment as soon as possible.`;
                     await sendEmail(email, "Past Due Installment Notification", message);
+                    await sendEmail("divinehelpfarmers@gmail.com", "Past Due Installment Notification", message);
                     await sendNotification(userid, message);
                 } else if (dueDate >= today && dueDate <= tenDaysFromNow && delivered === 'NO') {
                     const message = `You have an upcoming installment of amount ${amount} for account number ${accountnumber} due on ${dueDate.toDateString()}. Please ensure timely payment.`;
                     await sendEmail(email, "Upcoming Installment Notification", message);
+                    await sendEmail("divinehelpfarmers@gmail.com", "Upcoming Installment Notification", message);
                     await sendNotification(userid, message);
                 }
             }
