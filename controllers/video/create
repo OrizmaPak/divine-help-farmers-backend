@@ -6,14 +6,14 @@ const createOrUpdateVideo = async (req, res) => {
 
     try {
         // Check if a video with the same location already exists
-        const { rows: existingVideos } = await pg.query(`SELECT * FROM Video WHERE location = $1`, [location]);
+        const { rows: existingVideos } = await pg.query(`SELECT * FROM divine."Video" WHERE location = $1`, [location]);
 
         if (existingVideos.length > 0) {
             // If a video with the same location exists, update it
             const existingVideoId = existingVideos[0].id;
             const updateQuery = {
                 text: `
-                    UPDATE Video
+                    UPDATE divine."Video"
                     SET 
                         location = COALESCE($1, location),
                         link = COALESCE($2, link),
@@ -40,7 +40,7 @@ const createOrUpdateVideo = async (req, res) => {
             // If no video with the same location exists, insert a new video
             const insertQuery = {
                 text: `
-                    INSERT INTO Video (location, link, description, dateadded, createdby, status)
+                    INSERT INTO divine."Video" (location, link, description, dateadded, createdby, status)
                     VALUES ($1, $2, $3, $4, $5, $6)
                     RETURNING *
                 `,
