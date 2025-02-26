@@ -4,6 +4,7 @@ const pg = require("../../db/pg");
 const { performTransactionOneWay } = require("../../middleware/transactions/performTransaction");
 
 const paystackWebhook = async (req, res) => {
+    console.log('here called')
     try {
         const event = req.body;
 
@@ -46,14 +47,14 @@ const paystackWebhook = async (req, res) => {
                 break;
         }
 
-        // Send the event and its details to jovisamblue@gmail.com
-        const emailSubject = `New Paystack Event: ${event.event}`;
-        const emailBody = `
-            <h1>Paystack Event Received</h1>
-            <p>Event Type: ${event.event}</p>
-            <pre>${JSON.stringify(event, null, 2)}</pre>
-        `;
-        await sendEmail({ to: 'jovisamblue@gmail.com', subject: emailSubject, text: '', html: emailBody });
+        // // Send the event and its details to jovisamblue@gmail.com
+        // const emailSubject = `New Paystack Event: ${event.event}`;
+        // const emailBody = `
+        //     <h1>Paystack Event Received</h1>
+        //     <p>Event Type: ${event.event}</p>
+        //     <pre>${JSON.stringify(event, null, 2)}</pre>
+        // `;
+        // await sendEmail({ to: 'jovisamblue@gmail.com', subject: emailSubject, text: '', html: emailBody });
 
         return res.status(StatusCodes.OK).json({
             status: true,
@@ -104,6 +105,7 @@ const handleChargeSuccess = async (transactionData) => {
         transactionref: transactionData.reference,
         status: 'ACTIVE',
         whichaccount: transactionData.authorization.receiver_bank,
+        currency: transactionData.currency, // Added currency
         rawdata: JSON.stringify(transactionData)
     };
 
@@ -134,7 +136,6 @@ const handleChargeSuccess = async (transactionData) => {
     const oneWayTransaction = {
         accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,
         userid: 0,
-        description: bankTransaction.description,
         debit: bankTransaction.debit,
         credit: bankTransaction.credit,
         transactiontype: 'CREDIT',
@@ -143,24 +144,81 @@ const handleChargeSuccess = async (transactionData) => {
         valuedate: bankTransaction.valuedate,
         reference: bankTransaction.reference,
         transactiondate: bankTransaction.transactiondate,
-        transactiondescription: bankTransaction.transactiondesc,
+        transactiondescription: `Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}`,
         transactionreference: bankTransaction.transactionref,
         status: bankTransaction.status,
-        whichaccount: 'PERSONNAL'
+        whichaccount: 'PERSONNAL',
+        currency: bankTransaction.currency, // Added currency
+        description: `Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}`
     };
+
 
     await performTransactionOneWay(oneWayTransaction);
 
     await pg.query(query);
+
+// Send a credit alert email
+const sendCreditAlertEmail = async (accountNumber, creditAmount, balance) => {
+    const emailSubject = 'Credit Alert from DIVINE HELP FARMERS';
+    const emailBody = `
+        <h1>Credit Alert</h1>
+        <p>Your account ${accountNumber} has been credited with ₦${creditAmount.toLocaleString('en-US')}.</p>
+        <p>Source: Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}.</p>
+        <p>Transaction Time: ${new Date().toLocaleString()}</p>
+        <p>Transaction Status: Successful</p>
+        <p>Available Balance: ₦${balance.toLocaleString('en-US')}</p>
+        <p>Thank you for banking with DIVINE HELP FARMERS.</p>
+    `;
+    await sendEmail({ to: `${transactionData.customer.email}`, subject: emailSubject, text: '', html: emailBody });
 };
 
+// Send a transaction notification email to divinehelpfarmers@gmail.com
+const sendTransactionNotificationEmail = async (accountNumber, creditAmount, phone) => {
+    // Fetch user's first and last name from the user table
+    const userQuery = {
+        text: `SELECT firstname, lastname FROM divine."User" WHERE phone = $1`,
+        values: [phone]
+    };
+    const { rows: [usere] } = await pg.query(userQuery);
+
+    const emailSubject = 'Transaction Notification';
+    const emailBody = `
+        <h1>Transaction Alert</h1>
+        <p>Account ${accountNumber} (${usere.firstname} ${usere.lastname}) has performed a transaction.</p>
+        <p>Amount Credited: ₦${creditAmount.toLocaleString('en-US')}</p>
+        <p>Source: Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}.</p>
+        <p>Transaction Time: ${new Date().toLocaleString()}</p>
+    `;
+    await sendEmail({ to: 'divinehelpfarmers@gmail.com', subject: emailSubject, text: '', html: emailBody });
+};
+
+// Calculate the balance from the transaction table
+const calculateBalance = async (accountNumber) => { 
+    const balanceQuery = {
+        text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1`,
+        values: [accountNumber]
+    };
+    const { rows } = await pg.query(balanceQuery);
+    return rows[0].balance;
+};
+
+// Execute the functions
+const accountNumber = `${personalAccountPrefix}${transactionData.customer.phone}`;
+const creditAmount = bankTransaction.credit;
+
+const balance = await calculateBalance(accountNumber);
+await sendCreditAlertEmail(accountNumber, creditAmount, balance);
+await sendTransactionNotificationEmail(accountNumber, creditAmount, transactionData.customer.phone);
+
+console.log(`The balance for account ${accountNumber} is ${balance}`);
+}
 // Placeholder functions for other event types 
 const handleTransferReversed = async (data) => {
     console.log('Handling transfer.reversed:', data);
 };
-
+ 
 const handleTransferFailed = async (data) => {
-    console.log('Handling transfer.failed:', data);
+    console.log('Handling transfer.failed:', data); 
 };
 
 const handleTransferSuccess = async (data) => {
@@ -192,72 +250,3 @@ const handlePaymentRequestPending = async (data) => {
 };
 
 module.exports = { paystackWebhook };
-// {
-//     "event": "charge.success",
-//     "data": {
-//       "id": 302961,
-//       "domain": "live",
-//       "status": "success",
-//       "reference": "qTPrJoy9Bx",
-//       "amount": 10000,
-//       "message": null,
-//       "gateway_response": "Approved by Financial Institution",
-//       "paid_at": "2016-09-30T21:10:19.000Z",
-//       "created_at": "2016-09-30T21:09:56.000Z",
-//       "channel": "card",
-//       "currency": "NGN",
-//       "ip_address": "41.242.49.37",
-//       "metadata": 0,
-//       "log": {
-//         "time_spent": 16,
-//         "attempts": 1,
-//         "authentication": "pin",
-//         "errors": 0,
-//         "success": false,
-//         "mobile": false,
-//         "input": [],
-//         "channel": null,
-//         "history": [
-//           {
-//             "type": "input",
-//             "message": "Filled these fields: card number, card expiry, card cvv",
-//             "time": 15
-//           },
-//           {
-//             "type": "action",
-//             "message": "Attempted to pay",
-//             "time": 15
-//           },
-//           {
-//             "type": "auth",
-//             "message": "Authentication Required: pin",
-//             "time": 16
-//           }
-//         ]
-//       },
-//       "fees": null,
-//       "customer": {
-//         "id": 68324,
-//         "first_name": "BoJack",
-//         "last_name": "Horseman",
-//         "email": "bojack@horseman.com",
-//         "customer_code": "CUS_qo38as2hpsgk2r0",
-//         "phone": null,
-//         "metadata": null,
-//         "risk_action": "default"
-//       },
-//       "authorization": {
-//         "authorization_code": "AUTH_f5rnfq9p",
-//         "bin": "539999",
-//         "last4": "8877",
-//         "exp_month": "08",
-//         "exp_year": "2020",
-//         "card_type": "mastercard DEBIT",
-//         "bank": "Guaranty Trust Bank",
-//         "country_code": "NG",
-//         "brand": "mastercard",
-//         "account_name": "BoJack Horseman"
-//       },
-//       "plan": {}
-//     }
-//   }

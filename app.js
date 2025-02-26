@@ -83,10 +83,10 @@ app.use('/node/api/v1/sales', authMiddleware, salesRouter);
 app.use('/node/api/v1/property', authMiddleware, propertyRouter);
 app.use('/node/api/v1/rotary', authMiddleware, rotaryRouter);
 app.use('/node/api/v1/personnel', authMiddleware, personnelRouter);
+app.use('/node/api/v1/paystack', paystackRouter);
 app.use('/node/api/v1/offline', offlineRouter);
 app.use('/node/api/v1/dashboard', authMiddleware, dashboardRouter);
 app.use('/node/api/v1/notification', authMiddleware, notificationRouter);
-app.use('/node/api/v1/paystack', paystackRouter);
 app.use('/node/api/v1/video', authMiddleware, videoRouter);
 
 app.use('/node/api/v1/incomings', incomingsRouter); 
