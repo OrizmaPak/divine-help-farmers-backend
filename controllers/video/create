@@ -1,0 +1,73 @@
+const { StatusCodes } = require("http-status-codes");
+const pg = require("../../db/pg");
+
+const createOrUpdateVideo = async (req, res) => {
+    const { id, location, link, description, dateadded, createdby, status } = req.body;
+
+    try {
+        // Check if a video with the same location already exists
+        const { rows: existingVideos } = await pg.query(`SELECT * FROM Video WHERE location = $1`, [location]);
+
+        if (existingVideos.length > 0) {
+            // If a video with the same location exists, update it
+            const existingVideoId = existingVideos[0].id;
+            const updateQuery = {
+                text: `
+                    UPDATE Video
+                    SET 
+                        location = COALESCE($1, location),
+                        link = COALESCE($2, link),
+                        description = COALESCE($3, description),
+                        dateadded = COALESCE($4, dateadded),
+                        createdby = COALESCE($5, createdby),
+                        status = COALESCE($6, status)
+                    WHERE id = $7
+                    RETURNING *
+                `,
+                values: [location, link, description, dateadded, createdby, status, existingVideoId]
+            };
+
+            const { rows: updatedRows } = await pg.query(updateQuery);
+
+            return res.status(StatusCodes.OK).json({
+                status: true,
+                message: "Video updated successfully",
+                statuscode: StatusCodes.OK,
+                data: updatedRows[0],
+                errors: []
+            });
+        } else {
+            // If no video with the same location exists, insert a new video
+            const insertQuery = {
+                text: `
+                    INSERT INTO Video (location, link, description, dateadded, createdby, status)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    RETURNING *
+                `,
+                values: [location, link, description, dateadded, createdby, status]
+            };
+
+            const { rows: insertedRows } = await pg.query(insertQuery);
+
+            return res.status(StatusCodes.CREATED).json({
+                status: true,
+                message: "Video created successfully",
+                statuscode: StatusCodes.CREATED,
+                data: insertedRows[0],
+                errors: []
+            });
+        }
+    } catch (error) {
+        console.error('Unexpected Error:', error);
+
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            status: false,
+            message: "An unexpected error occurred",
+            statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+            data: null,
+            errors: [error.message]
+        });
+    }
+};
+
+module.exports = { createOrUpdateVideo };

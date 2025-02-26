@@ -53,50 +53,61 @@ enum accounttype {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  firstname     String
-  lastname      String
-  othernames    String? 
-  image         String?
-  email         String    @unique
-  phone         String    @unique
-  country       String?
-  state         String?
-  emailverified DateTime?
-  address       String?
-  role          String    @default("MEMBER")
-  permissions   String?
-  userpermissions   String? @default("")
-  password      String
-  officeaddress String?
-  image2         String?
-  gender        String?
-  occupation    String?
-  lga           String?
-  town          String?
-  maritalstatus          String?
-  spousename          String?
-  stateofresidence      String?
-  lgaofresidence      String?
-  nextofkinfullname      String?
-  nextofkinphone      String?
-  nextofkinrelationship      String?
-  nextofkinaddress      String?
-  nextofkinofficeaddress      String?
-  nextofkinoccupation      String?
-  dateofbirth   DateTime?
-  branch        Int       @default(1)
-  registrationpoint   Int    @default(0)
-  dateadded     DateTime  @default(now())
-  lastupdated   DateTime?
-  status        String    @default("ACTIVE")
-  createdby     Int       @default(0)
-  sessions      Session[]
-  activities    Activity[] 
-  pin          String?   @default("")
-  offlinepass  String? @default("")
-  level         Int?       @default(0)
-  department    Int?       @default(0)
+  id                      Int       @id @default(autoincrement())
+  firstname               String
+  lastname                String
+  othernames              String?
+  image                   String?
+  email                   String    @unique
+  phone                   String    @unique
+  country                 String?
+  state                   String?
+  emailverified           DateTime?
+  address                 String?
+  role                    String    @default("MEMBER")
+  permissions             String?
+  userpermissions         String?   @default("")
+  password                String
+  officeaddress           String?
+  image2                  String?
+  gender                  String?
+  occupation              String?
+  lga                     String?
+  town                    String?
+  maritalstatus           String?
+  spousename              String?
+  stateofresidence        String?
+  lgaofresidence          String?
+  nextofkinfullname       String?
+  nextofkinphone          String?
+  nextofkinrelationship   String?
+  nextofkinaddress        String?
+  nextofkinofficeaddress  String?
+  nextofkinoccupation     String?
+  dateofbirth             DateTime?
+  branch                  Int       @default(1)
+  registrationpoint       Int       @default(0)
+  dateadded               DateTime  @default(now())
+  lastupdated             DateTime?
+  status                  String    @default("ACTIVE")
+  createdby               Int       @default(0)
+  sessions                Session[]
+  activities              Activity[]
+  pin                     String?   @default("")
+  offlinepass             String?   @default("")
+  level                   Int?      @default(0)
+  department              Int?      @default(0)
+
+  account_number          String?   @default("")
+  account_name            String?   @default("")
+  bank_name               String?   @default("")
+
+  bank_account_number     String?   @default("")
+  bank_account_name       String?   @default("")
+  bank                    String?   @default("")
+  bank_account_number2    String?   @default("")
+  bank_account_name2      String?   @default("")
+  bank2                   String?   @default("")
 }
 
 model Roles {

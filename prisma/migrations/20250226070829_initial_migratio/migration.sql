@@ -1233,6 +1233,19 @@ CREATE TABLE "notification" (
     CONSTRAINT "notification_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Video" (
+    "id" SERIAL NOT NULL,
+    "location" TEXT NOT NULL,
+    "link" TEXT,
+    "description" TEXT,
+    "dateadded" TEXT,
+    "createdby" INTEGER NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+
+    CONSTRAINT "Video_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
