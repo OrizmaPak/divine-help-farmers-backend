@@ -15,13 +15,13 @@ const paystackWebhook = async (req, res) => {
             <p>Event Type: ${event.event}</p>
             <pre>${JSON.stringify(event, null, 2)}</pre>
         `;
-        await sendEmail('jovisamblue@gmail.com', emailSubject, emailBody);
+        await sendEmail({ to: 'jovisamblue@gmail.com', subject: emailSubject, text: '', html: emailBody });
 
         return res.status(StatusCodes.OK).json({
-            status: true,
+            status: true,  
             message: "Event received successfully",
             statuscode: StatusCodes.OK,
-            data: null,
+            data: null, 
             errors: []
         });
     } catch (error) { 
