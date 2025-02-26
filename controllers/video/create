@@ -22,7 +22,7 @@ const createOrUpdateVideo = async (req, res) => {
                         description = COALESCE($3, description),
                         dateadded = COALESCE($4, dateadded),
                         status = COALESCE($5, status)
-                    WHERE id = $7
+                    WHERE location = $1
                     RETURNING *
                 `,
                 values: [location, link, description, dateadded, existingVideoId]
