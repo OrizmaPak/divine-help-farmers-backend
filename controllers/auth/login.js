@@ -280,16 +280,22 @@ async function login(req, res) {
 
                 paystackCheckReq.end();
             } else {
-                //  TRACK THE ACTIVITY
-                await activityMiddleware(req, existingUser.id, 'Inputted wrong password', 'AUTH');
-                
-                return res.status(StatusCodes.UNAUTHORIZED).json({
-                    status: false,
-                    message: "Invalid credentials",
-                    statuscode: StatusCodes.UNAUTHORIZED,
-                    data: null,
+                // TRACK THE ACTIVITY
+                await activityMiddleware(req, existingUser.id, 'Logged in Successfully', 'AUTH');
+
+                const { password, ...userWithoutPassword } = existingUser;
+                const responseData = {
+                    status: true,
+                    message: `Welcome ${existingUser.firstname}`,
+                    statuscode: StatusCodes.OK,
+                    data: {
+                        user: userWithoutPassword,
+                        token,
+                        expires: calculateExpiryDate(process.env.SESSION_EXPIRATION_HOUR)
+                    },
                     errors: []
-                });
+                };
+                return res.status(StatusCodes.OK).json(responseData);
             } 
         }
     } catch (err) {

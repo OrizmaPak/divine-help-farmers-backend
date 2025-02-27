@@ -37,7 +37,7 @@ const updateDisbursementRef = async (req, res) => {
 
         // Fetch user email and name
         const userQuery = {
-            text: `SELECT email, firstname FROM divine."users" WHERE id = $1`,
+            text: `SELECT email, firstname FROM divine."User" WHERE id = $1`,
             values: [userid]
         };
         const userResult = await pg.query(userQuery);
@@ -68,7 +68,7 @@ const updateDisbursementRef = async (req, res) => {
             status: true,
             message: "Disbursement reference updated successfully",
             statuscode: StatusCodes.OK,
-            data: null, 
+            data: null,  
             errors: null
         });
 
