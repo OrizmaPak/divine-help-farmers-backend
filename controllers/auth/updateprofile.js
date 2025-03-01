@@ -74,29 +74,29 @@ async function updateuser(req, res) {
 
     try {
         // Validate bank account names
-        if (bank_account_name && (!bank_account_name.includes(firstname) && !bank_account_name.includes(lastname))) {
+        if (bank_account_name && (!bank_account_name.toLowerCase().includes(firstname.toLowerCase()) && !bank_account_name.toLowerCase().includes(lastname.toLowerCase()))) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: "Bank account name must include user's first and last name",
+                message: "Bank account name must include your first and last name",
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
                 errors: ["Invalid bank account name"] 
             });
         }
 
-        if (bank_account_name2 && (!bank_account_name2.includes(firstname) && !bank_account_name2.includes(lastname))) {
+        if (bank_account_name2 && (!bank_account_name2.toLowerCase().includes(firstname.toLowerCase()) && !bank_account_name2.toLowerCase().includes(lastname.toLowerCase()))) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: "Bank account name 2 must include user's first and last name",
+                message: "Bank account name 2 must include your first and last name",
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
                 errors: ["Invalid bank account name 2"]
             });
-        }
+        } 
 
         if (status) {
             await pg.query(`UPDATE divine."User" 
-                             SET status = $1, 
+                             SET status = $1,  
                              lastupdated = $2
                              WHERE id = $3`, [status, new Date(), userid]);
         } else if (id) {
