@@ -49,7 +49,7 @@ async function updateuser(req, res) {
         status,
         id,
         email,
-        department // Added department
+        department = department === '' ? 0 : department
     } = req.body;
 
     const user = req.user;

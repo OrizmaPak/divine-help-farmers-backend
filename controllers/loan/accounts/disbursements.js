@@ -32,10 +32,10 @@ const updateDisbursementRef = async (req, res) => {
                 errors: ["Loan account not found"]
             });
         }
+ 
+        const { userid } = updateResult.rows[0]; 
 
-        const { userid } = updateResult.rows[0];
-
-        // Fetch user email and name
+        // Fetch user email and name 
         const userQuery = {
             text: `SELECT email, firstname FROM divine."User" WHERE id = $1`,
             values: [userid]

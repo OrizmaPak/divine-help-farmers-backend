@@ -3,8 +3,7 @@ const pg = require("../../db/pg");
 
 const createOrUpdateVideo = async (req, res) => {
     const user = req.user;
-    const { id, location, link, description, dateadded, status='ACTIVE' } = req.body;
-
+    const { location, link, description, dateadded, status = 'ACTIVE' } = req.body;
 
     try {
         // Check if a video with the same location already exists
@@ -12,24 +11,22 @@ const createOrUpdateVideo = async (req, res) => {
 
         if (existingVideos.length > 0) {
             // If a video with the same location exists, update it
-            const existingVideoId = existingVideos[0].id; 
             const updateQuery = { 
                 text: `
                     UPDATE divine."Video"
                     SET 
-                        "location" = COALESCE($1, "location"),
-                        link = COALESCE($2, link),
-                        description = COALESCE($3, description),
-                        dateadded = COALESCE($4, dateadded),
-                        status = COALESCE($5, status)
-                    WHERE location = $1
+                        link = COALESCE($1, link),
+                        description = COALESCE($2, description),
+                        dateadded = COALESCE($3, dateadded),
+                        status = COALESCE($4, status)
+                    WHERE "location" = $5
                     RETURNING *
                 `,
-                values: [location, link, description, dateadded, existingVideoId]
+                values: [link, description, dateadded, status, location]
             };
 
             const { rows: updatedRows } = await pg.query(updateQuery);
-
+ 
             return res.status(StatusCodes.OK).json({
                 status: true,
                 message: "Video updated successfully",

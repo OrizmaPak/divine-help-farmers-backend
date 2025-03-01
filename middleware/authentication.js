@@ -8,6 +8,7 @@ const authMiddleware = async (req, res, next) => {
   // CHECK IF THE HEADER HAS A TOKEN
   const token = req.headers['authorization']?.split(' ')[1];
 
+
   // IF THE TOKEN DOES NOT EXIST
   if (!token) {
     const errors = [{ field: '', message: 'Token not found' }];
@@ -15,7 +16,7 @@ const authMiddleware = async (req, res, next) => {
       status: false,
       message: 'Unauthorized access',
       statuscode: StatusCodes.UNAUTHORIZED,
-      data: null,
+      data: null, 
       errors: errors
     });
   }

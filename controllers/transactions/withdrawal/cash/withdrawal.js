@@ -7,11 +7,13 @@ const processWithdrawal = async (req, res) => {
     // Destructure and set default values for request body parameters
     let { allocation = 0, branch, userid, rowsize, location = "OUTSIDE", cashref } = req.body;
 
-    const originalCashref = cashref
+    // Store the original cash reference
+    const originalCashref = cashref;
 
+    // Get the user from the request
     const user = req.user;
 
-    // Validate required fields
+    // Validate required fields: branch, userid, and rowsize
     if (!branch || !userid || !rowsize) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
@@ -28,6 +30,7 @@ const processWithdrawal = async (req, res) => {
             SELECT * FROM divine."Branch" WHERE id = $1 AND status = 'ACTIVE'
         `, [branch]);
 
+        // If no active branch is found, return an error
         if (branchData.length === 0) {
             return res.status(StatusCodes.NOT_FOUND).json({
                 status: false,
@@ -43,6 +46,7 @@ const processWithdrawal = async (req, res) => {
             SELECT * FROM divine."User" WHERE id = $1
         `, [userid]);
 
+        // If no user is found, return an error
         if (userData.length === 0) {
             return res.status(StatusCodes.NOT_FOUND).json({
                 status: false,
@@ -58,6 +62,7 @@ const processWithdrawal = async (req, res) => {
             SELECT * FROM divine."User" WHERE id = $1
         `, [userid]);
 
+        // If no user is found, return an error
         if (userCheckData.length === 0) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -68,6 +73,7 @@ const processWithdrawal = async (req, res) => {
             });
         }
 
+        // If the user is not a marketer, return an error
         if (!userCheckData[0].registrationpoint) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -78,6 +84,7 @@ const processWithdrawal = async (req, res) => {
             });
         }
 
+        // If the user is a member, return an error
         if (userCheckData[0].role == 'MEMBER') {
             return res.status(StatusCodes.FORBIDDEN).json({
                 status: false,
@@ -93,20 +100,22 @@ const processWithdrawal = async (req, res) => {
             SELECT withdrawallimit FROM divine."Cashierlimit" WHERE cashier = $1 AND status = 'ACTIVE'
         `, [userid]);
 
+        // Store the withdrawal limit
         const withdrawalLimit = cashierLimitData[0].withdrawallimit;
 
-        // Generate a unique cash reference for the transaction
+        // Generate a unique cash reference for the transaction if not provided
         const timestamp = new Date().getTime();
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
         if(cashref){
-            cashref = cashref
+            cashref = cashref;
         }else{
             cashref = `WD-${year}${month}${day}-${userid}`;
         }
 
+        // Initialize an array to track failed transactions
         let failedTransactions = [];
 
         // Begin database transaction
@@ -146,6 +155,7 @@ const processWithdrawal = async (req, res) => {
                 SELECT default_cash_account, default_allocation_account, personal_account_prefix FROM divine."Organisationsettings" WHERE status = 'ACTIVE'
             `);
 
+            // If no organization settings are found, return an error
             if (orgSettingsData.length === 0) {
                 await pg.query('ROLLBACK');
                 return res.status(StatusCodes.NOT_FOUND).json({
@@ -157,6 +167,7 @@ const processWithdrawal = async (req, res) => {
                 });
             }
 
+            // Store organization settings
             const orgDefaultCashAccount = orgSettingsData[0].default_cash_account;
             const orgDefaultAllocationAccount = orgSettingsData[0].default_allocation_account;
             const orgPersonalAccountPrefix = orgSettingsData[0].personal_account_prefix;
@@ -168,8 +179,10 @@ const processWithdrawal = async (req, res) => {
                 WHERE accountnumber = $1 AND branch = $2 AND status = 'ACTIVE'
             `, [orgDefaultCashAccount, branch]);
 
+            // Store the account balance
             const accountBalance = accountTransactions[0].balance || 0;
 
+            // If the debit amount exceeds the account balance, return an error
             if (Number(debit) > accountBalance) {
                 await pg.query('ROLLBACK');
                 return res.status(StatusCodes.FORBIDDEN).json({
@@ -181,15 +194,17 @@ const processWithdrawal = async (req, res) => {
                 });
             }
 
-            // Check the available balance for the account to withdraw from account
+            // Check the available balance for the account to withdraw from
             const { rows: accountfromTransactions } = await pg.query(`
                 SELECT SUM(credit) - SUM(debit) as balance
                 FROM divine."transaction"
                 WHERE accountnumber = $1 AND status = 'ACTIVE'
             `, [accountnumber]);
 
+            // Store the balance of the account to withdraw from
             const accountfromBalance = accountfromTransactions[0].balance || 0;
 
+            // If the debit amount exceeds the account balance and no original cash reference is provided, return an error
             if (!originalCashref && allocation == 0 && Number(debit) > accountfromBalance) {
                 await pg.query('ROLLBACK');
                 return res.status(StatusCodes.FORBIDDEN).json({
@@ -201,9 +216,10 @@ const processWithdrawal = async (req, res) => {
                 });
             }
 
-            let accountnumberuserid
+            let accountnumberuserid;
 
-            if(!originalCashref &&allocation == 1){
+            // If allocation is set to 1 and no original cash reference is provided, process allocation
+            if(!originalCashref && allocation == 1){
                 // Remove the personal_account_prefix from the accountnumber to extract the phonenumber
                 const phonenumber = accountnumber.replace(orgPersonalAccountPrefix, '');
 
@@ -212,6 +228,7 @@ const processWithdrawal = async (req, res) => {
                     SELECT id FROM divine."User" WHERE phone = $1 AND status = 'ACTIVE'
                 `, [phonenumber]);
 
+                // If no user is found with the provided phone number, return an error
                 if (userByPhoneData.length === 0) {
                     await pg.query('ROLLBACK');
                     return res.status(StatusCodes.NOT_FOUND).json({
@@ -231,8 +248,10 @@ const processWithdrawal = async (req, res) => {
                     WHERE accountnumber = $1 AND userid = $2 AND status = 'ACTIVE'  
                 `, [orgDefaultAllocationAccount, accountnumberuserid]);
 
+                // Store the balance of the allocation account
                 const allocationAccountBalance = allocationAccountTransactions[0].balance || 0;
 
+                // If the debit amount exceeds the allocation account balance, return an error
                 if (Number(debit) > Number(allocationAccountBalance)) {
                     await pg.query('ROLLBACK');
                     return res.status(StatusCodes.FORBIDDEN).json({
@@ -243,13 +262,13 @@ const processWithdrawal = async (req, res) => {
                         errors: []
                     });
                 }
-                accountnumber = orgDefaultAllocationAccount
+                accountnumber = orgDefaultAllocationAccount;
             } 
 
             // Prepare transaction details for the debit account and cash account
             const transactionDetails = {
                 debitAccount: {
-                    accountnumber,
+                    accountnumber, 
                     credit: 0,
                     debit: Number(debit),
                     reference: "",
@@ -285,28 +304,29 @@ const processWithdrawal = async (req, res) => {
             // Perform the transaction
             const transactionResult = originalCashref 
                 ? await performTransactionOneWay(transactionDetails.debitAccount, allocation == 1 ? accountnumberuserid : userCheckData[0].id)
-                : await performTransaction(transactionDetails.debitcashAccount, allocation == 1 ? accountnumberuserid : userCheckData[0].id);
+                : await performTransaction(transactionDetails.debitcashAccount, transactionDetails.debitAccount, allocation == 1 ? accountnumberuserid : userCheckData[0].id);
 
+            // If allocation is set to 1 and no original cash reference is provided, perform a credit transaction
             if(!originalCashref && allocation == 1){
-            const creditTransactionDetails = {
-                accountnumber: accountnumber,
-                credit: Number(debit),
-                debit: 0,
-                reference: "",
-                transactiondate: new Date(),
-                transactiondesc: (location === 'INSIDE' ? 'BRANCH ' : '') + ' Cash Withdrawal reversal processed by ' + userCheckData[0].firstname + ' ' + userCheckData[0].lastname + ' ' + userCheckData[0].othernames,
-                cashref: cashref,
-                currency: 'NGN',
-                description: (location === 'INSIDE' ? 'BRANCH ' : '') + `Cash Withdrawal reversal of ${debit} to account ${accountnumber}`,
-                branch,
-                registrationpoint: userCheckData[0].registrationpoint,
-                ttype: 'CREDIT',
-                tfrom: 'CASH',
-                tax: false,
-            };
+                const creditTransactionDetails = {
+                    accountnumber: accountnumber,
+                    credit: Number(debit),
+                    debit: 0,
+                    reference: "",
+                    transactiondate: new Date(),
+                    transactiondesc: (location === 'INSIDE' ? 'BRANCH ' : '') + ' Cash Withdrawal reversal processed by ' + userCheckData[0].firstname + ' ' + userCheckData[0].lastname + ' ' + userCheckData[0].othernames,
+                    cashref: cashref,
+                    currency: 'NGN',
+                    description: (location === 'INSIDE' ? 'BRANCH ' : '') + `Cash Withdrawal reversal of ${debit} to account ${accountnumber}`,
+                    branch,
+                    registrationpoint: userCheckData[0].registrationpoint,
+                    ttype: 'CREDIT',
+                    tfrom: 'CASH',
+                    tax: false,
+                };
 
-            // Perform the one-way credit transaction
-            const creditTransactionResult = await performTransactionOneWay(creditTransactionDetails, allocation == 1 ? accountnumberuserid : userCheckData[0].id);
+                // Perform the one-way credit transaction
+                const creditTransactionResult = await performTransactionOneWay(creditTransactionDetails, allocation == 1 ? accountnumberuserid : userCheckData[0].id);
             }
 
             // Prepare bank transaction details
@@ -354,6 +374,7 @@ const processWithdrawal = async (req, res) => {
                 ]
             };
 
+            // Execute the bank transaction query
             const orgDebitTransaction = await pg.query(bankTransactionQuery);
 
             // Track failed transactions

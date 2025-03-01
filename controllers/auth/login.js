@@ -295,9 +295,9 @@ async function login(req, res) {
                     },
                     errors: []
                 };
-                return res.status(StatusCodes.OK).json(responseData);
+                return res.status(StatusCodes.OK).json(responseData); 
             } 
-        }
+        } 
     } catch (err) {
         console.error('Unexpected Error:', err);
         //  TRACK THE ACTIVITY

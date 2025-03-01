@@ -575,6 +575,18 @@ model transaction {
   tax                       Boolean? @default(false)
 }
 
+model withdrawalrequest {
+  id                        Int       @id @default(autoincrement())
+  accountnumber             String
+  userid                    Int
+  description               String?
+  requeststatus             String @default("PENDING")
+  amount                    Float
+  createdby                 Int
+  dateadded                 DateTime
+  status                    String @default("ACTIVE")
+}
+
 model banktransaction {
   id                        Int        @id @default(autoincrement())
   accountnumber             String
