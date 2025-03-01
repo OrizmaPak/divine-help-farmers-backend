@@ -46,7 +46,7 @@ const resolveAccountNumber = async (req, res) => {
                     status: true,
                     message: "Account resolved successfully",
                     statuscode: StatusCodes.OK, 
-                    data: accountInfo,
+                    data: accountInfo.data,
                     errors: [] 
                 });
             } catch (error) {
