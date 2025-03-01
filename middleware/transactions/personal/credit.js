@@ -22,4 +22,4 @@ async function personalCredit(client, req, res, next, accountnumber, credit, des
  
 module.exports = {
     personalCredit  
-};
+}; 

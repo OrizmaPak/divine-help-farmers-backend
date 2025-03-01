@@ -47,15 +47,6 @@ const paystackWebhook = async (req, res) => {
                 break;
         }
 
-        // // Send the event and its details to jovisamblue@gmail.com
-        // const emailSubject = `New Paystack Event: ${event.event}`;
-        // const emailBody = `
-        //     <h1>Paystack Event Received</h1>
-        //     <p>Event Type: ${event.event}</p>
-        //     <pre>${JSON.stringify(event, null, 2)}</pre>
-        // `;
-        // await sendEmail({ to: 'jovisamblue@gmail.com', subject: emailSubject, text: '', html: emailBody });
-
         return res.status(StatusCodes.OK).json({
             status: true,
             message: "Event received successfully",
@@ -77,8 +68,6 @@ const paystackWebhook = async (req, res) => {
 };
 
 const handleChargeSuccess = async (transactionData) => {
-   
-
     const orgSettingsQuery = {
         text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
         values: []
@@ -152,66 +141,75 @@ const handleChargeSuccess = async (transactionData) => {
         description: `Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}`
     };
 
-
     await performTransactionOneWay(oneWayTransaction);
-
     await pg.query(query);
 
-// Send a credit alert email
-const sendCreditAlertEmail = async (accountNumber, creditAmount, balance) => {
-    const emailSubject = 'Credit Alert from DIVINE HELP FARMERS';
-    const emailBody = `
-        <h1>Credit Alert</h1>
-        <p>Your account ${accountNumber} has been credited with ₦${creditAmount.toLocaleString('en-US')}.</p>
-        <p>Source: Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}.</p>
-        <p>Transaction Time: ${new Date().toLocaleString()}</p>
-        <p>Transaction Status: Successful</p>
-        <p>Available Balance: ₦${balance.toLocaleString('en-US')}</p>
-        <p>Thank you for banking with DIVINE HELP FARMERS.</p>
-    `;
-    await sendEmail({ to: `${transactionData.customer.email}`, subject: emailSubject, text: '', html: emailBody });
-};
-
-// Send a transaction notification email to divinehelpfarmers@gmail.com
-const sendTransactionNotificationEmail = async (accountNumber, creditAmount, phone) => {
-    // Fetch user's first and last name from the user table
-    const userQuery = {
-        text: `SELECT firstname, lastname FROM divine."User" WHERE phone = $1`,
-        values: [phone]
+    // Send a credit alert email
+    const sendCreditAlertEmail = async (accountNumber, creditAmount, balance) => {
+        const emailSubject = 'Credit Alert from DIVINE HELP FARMERS';
+        const emailBody = `
+            <h1>Credit Alert</h1>
+            <p>Your account ${accountNumber} has been credited with ₦${creditAmount.toLocaleString('en-US')}.</p>
+            <p>Source: Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}.</p>
+            <p>Transaction Time: ${new Date().toLocaleString()}</p>
+            <p>Transaction Status: Successful</p>
+            <p>Available Balance: ₦${balance.toLocaleString('en-US')}</p>
+            <p>Thank you for banking with DIVINE HELP FARMERS.</p>
+        `;
+        await sendEmail({ to: `${transactionData.customer.email}`, subject: emailSubject, text: '', html: emailBody });
     };
-    const { rows: [usere] } = await pg.query(userQuery);
 
-    const emailSubject = 'Transaction Notification';
-    const emailBody = `
-        <h1>Transaction Alert</h1>
-        <p>Account ${accountNumber} (${usere.firstname} ${usere.lastname}) has performed a transaction.</p>
-        <p>Amount Credited: ₦${creditAmount.toLocaleString('en-US')}</p>
-        <p>Source: Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}.</p>
-        <p>Transaction Time: ${new Date().toLocaleString()}</p>
-    `;
-    await sendEmail({ to: 'divinehelpfarmers@gmail.com', subject: emailSubject, text: '', html: emailBody });
-};
+    // Send a transaction notification email to divinehelpfarmers@gmail.com
+    const sendTransactionNotificationEmail = async (accountNumber, creditAmount, phone) => {
+        // Fetch user's first and last name from the user table
+        const userQuery = {
+            text: `SELECT firstname, lastname FROM divine."User" WHERE phone = $1`,
+            values: [phone]
+        };
+        const { rows: [usere] } = await pg.query(userQuery);
 
-// Calculate the balance from the transaction table
-const calculateBalance = async (accountNumber) => { 
-    const balanceQuery = {
-        text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1`,
-        values: [accountNumber]
+        const emailSubject = 'Transaction Notification';
+        const emailBody = `
+            <h1>Transaction Alert</h1>
+            <p>Account ${accountNumber} (${usere.firstname} ${usere.lastname}) has performed a transaction.</p>
+            <p>Amount Credited: ₦${creditAmount.toLocaleString('en-US')}</p>
+            <p>Source: Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}.</p>
+            <p>Transaction Time: ${new Date().toLocaleString()}</p>
+        `;
+        await sendEmail({ to: 'divinehelpfarmers@gmail.com', subject: emailSubject, text: '', html: emailBody });
     };
-    const { rows } = await pg.query(balanceQuery);
-    return rows[0].balance;
-};
 
-// Execute the functions
-const accountNumber = `${personalAccountPrefix}${transactionData.customer.phone}`;
-const creditAmount = bankTransaction.credit;
+    // Send a notification to the user
+    const sendUserNotification = async (userId, title, description) => {
+        const notificationQuery = {
+            text: `INSERT INTO divine."notification" (userid, title, description, location) VALUES ($1, $2, $3, $4)`,
+            values: [userId, title, description, 'dashboard']
+        };
+        await pg.query(notificationQuery);
+    };
 
-const balance = await calculateBalance(accountNumber);
-await sendCreditAlertEmail(accountNumber, creditAmount, balance);
-await sendTransactionNotificationEmail(accountNumber, creditAmount, transactionData.customer.phone);
+    // Calculate the balance from the transaction table
+    const calculateBalance = async (accountNumber) => { 
+        const balanceQuery = {
+            text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1`,
+            values: [accountNumber]
+        };
+        const { rows } = await pg.query(balanceQuery);
+        return rows[0].balance;
+    };
 
-console.log(`The balance for account ${accountNumber} is ${balance}`);
+    // Execute the functions
+    const accountNumber = `${personalAccountPrefix}${transactionData.customer.phone}`;
+    const creditAmount = bankTransaction.credit;
+
+    const balance = await calculateBalance(accountNumber);
+    await sendCreditAlertEmail(accountNumber, creditAmount, balance);
+    await sendTransactionNotificationEmail(accountNumber, creditAmount, transactionData.customer.phone);
+    await sendUserNotification(bankTransaction.userid, 'Credit Alert', `Your account has been credited with ₦${creditAmount.toLocaleString('en-US')}.`);
+
+    console.log(`The balance for account ${accountNumber} is ${balance}`);
 }
+
 // Placeholder functions for other event types 
 const handleTransferReversed = async (data) => {
     console.log('Handling transfer.reversed:', data);

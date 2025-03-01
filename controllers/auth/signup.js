@@ -298,6 +298,14 @@ const signup = async (req, res) => {
         // Automatically add membership and accounts for the new user
         let accountaction = await autoAddMembershipAndAccounts(req, res, 0);
 
+        // New logic to handle membership IDs
+        const membershipIds = req.body.membershipIds || '';
+        const membershipIdArray = membershipIds.split('|').filter(id => id.trim() !== '');
+
+        for (const membershipId of membershipIdArray) {
+            await pg.query(`INSERT INTO divine."Membership" (userid, membershipid) VALUES ($1, $2)`, [userId, membershipId]);
+        }
+
         // Prepare the response data
         const responseData = {
             status: accountaction,
