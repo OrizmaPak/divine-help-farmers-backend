@@ -49,7 +49,7 @@ async function updateuser(req, res) {
         status,
         id,
         email,
-        department = department === '' ? 0 : department,
+        department,
         account_number,
         account_name,
         bank_name,
@@ -80,7 +80,7 @@ async function updateuser(req, res) {
                 message: "Bank account name must include user's first and last name",
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
-                errors: ["Invalid bank account name"]
+                errors: ["Invalid bank account name"] 
             });
         }
 
