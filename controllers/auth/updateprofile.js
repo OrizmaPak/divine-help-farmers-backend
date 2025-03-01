@@ -49,7 +49,16 @@ async function updateuser(req, res) {
         status,
         id,
         email,
-        department = department === '' ? 0 : department
+        department = department === '' ? 0 : department,
+        account_number,
+        account_name,
+        bank_name,
+        bank_account_number,
+        bank_account_name,
+        bank,
+        bank_account_number2,
+        bank_account_name2,
+        bank2
     } = req.body;
 
     const user = req.user;
@@ -63,7 +72,28 @@ async function updateuser(req, res) {
 
     console.log('req.body', req.body);
 
-    try {  
+    try {
+        // Validate bank account names
+        if (bank_account_name && (!bank_account_name.includes(firstname) && !bank_account_name.includes(lastname))) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Bank account name must include user's first and last name",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["Invalid bank account name"]
+            });
+        }
+
+        if (bank_account_name2 && (!bank_account_name2.includes(firstname) && !bank_account_name2.includes(lastname))) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "Bank account name 2 must include user's first and last name",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["Invalid bank account name 2"]
+            });
+        }
+
         if (status) {
             await pg.query(`UPDATE divine."User" 
                              SET status = $1, 
@@ -101,9 +131,18 @@ async function updateuser(req, res) {
                                  nextofkinoccupation = COALESCE($28, nextofkinoccupation),
                                  dateofbirth = COALESCE($29, dateofbirth),
                                  registrationpoint = COALESCE($30, registrationpoint),
-                                 department = COALESCE($31, department)
-                         WHERE id = $32`, [
-                firstname, lastname, othernames, image, image2, role, new Date(), state, country, address, officeaddress, branch, permissions, userpermissions, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, registrationpoint, department, userid
+                                 department = COALESCE($31, department),
+                                 account_number = COALESCE($32, account_number),
+                                 account_name = COALESCE($33, account_name),
+                                 bank_name = COALESCE($34, bank_name),
+                                 bank_account_number = COALESCE($35, bank_account_number),
+                                 bank_account_name = COALESCE($36, bank_account_name),
+                                 bank = COALESCE($37, bank),
+                                 bank_account_number2 = COALESCE($38, bank_account_number2),
+                                 bank_account_name2 = COALESCE($39, bank_account_name2),
+                                 bank2 = COALESCE($40, bank2)
+                         WHERE id = $41`, [
+                firstname, lastname, othernames, image, image2, role, new Date(), state, country, address, officeaddress, branch, permissions, userpermissions, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, registrationpoint, department, account_number, account_name, bank_name, bank_account_number, bank_account_name, bank, bank_account_number2, bank_account_name2, bank2, userid
             ]);
         } else if (!id && email) {
             await pg.query(`UPDATE divine."User" 
@@ -136,9 +175,18 @@ async function updateuser(req, res) {
                                  nextofkinoccupation = COALESCE($27, nextofkinoccupation),
                                  dateofbirth = COALESCE($28, dateofbirth),
                                  registrationpoint = COALESCE($29, registrationpoint),
-                                 department = COALESCE($30, department) 
-                         WHERE email = $31`, [
-                firstname, lastname, othernames, image, image2, role, new Date(), state, country, address, officeaddress, permissions, userpermissions, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, registrationpoint, department, email
+                                 department = COALESCE($30, department),
+                                 account_number = COALESCE($31, account_number),
+                                 account_name = COALESCE($32, account_name),
+                                 bank_name = COALESCE($33, bank_name),
+                                 bank_account_number = COALESCE($34, bank_account_number),
+                                 bank_account_name = COALESCE($35, bank_account_name),
+                                 bank = COALESCE($36, bank),
+                                 bank_account_number2 = COALESCE($37, bank_account_number2),
+                                 bank_account_name2 = COALESCE($38, bank_account_name2),
+                                 bank2 = COALESCE($39, bank2)
+                         WHERE email = $40`, [
+                firstname, lastname, othernames, image, image2, role, new Date(), state, country, address, officeaddress, permissions, userpermissions, gender, occupation, lga, town, maritalstatus, spousename, stateofresidence, lgaofresidence, nextofkinfullname, nextofkinphone, nextofkinrelationship, nextofkinaddress, nextofkinofficeaddress, nextofkinoccupation, dateofbirth, registrationpoint, department, account_number, account_name, bank_name, bank_account_number, bank_account_name, bank, bank_account_number2, bank_account_name2, bank2, email
             ]);
         }
         await activityMiddleware(req, user.id, `Updated Profile`, 'AUTH');
