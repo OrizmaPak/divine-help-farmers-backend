@@ -14,7 +14,7 @@ async function updateuser(req, res) {
     if (req.files) {  
         await uploadToGoogleDrive(req, res);
     }
-    req.body.department = req.body.department == '' ? null : parseInt(department)??null;
+    req.body.department = req.body.department == '' ? null : parseInt(req.body.department)??null;
     let {
         _userid = '',
         firstname,

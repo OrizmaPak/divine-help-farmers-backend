@@ -304,7 +304,7 @@ const signup = async (req, res) => {
         if (membershipIds) {
             const membershipIdArray = membershipIds.includes('|') 
                 ? membershipIds.split('|').filter(id => id.trim() !== '') 
-                : [membershipIds.trim()];
+                : [membershipIds.trim()]; 
 
             for (const membershipId of membershipIdArray) {
                 if (membershipId) {
