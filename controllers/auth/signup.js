@@ -299,11 +299,18 @@ const signup = async (req, res) => {
         let accountaction = await autoAddMembershipAndAccounts(req, res, 0);
 
         // New logic to handle membership IDs
-        const membershipIds = req.body.membershipIds || '';
-        const membershipIdArray = membershipIds.split('|').filter(id => id.trim() !== '');
+        const membershipIds = req.body.membershipIds;
+        
+        if (membershipIds) {
+            const membershipIdArray = membershipIds.includes('|') 
+                ? membershipIds.split('|').filter(id => id.trim() !== '') 
+                : [membershipIds.trim()];
 
-        for (const membershipId of membershipIdArray) {
-            await pg.query(`INSERT INTO divine."Membership" (userid, membershipid) VALUES ($1, $2)`, [userId, membershipId]);
+            for (const membershipId of membershipIdArray) {
+                if (membershipId) {
+                    await pg.query(`INSERT INTO divine."Membership" (userid, membershipid) VALUES ($1, $2)`, [userId, membershipId]);
+                }
+            }
         }
 
         // Prepare the response data
