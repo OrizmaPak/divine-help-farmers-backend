@@ -8,12 +8,14 @@ const { sendEmail } = require("../../utils/sendEmail");
 const { authMiddleware } = require("../../middleware/authentication");
 const { activityMiddleware } = require("../../middleware/activity");
 const { uploadToGoogleDrive } = require("../../utils/uploadToGoogleDrive");
+const { parse } = require("yamljs");
 
 async function updateuser(req, res) {
-    if (req.files) {
+    if (req.files) {  
         await uploadToGoogleDrive(req, res);
     }
-    const {
+    req.body.department = req.body.department == '' ? null : parseInt(department)??null;
+    let {
         _userid = '',
         firstname,
         lastname,
@@ -26,7 +28,7 @@ async function updateuser(req, res) {
         address,
         officeaddress,
         role,
-        permissions,
+        permissions, 
         userpermissions,
         password,
         gender,
@@ -61,13 +63,14 @@ async function updateuser(req, res) {
         bank2
     } = req.body;
 
+    
     const user = req.user;
     let userid;
 
     if (req.user.role === 'USERADMIN' && _userid) {
-        userid = _userid;
+        userid = _userid; 
     } else {
-        userid = user.id;
+        userid = user.id; 
     }
 
     console.log('req.body', req.body);

@@ -14,7 +14,7 @@ const saveWithdrawalRequest = async (req, res) => {
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: []
-        });
+        }); 
     }
 
     try {

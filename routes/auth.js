@@ -18,6 +18,7 @@ const { sendOtp } = require('../controllers/auth/sendotp');
 const { resetPassword } = require('../controllers/auth/resetpassword');
 const { verifypasswordaccess } = require('../controllers/auth/verifypasswordaccess');
 const { verifyOtp } = require('../controllers/auth/verifyotp');
+const { getdefinedmembership } = require('../controllers/admin/membermanagement/get');
 
 
 router.route('/signup').post(signup);
@@ -38,6 +39,9 @@ router.route('/testing').post(testing);
 // CHECK IF USER EXIST
 router.route('/checkuser')
     .get(checkUser)
+
+router.route('/getorganizationmembership')
+    .get(getdefinedmembership)
 
  
 
