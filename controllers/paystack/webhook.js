@@ -230,7 +230,7 @@ const handleRefundProcessing = async (data) => {
     console.log('Handling refund.processing:', data);
 };
 
-const handleRefundProcessed = async (data) => {
+const handleRefundProcessed = async (transactionData) => {
     const orgSettingsQuery = {
         text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
         values: []
