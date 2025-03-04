@@ -31,7 +31,7 @@ async function updateuser(req, res) {
         permissions, 
         userpermissions,
         password,
-        gender,
+        gender, 
         occupation,
         lga,
         town,

@@ -153,7 +153,7 @@ async function login(req, res) {
 
                                         const dedicatedAccountParams = JSON.stringify({
                                             customer: createdUser.data.id,
-                                            preferred_bank: "wema-bank"
+                                            preferred_bank: "titan-paystack"
                                         });
 
                                         const dedicatedAccountReq = https.request(dedicatedAccountOptions, dedicatedAccountRes => {

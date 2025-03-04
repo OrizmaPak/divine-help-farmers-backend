@@ -7,19 +7,24 @@ const getWithdrawalRequests = async (req, res) => {
 
     try {
         let query = {
-            text: `SELECT * FROM divine."withdrawalrequest"`,
+            text: `SELECT wr.*, 
+                          CONCAT(u.firstname, ' ', u.lastname, ' ', COALESCE(u.othernames, '')) AS useridname,
+                          CONCAT(c.firstname, ' ', c.lastname, ' ', COALESCE(c.othernames, '')) AS createdbyname
+                   FROM divine."withdrawalrequest" wr
+                   JOIN divine."User" u ON wr.userid = u.id
+                   JOIN divine."User" c ON wr.createdby = c.id`,
             values: []
         };
 
         // Dynamically build the WHERE clause based on query parameters
-        let whereClause = '';  
+        let whereClause = '';   
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
             if (key !== 'q' && key !== 'startdate' && key !== 'enddate') {
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
-                    whereClause += ` WHERE `;
+                    whereClause += ` WHERE `; 
                 }
                 whereClause += `"${key}" = $${valueIndex}`;
                 query.values.push(req.query[key]);
@@ -34,7 +39,7 @@ const getWithdrawalRequests = async (req, res) => {
             } else {
                 whereClause += ` WHERE `;
             }
-            whereClause += `"dateadded" >= $${valueIndex}`;
+            whereClause += `wr."dateadded" >= $${valueIndex}`;
             query.values.push(req.query.startdate);
             valueIndex++;
         }
@@ -45,7 +50,7 @@ const getWithdrawalRequests = async (req, res) => {
             } else {
                 whereClause += ` WHERE `;
             }
-            whereClause += `"dateadded" <= $${valueIndex}`;
+            whereClause += `wr."dateadded" <= $${valueIndex}`;
             query.values.push(req.query.enddate);
             valueIndex++;
         }
@@ -62,7 +67,7 @@ const getWithdrawalRequests = async (req, res) => {
             const cols = columns.map(row => row.column_name);
 
             // Generate the dynamic SQL query
-            const searchConditions = cols.map(col => `${col}::text ILIKE $${valueIndex}`).join(' OR ');
+            const searchConditions = cols.map(col => `wr.${col}::text ILIKE $${valueIndex}`).join(' OR ');
             if (whereClause) {
                 whereClause += ` AND (${searchConditions})`;
             } else {
@@ -88,7 +93,7 @@ const getWithdrawalRequests = async (req, res) => {
 
         // Get total count for pagination
         const countQuery = {
-            text: `SELECT COUNT(*) FROM divine."withdrawalrequest" ${whereClause}`,
+            text: `SELECT COUNT(*) FROM divine."withdrawalrequest" wr ${whereClause}`,
             values: query.values.slice(0, -2) // Exclude limit and offset
         };
         const { rows: [{ count: total }] } = await pg.query(countQuery);

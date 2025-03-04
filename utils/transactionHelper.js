@@ -3,7 +3,7 @@ const { activityMiddleware } = require('../middleware/activity');
 
 
 // if (savingsProduct.withdrawalcharges > 0) {
-//     await applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount);
+//     await applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount); 
 // }
 
 async function applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount) {
@@ -15,22 +15,22 @@ async function applyWithdrawalCharge(client, req, res, accountnumber, debit, whi
         debit: chargeAmount, 
         description: 'Withdrawal Charge',
         reference: await generateNewReference(client, accountnumber, req, res),
-        status: 'PENDING',
+        status: 'ACTIVE',
         ttype: 'CHARGE',
         whichaccount: whichaccount
     };
     await saveTransaction(client, res, transactionParams, req); // Call the saveTransaction function
-    await activityMiddleware(req, req.user.id, 'Pending withdrawal charge transaction saved', 'TRANSACTION'); // Log activity
+    await activityMiddleware(req, req.user.id, 'Withdrawal charge transaction saved', 'TRANSACTION'); // Log activity
 
     // Credit the charge amount to the organisation's default income account
     const incomeAccountParams = {
-        accountnumber: req.orgSettings.default_income_account,
+        accountnumber: req.orgSettings.default_savings_income_account,
         credit: chargeAmount,
         description: 'Withdrawal Charge Income',
         reference: transactionParams.reference,
-        status: 'PENDING',
+        status: 'ACTIVE',
         ttype: 'INCOME',
-        whichaccount: 'INCOME'
+        whichaccount: 'GLACCOUNT'
     };
     await saveTransaction(client, res, incomeAccountParams, req); // Save the income transaction
     await activityMiddleware(req, req.user.id, 'Withdrawal charge credited to default income account', 'TRANSACTION');
@@ -44,28 +44,28 @@ async function applySavingsCharge(client, req, res, accountnumber, credit, which
         debit: chargeAmount,
         description: 'Savings Charge',
         reference: await generateNewReference(client, accountnumber, req, res),
-        status: 'PENDING',
+        status: 'ACTIVE',
         ttype: 'CHARGE',
         whichaccount: whichaccount
     };
     await saveTransaction(client, res, transactionParams, req); // Call the saveTransaction function
-    await activityMiddleware(req, req.user.id, 'Pending savings charge transaction saved', 'TRANSACTION'); // Log activity
+    await activityMiddleware(req, req.user.id, 'Savings charge transaction saved', 'TRANSACTION'); // Log activity
 
     // Credit the charge amount to the organisation's default income account
     const incomeAccountParams = {
-        accountnumber: req.orgSettings.default_income_account,
+        accountnumber: req.orgSettings.default_savings_income_account,
         credit: chargeAmount,
         description: 'Savings Charge Income',
         reference: transactionParams.reference,
-        status: 'PENDING',
+        status: 'ACTIVE',
         ttype: 'INCOME',
-        whichaccount: 'INCOME'
+        whichaccount: 'GLACCOUNT'
     };
     await saveTransaction(client, res, incomeAccountParams, req); // Save the income transaction
     await activityMiddleware(req, req.user.id, 'Savings charge credited to default income account', 'TRANSACTION');
 }
 
-
+ 
 
 // take charges
 async function takeCharges(client, req, res) {
@@ -104,7 +104,7 @@ const saveFailedTransaction = async (client, req, res, reasonForRejection, trans
 
     req.body.transactiondesc += `Transaction failed due to: ${reasonForRejection}.|`;
 
-    if (req.body.tfrom === 'CASH') {
+    if (req.body.tfrom === 'CASH') { 
         // if (req.body.credit > 0) {
         //     // Redirect to default excess account
         //     const defaultExcessAccount = req.orgSettings.default_excess_account || '999999999';
@@ -218,7 +218,7 @@ const savePendingTransaction = async (client, accountnumber, credit, debit, tran
 // Function to save a transaction
 const saveTransaction = async (client, res, transactionData, req) => {
     try {
-        console.log('description',   transactionData.description, req.body)
+        console.log('description', transactionData.description, req.body);
         const {
             accountnumber,
             credit = 0,
@@ -228,32 +228,46 @@ const saveTransaction = async (client, res, transactionData, req) => {
             ttype = req.body ? req.body.ttype : '',
             status = 'ACTIVE',
             transactiondate = req.body ? req.body.transactiondate || new Date() : new Date(),
-            // whichaccount = req.body.whichaccount??'',
             valuedate = req.body ? req.body.valuedate || new Date() : new Date(),
             transactiondesc = req.body ? req.body.transactiondesc || '' : '',
             currency = req.body ? req.body.currency : '',
             tfrom = req.body ? req.body.tfrom : '',
-            transactionref = req.body ? req.body.transactionref??'' : '',
-            cashref = req.body ? req.body.cashref??'' : '',
+            transactionref = req.body ? req.body.transactionref ?? '' : '',
+            cashref = req.body ? req.body.cashref ?? '' : '',
         } = transactionData;
 
         const createdBy = (req.user && req.user.id) || (req.body.createdby ?? 0) || 0;
         let userid = req.user.id;
 
-        // if (whichaccount !== 'GLACCOUNT') {
-        //     const accountQuery = `SELECT userid FROM divine."${whichaccount.toLowerCase()}" WHERE accountnumber = $1`;
-        //     const accountResult = await client.query(accountQuery, [accountnumber]);
-        //     if (accountResult.rowCount !== 0) {
-        //         userid = accountResult.rows[0].userid;
-        //     }
-        // }
-
         const finalValuedate = status === 'ACTIVE' ? new Date() : null;
         const newReference = await generateNewReference(client, accountnumber, req);
+
         await client.query(
             `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14, $15, $16, $17, $18)`,
             [accountnumber, credit, debit, newReference, description, ttype, status, transactiondate, req.body.whichaccount, finalValuedate, transactiondesc, createdBy, currency, userid, tfrom, transactionref, cashref, req.body.branch]
         );
+
+        // Determine the appropriate account based on whichaccount and ttype
+        let incomeAccountNumber;
+        if (req.body.whichaccount == 'SAVINGS') {
+            incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_savings_income_account : req.orgSettings.default_savings_account;
+        } else if (req.body.whichaccount == 'LOAN') {
+            incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_loan_income_account : req.orgSettings.default_loan_account;
+        } else if (req.body.whichaccount == 'PROPERTY') {
+            incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_property_income_account : req.orgSettings.default_property_account;
+        } else if (req.body.whichaccount == 'ROTARY') {
+            incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_rotary_income_account : req.orgSettings.default_rotary_account;
+        } else if (req.body.whichaccount == 'PERSONAL') {
+            incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_personal_income_account : req.orgSettings.default_personal_account;
+        }
+
+        if (incomeAccountNumber) { 
+            await client.query(
+                `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14, $15, $16, $17, $18)`,
+                [incomeAccountNumber, credit, debit, newReference, description, ttype, status, transactiondate, req.body.whichaccount, finalValuedate, transactiondesc, createdBy, currency, userid, tfrom, transactionref, cashref, req.body.branch]
+            );  
+        }
+
         req.body.transactiondesc += 'Transaction saved successfully.|';
     } catch (error) {
         console.error('Error saving transaction:', error.stack);
@@ -283,7 +297,7 @@ const calculateChargedebit = (product, amount) => {
 
 
 const applyMinimumCreditAmountPenalty = async (client, req, res, orgSettings) => {
-    if (req.body.credit < orgSettings.minimum_credit_amount && req.body.ttype != 'CHARGE') {
+    if (req.body.credit < orgSettings.minimum_credit_amount && req.body.ttype !== 'CREDIT' && req.body.ttype !== 'DEBIT') {
         const penaltyAmount = orgSettings.minimum_credit_amount_penalty;
         const defaultIncomeAccountNumber = orgSettings.default_income_account;
         const incomeAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
@@ -709,6 +723,61 @@ const makePaymentAndCloseAccount = async (client, loanAccountNumber, credit, des
 };
 
 
+const makeTransferToAccount = async (recipientCode, amount, name) => {
+    const https = require('https');
+
+    const postData = JSON.stringify({
+        source: "balance",
+        amount: amount * 100, // Paystack expects amount in kobo
+        recipient: recipientCode,
+        reason: "Transfer to " + name??"recipient"
+    });
+
+    const options = {
+        hostname: 'api.paystack.co',
+        port: 443,
+        path: '/transfer',
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+            'Content-Length': postData.length
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+            let data = '';
+
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            res.on('end', () => {
+                try {
+                    const response = JSON.parse(data);
+                    if (response.status) {
+                        resolve(response.data);
+                    } else {
+                        reject(new Error(response.message));
+                    }
+                } catch (error) {
+                    reject(new Error('Error parsing Paystack response'));
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            reject(new Error('Error communicating with Paystack'));
+        });
+
+        req.write(postData);
+        req.end();
+    });
+};
+
+
+
 
 // Example function to generate dates for compulsory deposits
 // const generateDates = () => {
@@ -736,5 +805,6 @@ module.exports = {
     applyWithdrawalCharge,
     takeCharges,
     applySavingsCharge,
+    makeTransferToAccount,
 };
 // generateDates, // Uncomment if needed

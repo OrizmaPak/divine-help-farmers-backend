@@ -65,6 +65,16 @@ const organizationsettings = async (req, res) => {
       equity_account_prefix = null,
 
       // Default accounts
+      default_personal_account = 0,
+      default_property_account = 0,
+      default_rotary_account = 0,
+      default_loan_account = 0,
+      default_savings_account = 0,
+      default_personal_income_account = 0,
+      default_property_income_account = 0,
+      default_loan_income_account = 0,
+      default_savings_income_account = 0,
+      default_rotary_income_account = 0,
       default_sms_charge_account = null,
       default_asset_account = null,
       default_cash_account = null,
@@ -88,8 +98,6 @@ const organizationsettings = async (req, res) => {
       default_tax_account = null,
       default_excess_account = null,
       default_allocation_account = 0,
-      default_property_account = 0,
-      default_rotary_account = 0,
       status = "ACTIVE"
     } = req.body;
 
@@ -163,6 +171,16 @@ const organizationsettings = async (req, res) => {
 
     // Validate default accounts
     const defaultAccounts = [
+      default_personal_account,
+      default_property_account,
+      default_rotary_account,
+      default_loan_account,
+      default_savings_account,
+      default_personal_income_account,
+      default_property_income_account,
+      default_loan_income_account,
+      default_savings_income_account,
+      default_rotary_income_account,
       default_sms_charge_account,
       default_asset_account,
       default_cash_account,
@@ -185,9 +203,7 @@ const organizationsettings = async (req, res) => {
       default_equity_account,
       default_tax_account,
       default_excess_account,
-      default_allocation_account,
-      default_property_account,
-      default_rotary_account
+      default_allocation_account
     ];
 
     for (const account of defaultAccounts.filter(a => a)) {
@@ -270,6 +286,16 @@ const organizationsettings = async (req, res) => {
       equity_account_prefix,
 
       // Default accounts
+      default_personal_account: parseNumber(default_personal_account, 0),
+      default_property_account: parseNumber(default_property_account, 0),
+      default_rotary_account: parseNumber(default_rotary_account, 0),
+      default_loan_account: parseNumber(default_loan_account, 0),
+      default_savings_account: parseNumber(default_savings_account, 0),
+      default_personal_income_account: parseNumber(default_personal_income_account, 0),
+      default_property_income_account: parseNumber(default_property_income_account, 0),
+      default_loan_income_account: parseNumber(default_loan_income_account, 0),
+      default_savings_income_account: parseNumber(default_savings_income_account, 0),
+      default_rotary_income_account: parseNumber(default_rotary_income_account, 0),
       default_sms_charge_account: parseNumber(default_sms_charge_account),
       default_asset_account: parseNumber(default_asset_account),
       default_cash_account: parseNumber(default_cash_account),
@@ -292,9 +318,7 @@ const organizationsettings = async (req, res) => {
       default_equity_account: parseNumber(default_equity_account),
       default_tax_account: parseNumber(default_tax_account),
       default_excess_account: parseNumber(default_excess_account),
-      default_allocation_account: parseNumber(default_allocation_account, 0),
-      default_property_account: parseNumber(default_property_account, 0),
-      default_rotary_account: parseNumber(default_rotary_account, 0)
+      default_allocation_account: parseNumber(default_allocation_account, 0)
     };
 
     // Database operation

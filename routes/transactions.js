@@ -15,6 +15,8 @@ const { getfullAccountType } = require('../controllers/transactions/collections/
 const { processWithdrawal } = require('../controllers/transactions/withdrawal/cash/withdrawal');
 const { processCashCollection } = require('../controllers/transactions/deposit/cash/deposit');
 const { saveWithdrawalRequest } = require('../controllers/transactions/withdrawal/bank/withdrawalrequest');
+const { getWithdrawalRequests } = require('../controllers/transactions/withdrawal/bank/viewrequest');
+const { approveWithdrawalRequest } = require('../controllers/transactions/withdrawal/bank/approverequest');
 const router = express.Router();
 
  
@@ -67,6 +69,10 @@ router.route('/cashdeposit')
 
 router.route('/withdrawalrequest')
     .post(saveWithdrawalRequest)
+    .get(getWithdrawalRequests)
+
+router.route('/approvewithdrawalrequest')
+    .post(approveWithdrawalRequest)
 
  
 

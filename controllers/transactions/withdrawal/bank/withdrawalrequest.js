@@ -3,14 +3,14 @@ const pg = require("../../../../db/pg");
 const { activityMiddleware } = require("../../../../middleware/activity");
 
 const saveWithdrawalRequest = async (req, res) => {
-    const { id, accountnumber, userid, amount, description, requeststatus } = req.body;
+    const { id, accountnumber, accounttype, userid, amount, description, requeststatus } = req.body;
     const user = req.user;
 
     // Validate required fields
-    if (!accountnumber || !userid || !amount) {
+    if (!accountnumber || !accounttype || !userid || !amount) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Account number, user ID, and amount are required",
+            message: "Account number, account type, user ID, and amount are required",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: []
@@ -18,28 +18,29 @@ const saveWithdrawalRequest = async (req, res) => {
     }
 
     try {
-        let query;
+        let query; 
         if (id) {
             // Update the existing withdrawal request
-            query = {
+            query = { 
                 text: `UPDATE divine."withdrawalrequest"
                        SET accountnumber = COALESCE($1, accountnumber),
-                           userid = COALESCE($2, userid),
-                           amount = COALESCE($3, amount),
-                           description = COALESCE($4, description),
-                           requeststatus = COALESCE($5, requeststatus),
-                           createdby = COALESCE($6, createdby),
+                           accounttype = COALESCE($2, accounttype),
+                           userid = COALESCE($3, userid),
+                           amount = COALESCE($4, amount),
+                           description = COALESCE($5, description),
+                           requeststatus = COALESCE($6, requeststatus),
+                           createdby = COALESCE($7, createdby),
                            dateadded = NOW(),
                            status = COALESCE('ACTIVE', status)
-                       WHERE id = $7 RETURNING id`,
-                values: [accountnumber, userid, amount, description, requeststatus, user.id, id]
+                       WHERE id = $8 RETURNING id`,
+                values: [accountnumber, accounttype, userid, amount, description, requeststatus, user.id, id]
             };
         } else {
             // Insert a new withdrawal request
             query = {
-                text: `INSERT INTO divine."withdrawalrequest" (accountnumber, userid, amount, description, requeststatus, createdby, dateadded, status)
-                       VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'ACTIVE') RETURNING id`,
-                values: [accountnumber, userid, amount, description, requeststatus || 'PENDING', user.id]
+                text: `INSERT INTO divine."withdrawalrequest" (accountnumber, accounttype, userid, amount, description, requeststatus, createdby, dateadded, status)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), 'ACTIVE') RETURNING id`,
+                values: [accountnumber, accounttype, userid, amount, description, requeststatus || 'PENDING', user.id]
             };
         }
 
@@ -52,7 +53,7 @@ const saveWithdrawalRequest = async (req, res) => {
         const notificationQuery = {
             text: `INSERT INTO divine."notification" (userid, title, description, location, dateadded, createdby, status)
                    VALUES ($1, $2, $3, $4, NOW(), $5, 'ACTIVE')`,
-            values: [userid, 'Withdrawal Request', 'Your withdrawal request has been created successfully.', 'viewrequest', user.id]
+            values: [userid, 'Withdrawal Request', 'Your withdrawal request has been created successfully.', 'viewwithdrawalrequest', user.id]
         };
         await pg.query(notificationQuery);
 

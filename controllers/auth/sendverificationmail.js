@@ -82,9 +82,9 @@ async function sendverificationmail(req, res) {
                             <div style="margin: 20px 0;">
                                 <p>Hello ${existingUser.firstname},</p>
                                 <p>Thank you for registering with Divine Help Farmers! To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
-                                <a href="${process.env.NEXT_PUBLIC_RETURN_APP_BASE}?emailtoken=${vtoken}" style="display: block; width: 200px; margin: 20px auto; text-align: center; background-color: #4CAF50; color: #ffffff; padding: 10px; border-radius: 5px; text-decoration: none; font-weight: bold;">Verify Email Address</a>
+                                <a href="https://frontend.dhfdev.online?emailtoken=${vtoken}" style="display: block; width: 200px; margin: 20px auto; text-align: center; background-color: #4CAF50; color: #ffffff; padding: 10px; border-radius: 5px; text-decoration: none; font-weight: bold;">Verify Email Address</a>
                                 <p>If the button above doesn't work, copy and paste the following link into your browser:</p>
-                                <p><a href="${process.env.NEXT_PUBLIC_RETURN_APP_BASE}?emailtoken=${vtoken}" style="color: #4CAF50;">${process.env.NEXT_PUBLIC_RETURN_APP_BASE}?emailtoken=${vtoken}</a></p>
+                                <p><a href="https://frontend.dhfdev.online?emailtoken=${vtoken}" style="color: #4CAF50;">https://frontend.dhfdev.online?emailtoken=${vtoken}</a></p>
                                 <p>If you didn't create an account with Divine Help Farmers, please ignore this email.</p>
                                 <p>Best Regards,<br>The Divine Help Farmers Team</p>
                             </div>

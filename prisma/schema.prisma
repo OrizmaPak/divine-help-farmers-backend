@@ -266,9 +266,21 @@ model Organisationsettings {
   long_term_liabilities_account_prefix       String?
   equity_account_prefix                      String?
   
+  default_personal_account                  Float? @default(0)
+  default_property_account                  Float? @default(0)
+  default_rotary_account                  Float? @default(0)
+  default_loan_account                  Float? @default(0)
+  default_savings_account                  Float? @default(0) 
+
+  default_personal_income_account                         Float? @default(0)
+  default_property_income_account                         Float? @default(0)
+  default_loan_income_account                             Float? @default(0)
+  default_savings_income_account                          Float? @default(0)
+  default_rotary_income_account                             Float? @default(0)
+
+  default_cash_account                         Float?
   default_sms_charge_account                  Float?
   default_asset_account                       Float?
-  default_cash_account                        Float?
   default_current_assets_account              Float?
   default_expense_account                     Float?
   default_income_account                      Float?
@@ -289,8 +301,6 @@ model Organisationsettings {
   default_tax_account                         Float?
   default_excess_account                      Float?
   default_allocation_account                  Float? @default(0)
-  default_property_account                  Float? @default(0)
-  default_rotary_account                  Float? @default(0)
   status                                      String @default("ACTIVE")
 }
 
@@ -581,7 +591,9 @@ model withdrawalrequest {
   userid                    Int
   description               String?
   requeststatus             String @default("PENDING")
+  reason                    String? @default("")
   amount                    Float
+  accounttype               String? @default("")
   createdby                 Int
   dateadded                 DateTime
   status                    String @default("ACTIVE")
@@ -1145,6 +1157,7 @@ model notification {
   department              Int?
   branch                  Int?
   title                   String?  
+  permission              String?
   description             String?
   location                String?
   dateadded               DateTime @default(now())
@@ -1160,4 +1173,14 @@ model Video {
   dateadded               String?
   createdby               Int @default(0)
   status                  String @default("ACTIVE")
+}
+
+model paystackrecipient {
+  id              Int    @id @default(autoincrement())
+  accountnumber   String
+  bank            String
+  recipient       String
+  dateadded       String
+  status          String @default("ACTIVE")
+  createdby       Int    @default(0)
 }
