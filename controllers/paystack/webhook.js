@@ -236,25 +236,36 @@ const handleRefundProcessed = async (transactionData) => {
         values: []
     };
 
-    const { rows } = await pg.query(orgSettingsQuery);
-    const personalAccountPrefix = rows[0].personal_account_prefix;
+    const { rows: orgRows } = await pg.query(orgSettingsQuery);
+    const personalAccountPrefix = orgRows[0].personal_account_prefix;
+
+    // Fetch user details using the email
+    const userQuery = {
+        text: `SELECT id, phone FROM divine."User" WHERE email = $1 LIMIT 1`,
+        values: [transactionData.customer.email]
+    };
+
+    const { rows: userRows } = await pg.query(userQuery);
+    const user = userRows[0];
+    const userId = user.id;
+    const userPhone = user.phone;
 
     const bankTransaction = {
-        accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,
-        userid: 0,
-        description: transactionData.authorization.narration,
+        accountnumber: `${personalAccountPrefix}${userPhone}`,
+        userid: userId,
+        description: transactionData.merchant_note,
         debit: Math.floor(transactionData.amount / 100), // Remove the last two digits
         credit: 0,
         ttype: "DEBIT", // Assuming the type is REFUND
-        tfrom: transactionData.authorization.sender_bank,
+        tfrom: 'BANK', // Assuming the sender bank is not provided
         createdby: 0, // Assuming system created
-        valuedate: new Date(transactionData.paid_at),
-        reference: transactionData.reference,
-        transactiondate: new Date(transactionData.created_at),
-        transactiondesc: transactionData.authorization.narration,
-        transactionref: transactionData.reference,
+        valuedate: new Date(), // Assuming current date as valuedate
+        reference: transactionData.refund_reference,
+        transactiondate: new Date(), // Assuming current date as transactiondate
+        transactiondesc: transactionData.merchant_note,
+        transactionref: transactionData.refund_reference,
         status: 'ACTIVE',
-        whichaccount: transactionData.authorization.receiver_bank,
+        whichaccount: 'PERSONNAL',
         currency: transactionData.currency, // Added currency
         rawdata: JSON.stringify(transactionData)
     };
@@ -284,8 +295,8 @@ const handleRefundProcessed = async (transactionData) => {
     };
 
     const oneWayTransaction = {
-        accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,
-        userid: 0,
+        accountnumber: `${personalAccountPrefix}${userPhone}`,
+        userid: userId,
         debit: bankTransaction.debit,
         credit: bankTransaction.credit,
         transactiontype: 'DEBIT',
@@ -294,12 +305,12 @@ const handleRefundProcessed = async (transactionData) => {
         valuedate: bankTransaction.valuedate,
         reference: bankTransaction.reference,
         transactiondate: bankTransaction.transactiondate,
-        transactiondescription: `Refund to ${transactionData.authorization.bank} for ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}`,
+        transactiondescription: transactionData.merchant_note,
         transactionreference: bankTransaction.transactionref,
         status: bankTransaction.status,
         whichaccount: 'PERSONNAL',
         currency: bankTransaction.currency, // Added currency
-        description: `Refund to ${transactionData.authorization.bank} for ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}`
+        description: transactionData.merchant_note
     };
 
     await performTransactionOneWay(oneWayTransaction);
@@ -311,7 +322,7 @@ const handleRefundProcessed = async (transactionData) => {
         const emailBody = `
             <h1>Refund Alert</h1>
             <p>Your account ${accountNumber} has been debited with ₦${debitAmount.toLocaleString('en-US')} for a refund.</p>
-            <p>Source: Refund to ${transactionData.authorization.bank} for ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}.</p>
+            <p>Source: ${transactionData.merchant_note}.</p>
             <p>Transaction Time: ${new Date().toLocaleString()}</p>
             <p>Transaction Status: Successful</p>
             <p>Available Balance: ₦${balance.toLocaleString('en-US')}</p>
@@ -331,7 +342,7 @@ const handleRefundProcessed = async (transactionData) => {
     };
 
     // Execute the functions
-    const accountNumber = `${personalAccountPrefix}${transactionData.customer.phone}`;
+    const accountNumber = `${personalAccountPrefix}${userPhone}`;
     const debitAmount = bankTransaction.debit;
 
     const balance = await calculateBalance(accountNumber);
