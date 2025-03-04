@@ -5,6 +5,9 @@ const { performTransactionOneWay } = require("../../middleware/transactions/perf
 
 const paystackWebhook = async (req, res) => {
     console.log('here called')
+
+    sendEmail('divinehelpfarmers@gmail.com', 'Paystack Event', JSON.stringify(req.body, null, 2))
+
     try {
         const event = req.body;
 
