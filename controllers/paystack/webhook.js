@@ -216,14 +216,155 @@ const handleChargeSuccess = async (transactionData) => {
 // Placeholder functions for other event types 
 const handleTransferReversed = async (data) => {
     console.log('Handling transfer.reversed:', data);
+
+    const { amount, currency, reason, reference, recipient } = data;
+    const { account_number, bank_name } = recipient.details;
+
+    // Log the details of the reversed transfer
+    console.log(`Transfer of ${currency} ${amount} to account ${account_number} at ${bank_name} has been reversed.`);
+    console.log(`Reason for reversal: ${reason}`);
+    console.log(`Reference: ${reference}`);
+
+    try {
+        // Fetch the transaction using the reference
+        const transactionQuery = {
+            text: `SELECT * FROM divine."transaction" WHERE transactiondesc LIKE $1`,
+            values: [`%||${reference}`]
+        };
+        const { rows: [transaction] } = await pg.query(transactionQuery);
+
+        if (!transaction) {
+            console.error(`No transaction found with reference: ${reference}`);
+            return;
+        }
+
+        // Clone the transaction and create a reversed bank transaction
+        const bankTransaction = {
+            ...transaction,
+            credit: transaction.debit,
+            debit: 0,
+            transactiondesc: `Reversed: ${transaction.transactiondesc}`,
+            transactiondate: new Date(),
+            status: 'ACTIVE'
+        };
+
+        // Insert the reversed bank transaction
+        const insertTransactionQuery = {
+            text: `INSERT INTO divine."transaction" (accountnumber, userid, description, debit, credit, ttype, tfrom, createdby, valuedate, reference, transactiondate, transactiondesc, transactionref, status, whichaccount, currency) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+            values: [
+                bankTransaction.accountnumber,
+                bankTransaction.userid,
+                bankTransaction.description,
+                bankTransaction.debit,
+                bankTransaction.credit,
+                bankTransaction.ttype,
+                bankTransaction.tfrom,
+                bankTransaction.createdby,
+                bankTransaction.valuedate,
+                bankTransaction.reference,
+                bankTransaction.transactiondate,
+                bankTransaction.transactiondesc,
+                bankTransaction.transactionref,
+                bankTransaction.status,
+                bankTransaction.whichaccount,
+                bankTransaction.currency
+            ]
+        };
+
+        await pg.query(insertTransactionQuery);
+        console.log(`Reversed transaction for reference ${reference} has been recorded.`);
+    } catch (error) {
+        console.error('Error processing reversed transaction:', error);
+    }
 };
  
 const handleTransferFailed = async (data) => {
-    console.log('Handling transfer.failed:', data); 
+    console.log('Handling transfer.failed:', data);
+
+    const { amount, currency, reason, reference, recipient } = data;
+    const { account_number, bank_name } = recipient.details;
+
+    // Log the details of the failed transfer
+    console.log(`Transfer of ${currency} ${amount} to account ${account_number} at ${bank_name} has failed.`);
+    console.log(`Reason for failure: ${reason}`);
+    console.log(`Reference: ${reference}`);
+
+    try {
+        // Fetch the transaction using the reference
+        const transactionQuery = {
+            text: `SELECT * FROM divine."transaction" WHERE transactiondesc LIKE $1`,
+            values: [`%||${reference}`]
+        };
+        const { rows: [transaction] } = await pg.query(transactionQuery);
+
+        if (!transaction) {
+            console.error(`No transaction found with reference: ${reference}`);
+            return;
+        }
+
+        // Clone the transaction and create a new transaction crediting it
+        const creditTransaction = {
+            ...transaction,
+            debit: 0,
+            credit: transaction.debit,
+            transactiondesc: `Credit for failed transfer: ${transaction.transactiondesc}`,
+            transactiondate: new Date(),
+            status: 'ACTIVE'
+        };
+
+        // Insert the new credit transaction
+        const insertTransactionQuery = {
+            text: `INSERT INTO divine."transaction" (accountnumber, userid, description, debit, credit, ttype, tfrom, createdby, valuedate, reference, transactiondate, transactiondesc, transactionref, status, whichaccount, currency) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+            values: [
+                creditTransaction.accountnumber,
+                creditTransaction.userid,
+                creditTransaction.description,
+                creditTransaction.debit,
+                creditTransaction.credit,
+                creditTransaction.ttype,
+                creditTransaction.tfrom,
+                creditTransaction.createdby,
+                creditTransaction.valuedate,
+                creditTransaction.reference,
+                creditTransaction.transactiondate,
+                creditTransaction.transactiondesc,
+                creditTransaction.transactionref,
+                creditTransaction.status,
+                creditTransaction.whichaccount,
+                creditTransaction.currency
+            ]
+        };
+
+        await pg.query(insertTransactionQuery);
+        console.log(`Credit transaction for failed transfer with reference ${reference} has been recorded.`);
+    } catch (error) {
+        console.error('Error processing failed transfer:', error);
+    }
 };
 
 const handleTransferSuccess = async (data) => {
     console.log('Handling transfer.success:', data);
+
+    try {
+        // Notify the user of the successful transfer
+        const notificationMessage = `Transfer of ${data.amount / 100} ${data.currency} to ${data.recipient.details.account_number} was successful.`;
+        await sendNotification(data.recipient.email, notificationMessage);
+
+        // Send an email to the user
+        const emailSubject = 'Transfer Successful';
+        const emailBody = `
+            <p>Dear ${data.recipient.name},</p>
+            <p>Your transfer of ${data.amount / 100} ${data.currency} to account number ${data.recipient.details.account_number} at ${data.recipient.details.bank_name} was successful.</p>
+            <p>Reference: ${data.reference}</p>
+            <p>Reason: ${data.reason}</p>
+            <p>Thank you for using our service.</p>
+        `;
+        await sendEmail(data.recipient.email, emailSubject, emailBody);
+
+        console.log('Notification and email sent successfully for transfer:', data.reference);
+    } catch (error) {
+        console.error('Error handling transfer.success:', error);
+    }
 };
 
 const handleRefundProcessing = async (data) => {

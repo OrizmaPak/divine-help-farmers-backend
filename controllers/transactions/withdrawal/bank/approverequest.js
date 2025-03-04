@@ -201,9 +201,28 @@ const approveWithdrawalRequest = async (req, res) => {
             });
         }
 
+        let transref
+
         // If recipient already exists, make a transfer to the account
         if (recipientCode) {
-            await makeTransferToAccount(recipientCode, withdrawalRequest.amount);
+            try {
+                const transferResponse = await makeTransferToAccount(recipientCode, withdrawalRequest.amount, 'recipient');
+                console.log('Transfer successful:', transferResponse);
+
+                // Assuming transferResponse contains a transaction reference
+                transref = transferResponse.reference;
+                console.log('Transaction Reference:', transref);
+            } catch (error) {
+                console.error('Transfer failed:', error);
+                await client.query('ROLLBACK');
+                return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                    status: false,
+                    message: "Failed to make transfer",
+                    statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    data: null,
+                    errors: [error.message]
+                });
+            }
         }
 
         // Perform a one-way transaction using performTransactionOneWay
@@ -213,7 +232,7 @@ const approveWithdrawalRequest = async (req, res) => {
             debit: withdrawalRequest.amount,
             reference: "",
             transactiondate: new Date(),
-            transactiondesc: 'Withdrawal approved',
+            transactiondesc: 'Withdrawal approved || '+transref,
             currency: 'NGN',
             description: 'Withdrawal approved',
             branch: req.user.id,
