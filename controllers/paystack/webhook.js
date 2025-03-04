@@ -223,9 +223,115 @@ const handleTransferSuccess = async (data) => {
     console.log('Handling transfer.success:', data);
 };
 
-const handleRefundProcessing = async (data) => {
-    console.log('Handling refund.processing:', data);
-};
+const handleRefundProcessing = async (transactionData) => {
+    const orgSettingsQuery = {
+        text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
+        values: []
+    };
+
+    const { rows } = await pg.query(orgSettingsQuery);
+    const personalAccountPrefix = rows[0].personal_account_prefix;
+
+    const bankTransaction = {
+        accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,
+        userid: 0,
+        description: transactionData.authorization.narration,
+        debit: Math.floor(transactionData.amount / 100), // Remove the last two digits
+        credit: 0,
+        ttype: "DEBIT", // Assuming the type is REFUND
+        tfrom: transactionData.authorization.sender_bank,
+        createdby: 0, // Assuming system created
+        valuedate: new Date(transactionData.paid_at),
+        reference: transactionData.reference,
+        transactiondate: new Date(transactionData.created_at),
+        transactiondesc: transactionData.authorization.narration,
+        transactionref: transactionData.reference,
+        status: 'ACTIVE',
+        whichaccount: transactionData.authorization.receiver_bank,
+        currency: transactionData.currency, // Added currency
+        rawdata: JSON.stringify(transactionData)
+    };
+
+    const query = {
+        text: `INSERT INTO divine."banktransaction" (
+            accountnumber, userid, description, debit, credit, ttype, tfrom, createdby, valuedate, reference, transactiondate, transactiondesc, transactionref, status, whichaccount, rawdata
+        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+        values: [
+            bankTransaction.accountnumber,
+            bankTransaction.userid,
+            bankTransaction.description,
+            bankTransaction.debit,
+            bankTransaction.credit,
+            bankTransaction.ttype,
+            bankTransaction.tfrom,
+            bankTransaction.createdby,
+            bankTransaction.valuedate,
+            bankTransaction.reference,
+            bankTransaction.transactiondate,
+            bankTransaction.transactiondesc,
+            bankTransaction.transactionref,
+            bankTransaction.status,
+            bankTransaction.whichaccount,
+            bankTransaction.rawdata
+        ]
+    };
+
+    const oneWayTransaction = {
+        accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,
+        userid: 0,
+        debit: bankTransaction.debit,
+        credit: bankTransaction.credit,
+        transactiontype: 'DEBIT',
+        transactionfrom: 'BANK',
+        createdby: 0,
+        valuedate: bankTransaction.valuedate,
+        reference: bankTransaction.reference,
+        transactiondate: bankTransaction.transactiondate,
+        transactiondescription: `Refund to ${transactionData.authorization.bank} for ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}`,
+        transactionreference: bankTransaction.transactionref,
+        status: bankTransaction.status,
+        whichaccount: 'PERSONNAL',
+        currency: bankTransaction.currency, // Added currency
+        description: `Refund to ${transactionData.authorization.bank} for ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}`
+    };
+
+    await performTransactionOneWay(oneWayTransaction);
+    await pg.query(query);
+
+    // Send a refund alert email
+    const sendRefundAlertEmail = async (accountNumber, debitAmount, balance) => {
+        const emailSubject = 'Refund Alert from DIVINE HELP FARMERS';
+        const emailBody = `
+            <h1>Refund Alert</h1>
+            <p>Your account ${accountNumber} has been debited with ₦${debitAmount.toLocaleString('en-US')} for a refund.</p>
+            <p>Source: Refund to ${transactionData.authorization.bank} for ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}.</p>
+            <p>Transaction Time: ${new Date().toLocaleString()}</p>
+            <p>Transaction Status: Successful</p>
+            <p>Available Balance: ₦${balance.toLocaleString('en-US')}</p>
+            <p>Thank you for banking with DIVINE HELP FARMERS.</p>
+        `;
+        await sendEmail({ to: `${transactionData.customer.email}`, subject: emailSubject, text: '', html: emailBody });
+    };
+
+    // Calculate the balance from the transaction table
+    const calculateBalance = async (accountNumber) => { 
+        const balanceQuery = {
+            text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1`,
+            values: [accountNumber]
+        };
+        const { rows } = await pg.query(balanceQuery);
+        return rows[0].balance;
+    };
+
+    // Execute the functions
+    const accountNumber = `${personalAccountPrefix}${transactionData.customer.phone}`;
+    const debitAmount = bankTransaction.debit;
+
+    const balance = await calculateBalance(accountNumber);
+    await sendRefundAlertEmail(accountNumber, debitAmount, balance);
+
+    console.log(`The balance for account ${accountNumber} after refund is ${balance}`);
+}
 
 const handleRefundProcessed = async (data) => {
     console.log('Handling refund.processed:', data);
