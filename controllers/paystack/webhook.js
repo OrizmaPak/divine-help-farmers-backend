@@ -223,7 +223,11 @@ const handleTransferSuccess = async (data) => {
     console.log('Handling transfer.success:', data);
 };
 
-const handleRefundProcessing = async (transactionData) => {
+const handleRefundProcessing = async (data) => {
+    console.log('Handling refund.processing:', data);
+};
+
+const handleRefundProcessed = async (data) => {
     const orgSettingsQuery = {
         text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
         values: []
@@ -331,10 +335,6 @@ const handleRefundProcessing = async (transactionData) => {
     await sendRefundAlertEmail(accountNumber, debitAmount, balance);
 
     console.log(`The balance for account ${accountNumber} after refund is ${balance}`);
-}
-
-const handleRefundProcessed = async (data) => {
-    console.log('Handling refund.processed:', data);
 };
 
 const handleRefundPending = async (data) => {
