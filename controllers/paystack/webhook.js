@@ -71,6 +71,29 @@ const paystackWebhook = async (req, res) => {
 };
 
 const handleChargeSuccess = async (transactionData) => {
+    // Check if the transaction reference already exists
+    const checkTransactionQuery = {
+        text: `SELECT 1 FROM divine."banktransaction" WHERE reference = $1`,
+        values: [transactionData.reference]
+    };
+
+    const { rows: existingTransaction } = await pg.query(checkTransactionQuery);
+
+    if (existingTransaction.length > 0) {
+        const sendEmail = require('../../utils/sendEmail');
+
+        const emailOptions = {
+            to: 'divinehelpfarmers@gmail.com',
+            subject: 'Duplicate Notification Transaction Error from Paystack',
+            text: `Transaction with reference ${transactionData.reference} already exists. This is a duplicate transaction error from Paystack.`
+        };
+
+        sendEmail(emailOptions)
+            .then(() => console.log('Email sent successfully'))
+            .catch(error => console.error('Error sending email:', error));
+        return;
+    }
+
     const orgSettingsQuery = {
         text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
         values: []
