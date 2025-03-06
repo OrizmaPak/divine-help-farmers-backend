@@ -6,7 +6,7 @@ const { performTransactionOneWay } = require("../../middleware/transactions/perf
 const paystackWebhook = async (req, res) => {
     console.log('here called')
 
-    await sendEmail({ to: 'divinehelpfarmers@gmail.com', subject: 'Paystack Event', text: '', html: JSON.stringify(req.body, null, 2) });
+    // await sendEmail({ to: 'divinehelpfarmers@gmail.com', subject: 'Paystack Event', text: '', html: JSON.stringify(req.body, null, 2) });
 
     try {
         const event = req.body;
@@ -208,7 +208,12 @@ const handleChargeSuccess = async (transactionData) => {
     const balance = await calculateBalance(accountNumber);
     await sendCreditAlertEmail(accountNumber, creditAmount, balance);
     await sendTransactionNotificationEmail(accountNumber, creditAmount, transactionData.customer.phone);
-    await sendUserNotification(bankTransaction.userid, 'Credit Alert', `Your account has been credited with ₦${creditAmount.toLocaleString('en-US')}.`);
+    // await sendUserNotification(bankTransaction.userid, 'Credit Alert', `Your account has been credited with ₦${creditAmount.toLocaleString('en-US')}.`);
+
+    // Create a notification for the user
+    const userNotificationTitle = 'Transaction Successful';
+    const userNotificationDescription = `Your account ${accountNumber} has been credited with ₦${creditAmount.toLocaleString('en-US')}.`;
+    await sendUserNotification(bankTransaction.userid, userNotificationTitle, userNotificationDescription);
 
     console.log(`The balance for account ${accountNumber} is ${balance}`);
 }
