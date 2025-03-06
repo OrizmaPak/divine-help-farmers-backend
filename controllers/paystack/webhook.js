@@ -166,7 +166,7 @@ const handleChargeSuccess = async (transactionData) => {
     const sendTransactionNotificationEmail = async (accountNumber, creditAmount, phone) => {
         // Fetch user's first and last name from the user table
         const userQuery = {
-            text: `SELECT firstname, lastname FROM divine."User" WHERE phone = $1`,
+            text: `SELECT firstname, lastname, id FROM divine."User" WHERE phone = $1`,
             values: [phone]
         };
         const { rows: [usere] } = await pg.query(userQuery);
@@ -213,7 +213,7 @@ const handleChargeSuccess = async (transactionData) => {
     // Create a notification for the user
     const userNotificationTitle = 'Transaction Successful';
     const userNotificationDescription = `Your account ${accountNumber} has been credited with ₦${creditAmount.toLocaleString('en-US')}.`;
-    await sendUserNotification(bankTransaction.userid, userNotificationTitle, userNotificationDescription);
+    await sendUserNotification(usere.id, userNotificationTitle, userNotificationDescription);
 
     console.log(`The balance for account ${accountNumber} is ${balance}`);
 }
