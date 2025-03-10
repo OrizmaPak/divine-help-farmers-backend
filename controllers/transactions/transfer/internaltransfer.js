@@ -1,5 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
-const { performTransaction } = require("../../middleware/transactions/performTransaction");
+const { performTransaction } = require("../../../middleware/transactions/performTransaction");
+// const { performTransaction } = require("../../middleware/transactions/performTransaction");
 
 const internalTransfer = async (req, res) => {
     const { accountnumberfrom, amount, accountnumberto } = req.body;
