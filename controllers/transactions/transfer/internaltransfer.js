@@ -11,7 +11,7 @@ const internalTransfer = async (req, res) => {
         console.log('Missing required fields for internal transfer');
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Account number from, amount, and account number to are required",
+            message: "Account number from, amount, and account number to are required", 
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: ["Missing required fields"]

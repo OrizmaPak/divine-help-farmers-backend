@@ -14,7 +14,8 @@ async function updateuser(req, res) {
     if (req.files) {  
         await uploadToGoogleDrive(req, res);
     }
-    req.body.department = req.body.department == '' ? null : parseInt(req.body.department)??null;
+    req.body.department = req.body.department ? parseInt(req.body.department) : null;
+    // return console.log('department', req.body.department);
     let {
         _userid = '',
         firstname,
@@ -72,6 +73,7 @@ async function updateuser(req, res) {
     } else {
         userid = user.id; 
     }
+
 
     console.log('req.body', req.body);
 
