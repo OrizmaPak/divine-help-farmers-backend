@@ -1184,3 +1184,14 @@ model paystackrecipient {
   status          String @default("ACTIVE")
   createdby       Int    @default(0)
 }
+
+model paystackreferences {
+  id              Int    @id @default(autoincrement())
+  accountnumber   String
+  userid           String?
+  email            String
+  reference       String
+  dateadded       DateTime @default(now())
+  status          String @default("ACTIVE") 
+  createdby       Int    @default(0)
+}

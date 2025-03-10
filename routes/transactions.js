@@ -17,6 +17,7 @@ const { processCashCollection } = require('../controllers/transactions/deposit/c
 const { saveWithdrawalRequest } = require('../controllers/transactions/withdrawal/bank/withdrawalrequest');
 const { getWithdrawalRequests } = require('../controllers/transactions/withdrawal/bank/viewrequest');
 const { approveWithdrawalRequest } = require('../controllers/transactions/withdrawal/bank/approverequest');
+const { internalTransfer } = require('../controllers/transactions/transfer/internaltransfer');
 const router = express.Router();
 
  
@@ -73,6 +74,9 @@ router.route('/withdrawalrequest')
 
 router.route('/approvewithdrawalrequest')
     .post(approveWithdrawalRequest)
+
+router.route('/internaltransfer')
+    .post(internalTransfer)
 
  
 

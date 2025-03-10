@@ -94,6 +94,7 @@ const handleChargeSuccess = async (transactionData) => {
         return;
     }
 
+   
     const orgSettingsQuery = {
         text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
         values: []
@@ -123,6 +124,18 @@ const handleChargeSuccess = async (transactionData) => {
         currency: transactionData.currency, // Added currency
         rawdata: JSON.stringify(transactionData)
     };
+    const checkReferenceQuery = {
+        text: `SELECT accountnumber FROM divine."paystackreferences" WHERE reference = $1`,
+        values: [transactionData.reference]
+    };
+
+    const { rows: referenceRows } = await pg.query(checkReferenceQuery);
+
+    if (referenceRows.length > 0) {
+        bankTransaction.accountnumber = referenceRows[0].accountnumber;
+        bankTransaction.userid = referenceRows[0].userid;   
+    }
+
 
     const query = {
         text: `INSERT INTO divine."banktransaction" (
@@ -276,7 +289,7 @@ const handleTransferReversed = async (data) => {
             status: 'ACTIVE'
         };
 
-        // Insert the reversed bank transaction
+        // Insert the reversed bank transaction into both 'transaction' and 'banktransaction' tables
         const insertTransactionQuery = {
             text: `INSERT INTO divine."transaction" (accountnumber, userid, description, debit, credit, ttype, tfrom, createdby, valuedate, reference, transactiondate, transactiondesc, transactionref, status, whichaccount, currency) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
             values: [
@@ -299,8 +312,31 @@ const handleTransferReversed = async (data) => {
             ]
         };
 
+        const insertBankTransactionQuery = {
+            text: `INSERT INTO divine."banktransaction" (accountnumber, userid, description, debit, credit, ttype, tfrom, createdby, valuedate, reference, transactiondate, transactiondesc, transactionref, status, whichaccount, currency) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+            values: [
+                bankTransaction.accountnumber,
+                bankTransaction.userid,
+                bankTransaction.description,
+                bankTransaction.debit,
+                bankTransaction.credit,
+                bankTransaction.ttype,
+                bankTransaction.tfrom,
+                bankTransaction.createdby,
+                bankTransaction.valuedate,
+                bankTransaction.reference,
+                bankTransaction.transactiondate,
+                bankTransaction.transactiondesc,
+                bankTransaction.transactionref,
+                bankTransaction.status,
+                bankTransaction.whichaccount,
+                bankTransaction.currency
+            ]
+        };
+
         await pg.query(insertTransactionQuery);
-        console.log(`Reversed transaction for reference ${reference} has been recorded.`);
+        await pg.query(insertBankTransactionQuery);
+        console.log(`Reversed transaction for reference ${reference} has been recorded in both transaction and banktransaction tables.`);
     } catch (error) {
         console.error('Error processing reversed transaction:', error);
     }

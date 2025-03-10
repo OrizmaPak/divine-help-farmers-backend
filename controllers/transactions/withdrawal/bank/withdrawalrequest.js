@@ -3,14 +3,15 @@ const pg = require("../../../../db/pg");
 const { activityMiddleware } = require("../../../../middleware/activity");
 
 const saveWithdrawalRequest = async (req, res) => {
-    const { id, accountnumber, accounttype, userid, amount, description, requeststatus } = req.body;
+    let { id, accountnumber, accounttype, userid, amount, description, requeststatus } = req.body;
     const user = req.user;
+    if(!userid)userid = user.id;
 
     // Validate required fields
-    if (!accountnumber || !accounttype || !userid || !amount) {
+    if (!accountnumber || !accounttype || !amount) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Account number, account type, user ID, and amount are required",
+            message: "Account number, account type, and amount are required",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: []
