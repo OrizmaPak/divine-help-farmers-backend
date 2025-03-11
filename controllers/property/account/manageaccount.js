@@ -1,3 +1,4 @@
+/* Start of Selection */
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
@@ -26,7 +27,7 @@ const createPropertyAccount = async (req, res) => {
         // Check if product exists
         const productQuery = {
             text: `SELECT * FROM divine."propertyproduct" WHERE id = $1`,
-            values: [productid]
+            values: [parseInt(productid)]
         };
         const { rows: productRows } = await pg.query(productQuery);
         if (productRows.length === 0) {
@@ -96,14 +97,14 @@ const createPropertyAccount = async (req, res) => {
         if(repaymentfrequency){
             if(!validateCode(repaymentfrequency)){
                 return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "Invalid repayment frequency",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });
+                    status: false,
+                    message: "Invalid repayment frequency",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
             }
-        }else{
+        } else {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "Repayment frequency is required",
@@ -275,28 +276,38 @@ const createPropertyAccount = async (req, res) => {
             }
         }
 
-        // Check category timeline
+        // Check category timeline based on the total value
         const categoryTimelineQuery = {
-            text: `SELECT * FROM divine."categorytimeline" WHERE productid = $1`,
-            values: [productid]
+            text: `SELECT * FROM divine."categorytimeline" WHERE valuefrom <= $1 AND valueto >= $1`,
+            values: [totalValue]
         };
         const { rows: categoryTimelineRows } = await pg.query(categoryTimelineQuery);
 
+        // Find the matching timeline row (if any) for the total value
         if (categoryTimelineRows.length > 0) {
-            const categoryTimeline = categoryTimelineRows[0];
-            const timelineDays = categoryTimeline.days;
-            const generatedDays = dates.length;
+            const matchingTimeline = categoryTimelineRows.find(timeline => {
+                const valueFrom = parseFloat(timeline.valuefrom);
+                const valueTo = parseFloat(timeline.valueto);
+                return totalValue >= valueFrom && totalValue <= valueTo;
+            });
 
-            if (generatedDays > timelineDays) {
-                await pg.query('ROLLBACK');
-                return res.status(StatusCodes.BAD_REQUEST).json({
-                    status: false,
-                    message: `The category timeline for this product is ${timelineDays} days, but the number of days entered is ${generatedDays} days, which is ${generatedDays - timelineDays} days more.`,
-                    statuscode: StatusCodes.BAD_REQUEST,
-                    data: null,
-                    errors: []
-                });
+            // If a matching timeline range is found, check that generatedDays <= matchingTimeline.days
+            if (matchingTimeline) {
+                const generatedDays = dates.length;
+                const timelineDays = parseInt(matchingTimeline.days, 10);
+
+                if (generatedDays > timelineDays) {
+                    await pg.query('ROLLBACK');
+                    return res.status(StatusCodes.BAD_REQUEST).json({
+                        status: false,
+                        message: `Your total value is within the range (${matchingTimeline.valuefrom} - ${matchingTimeline.valueto}), which has a maximum set of ${timelineDays} days. The number of days entered is ${generatedDays}, which is ${generatedDays - timelineDays} days more than allowed.`,
+                        statuscode: StatusCodes.BAD_REQUEST,
+                        data: null,
+                        errors: []
+                    });
+                }
             }
+            // If no matching range, any number of days is acceptable
         }
 
         // Calculate amount per installment
@@ -304,7 +315,7 @@ const createPropertyAccount = async (req, res) => {
 
         // Save installments and determine which items can be released
         for (let i = 0; i < dates.length; i++) {
-            let installmentDescription = ''; 
+            let installmentDescription = '';
             let amountRemaining = amountPerInstallment;
 
             for (let item of itemDetails) {

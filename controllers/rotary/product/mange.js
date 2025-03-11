@@ -93,9 +93,9 @@ const saveOrUpdateRotaryProduct = async (req, res) => {
         } else {
             // Insert new rotary product
             const insertQuery = {
-                text: `INSERT INTO divine."rotaryProduct" (product, member, useraccount, registrationcharge, createdby, productofficer, currency, description, poolnumber, rotaryschedule, frequency, frequencynumber, dateadded, status, registrationpoint) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), 'ACTIVE', $13)`,
-                values: [product, member, useraccount || 1, registrationcharge, user.id, productofficer, currency || 'NGN', description, poolnumber, rotaryschedule || 'PRODUCT', frequency, frequencynumber==''?0:frequencynumber, user.registrationpoint]
+                text: `INSERT INTO divine."rotaryProduct" (product, member, useraccount, registrationcharge, createdby, productofficer, currency, description, poolnumber, rotaryschedule, frequency, frequencynumber, dateadded, status) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), 'ACTIVE')`,
+                values: [product, member, useraccount || 1, registrationcharge, user.id, productofficer, currency || 'NGN', description, poolnumber, rotaryschedule || 'PRODUCT', frequency, frequencynumber==''?0:frequencynumber]
             };
 
             console.log('insertQuery', insertQuery);

@@ -1,5 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
+const { sendEmail } = require("../../../utils/sendEmail");
 
 const updateDisbursementRef = async (req, res) => {
     const { accountnumber, disbursementref } = req.body;

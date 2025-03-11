@@ -5,24 +5,14 @@ const { activityMiddleware } = require("../../../../middleware/activity");
 const saveWithdrawalRequest = async (req, res) => {
     let { id, accountnumber, accounttype, userid, amount, description, requeststatus } = req.body;
     const user = req.user;
-    if(!userid)userid = user.id;
-
-    // Validate required fields
-    if (!accountnumber || !accounttype || !amount) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            status: false,
-            message: "Account number, account type, and amount are required",
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
-            errors: []
-        }); 
-    }
+    if (!userid) userid = user.id;
 
     try {
-        let query; 
+        let query;
+        let notificationMessage;
         if (id) {
             // Update the existing withdrawal request
-            query = { 
+            query = {
                 text: `UPDATE divine."withdrawalrequest"
                        SET accountnumber = COALESCE($1, accountnumber),
                            accounttype = COALESCE($2, accounttype),
@@ -36,13 +26,26 @@ const saveWithdrawalRequest = async (req, res) => {
                        WHERE id = $8 RETURNING id`,
                 values: [accountnumber, accounttype, userid, amount, description, requeststatus, user.id, id]
             };
+            notificationMessage = `Your withdrawal request has been updated successfully. Status: ${requeststatus}, Amount: ${amount}, Account Number: ${accountnumber}, Account Type: ${accounttype}.`;
         } else {
+            // Validate required fields
+            if (!accountnumber || !accounttype || !amount) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "Account number, account type, and amount are required",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
+
             // Insert a new withdrawal request
             query = {
                 text: `INSERT INTO divine."withdrawalrequest" (accountnumber, accounttype, userid, amount, description, requeststatus, createdby, dateadded, status)
                        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), 'ACTIVE') RETURNING id`,
                 values: [accountnumber, accounttype, userid, amount, description, requeststatus || 'PENDING', user.id]
             };
+            notificationMessage = 'Your withdrawal request has been created successfully.';
         }
 
         const { rows } = await pg.query(query);
@@ -54,7 +57,7 @@ const saveWithdrawalRequest = async (req, res) => {
         const notificationQuery = {
             text: `INSERT INTO divine."notification" (userid, title, description, location, dateadded, createdby, status)
                    VALUES ($1, $2, $3, $4, NOW(), $5, 'ACTIVE')`,
-            values: [userid, 'Withdrawal Request', 'Your withdrawal request has been created successfully.', 'viewwithdrawalrequest', user.id]
+            values: [userid, 'Withdrawal Request', notificationMessage, 'viewwithdrawalrequest', user.id]
         };
         await pg.query(notificationQuery);
 

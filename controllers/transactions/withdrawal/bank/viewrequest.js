@@ -20,7 +20,7 @@ const getWithdrawalRequests = async (req, res) => {
         let whereClause = '';   
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
-            if (key !== 'q' && key !== 'startdate' && key !== 'enddate') {
+            if (key !== 'q' && key !== 'startdate' && key !== 'enddate' && !(key === 'requeststatus' && req.query[key] === 'ALL')) {
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
