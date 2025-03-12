@@ -112,7 +112,7 @@ const offlineProcessCollection = async (req, res) => {
         // Process multiple transactions
         let failedTransactions = [];
 
-        await pg.query('BEGIN');
+        await pg.query('BEGIN'); 
 
         for (let i = 1; i <= rowsize; i++) {
             const accountnumber = req.body[`accountnumber${i}`];

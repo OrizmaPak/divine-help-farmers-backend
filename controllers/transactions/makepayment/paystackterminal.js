@@ -1,5 +1,5 @@
 const { StatusCodes } = require("http-status-codes");
-const pg = require("../../../../db/pg");
+const pg = require("../../../db/pg");
 
 const makePaystackPayment = async (req, res) => {
     const { email, amount, accountnumber } = req.body;
@@ -12,7 +12,7 @@ const makePaystackPayment = async (req, res) => {
             data: null,
             errors: []
         });
-    }
+    } 
 
     // Paystack expects the amount in kobo, so multiply by 100
     const paystackAmount = amount * 100;
