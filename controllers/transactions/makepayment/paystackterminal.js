@@ -1,5 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
+const https = require("https");
 
 const makePaystackPayment = async (req, res) => {
     const { email, amount, accountnumber } = req.body;
@@ -18,19 +19,18 @@ const makePaystackPayment = async (req, res) => {
     const paystackAmount = amount * 100;
 
     try {
-        const responseData = await new Promise((resolve, reject) => {
-            const https = require("https");
-            const options = {
-                hostname: "api.paystack.co",
-                port: 443,
-                path: "/transaction/initialize",
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET || ""}`,
-                    "Content-Type": "application/json"
-                }
-            };
+        const options = {
+            hostname: "api.paystack.co",
+            port: 443,
+            path: "/transaction/initialize",
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET || ""}`,
+                "Content-Type": "application/json"
+            }
+        };
 
+        const responseData = await new Promise((resolve, reject) => {
             const paystackReq = https.request(options, (paystackRes) => {
                 let data = "";
                 paystackRes.on("data", (chunk) => {
