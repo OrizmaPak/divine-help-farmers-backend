@@ -25,7 +25,7 @@ const makePaystackPayment = async (req, res) => {
             path: "/transaction/initialize",
             method: "POST",
             headers: {
-                Authorization: `Bearer ${process.env.PAYSTACK_SECRET || ""}`,
+                Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY || ""}`,
                 "Content-Type": "application/json"
             }
         };
