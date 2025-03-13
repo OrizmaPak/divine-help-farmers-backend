@@ -1,3 +1,4 @@
+// Start of Selection
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
@@ -123,7 +124,19 @@ const getMemberLoanAccounts = async (req, res) => {
         // Fetch detailed account information for each loan account
         const detailedAccounts = await Promise.all(loanAccounts.map(async (account) => {
             const accountDetailsQuery = {
-                text: `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`,
+                text: `
+                    SELECT 
+                        la.*, 
+                        lp.productname
+                    FROM 
+                        divine."loanaccounts" la 
+                    JOIN 
+                        divine."loanproduct" lp 
+                    ON 
+                        la.loanproduct = lp.id 
+                    WHERE 
+                        la.accountnumber = $1
+                `,
                 values: [account.accountnumber]
             };
             const accountDetailsResult = await pg.query(accountDetailsQuery);

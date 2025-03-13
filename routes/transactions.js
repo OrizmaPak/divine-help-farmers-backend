@@ -19,6 +19,7 @@ const { getWithdrawalRequests } = require('../controllers/transactions/withdrawa
 const { approveWithdrawalRequest } = require('../controllers/transactions/withdrawal/bank/approverequest');
 const { internalTransfer } = require('../controllers/transactions/transfer/internaltransfer');
 const { makePaystackPayment } = require('../controllers/transactions/makepayment/paystackterminal');
+const { addGLTransaction } = require('../controllers/glaccounts/gltransaction/addgltransaction');
 const router = express.Router();
 
  
@@ -81,6 +82,9 @@ router.route('/internaltransfer')
 
 router.route('/makedeposit')
     .post(makePaystackPayment)
+
+router.route('/addgltransaction')
+    .post(addGLTransaction)
 
  
 
