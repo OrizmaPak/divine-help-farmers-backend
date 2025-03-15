@@ -9,7 +9,27 @@ const addGLTransaction = async (req, res) => {
     let totalDebit = 0;
     req.body.transactionRef = 'GLT-'+generateid();
 
+    const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" LIMIT 1`;
+    const orgSettingsResult = await pg.query(orgSettingsQuery);
+    if (orgSettingsResult.rowCount === 0) {
+        // If organisation settings are not found, rollback the transaction
+        await activityMiddleware(req, req.user.id, 'Organisation settings not found', 'TRANSACTION');
+        await pg.query('ROLLBACK'); // Rollback the transaction
+        await activityMiddleware(req, req.user.id, 'Transaction rolled back due to missing organisation settings', 'TRANSACTION');
+        req.transactionError = {
+            status: StatusCodes.INTERNAL_SERVER_ERROR,
+            message: 'Organisation settings not found.',
+            errors: ['Internal server error.'] 
+        };
+        req.body.transactiondesc += 'Organisation settings not found.|';
+        return next();
+    }
+    const orgSettings = orgSettingsResult.rows[0]; // Store organisation settings
+    req['orgSettings'] = orgSettings; // Attach organisation settings to request
+
     try {
+        await pg.query('BEGIN'); // Start transaction
+
         // Calculate total credit amount
         for (let i = 1; i <= creditglrow; i++) {
             const amount = parseFloat(req.body[`cglamount${i}`]);
@@ -39,6 +59,7 @@ const addGLTransaction = async (req, res) => {
                     `, [accountNumber]);
 
                     if (balance < amount) {
+                        await pg.query('ROLLBACK'); // Rollback transaction
                         return res.status(StatusCodes.BAD_REQUEST).json({
                             status: false,
                             message: `Insufficient balance in customer account ${accountNumber}`,
@@ -56,6 +77,7 @@ const addGLTransaction = async (req, res) => {
 
         // Ensure credits and debits balance
         if (totalCredit !== totalDebit) {
+            await pg.query('ROLLBACK'); // Rollback transaction
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "Credits and debits do not balance",
@@ -78,6 +100,7 @@ const addGLTransaction = async (req, res) => {
                 `, [accountNumber]);
 
                 if (balance < amount) {
+                    await pg.query('ROLLBACK'); // Rollback transaction
                     return res.status(StatusCodes.BAD_REQUEST).json({
                         status: false,
                         message: `Insufficient balance in account ${accountNumber}`,
@@ -241,6 +264,8 @@ const addGLTransaction = async (req, res) => {
         // Execute all queries including customer transactions
         await Promise.all([...queries, ...customerQueries]);
 
+        await pg.query('COMMIT'); // Commit transaction
+
         return res.status(StatusCodes.OK).json({
             status: true,
             message: "Transactions added successfully",
@@ -250,6 +275,7 @@ const addGLTransaction = async (req, res) => {
         });
     } catch (error) {
         console.error('Unexpected Error:', error);
+        await pg.query('ROLLBACK'); // Rollback transaction
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
             message: "An unexpected error occurred",
@@ -261,4 +287,3 @@ const addGLTransaction = async (req, res) => {
 };
 
 module.exports = { addGLTransaction };
-
