@@ -1,6 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { generateid } = require("../../../utils/generateid");
+const { generateNewReference } = require("../../../utils/transactionHelper");
 
 const addGLTransaction = async (req, res) => {
     const { creditglrow, debitglrow, customerrow, customertype, bypassbalance="NO" } = req.body;
