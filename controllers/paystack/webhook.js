@@ -80,7 +80,6 @@ const handleChargeSuccess = async (transactionData) => {
     const { rows: existingTransaction } = await pg.query(checkTransactionQuery);
 
     if (existingTransaction.length > 0) {
-        const sendEmail = require('../../utils/sendEmail');
 
         const emailOptions = {
             to: 'divinehelpfarmers@gmail.com',
@@ -165,7 +164,7 @@ const handleChargeSuccess = async (transactionData) => {
     await pg.query(query);
 
     const oneWayTransaction = {
-        accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,
+        accountnumber: bankTransaction.accountnumber,
         userid: 0,
         debit: bankTransaction.debit,
         credit: bankTransaction.credit,
