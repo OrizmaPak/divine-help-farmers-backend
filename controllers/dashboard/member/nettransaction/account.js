@@ -44,6 +44,18 @@ const getAccountYearlyTransactions = async (req, res) => {
         };
         const { rows: monthlyTransactions } = await pg.query(monthlyTransactionsQuery);
 
+        // Get product name associated with the account number
+        const productNameQuery = {
+            text: `
+                SELECT sp.productname
+                FROM divine."savings" s
+                JOIN divine."savingsproduct" sp ON s.savingsproductid = sp.id
+                WHERE s.accountnumber = $1
+            `,
+            values: [accountnumber]
+        };
+        const { rows: [{ productname }] } = await pg.query(productNameQuery);
+
         // Initialize monthly balances with zero values
         const monthlyBalances = {
             january: { credit: 0, debit: 0, balance: balance_brought_forward || 0 },
@@ -86,7 +98,8 @@ const getAccountYearlyTransactions = async (req, res) => {
             data: {
                 balance_brought_forward: balance_brought_forward || 0,
                 monthlyBalances,
-                final_balance: finalBalance
+                final_balance: finalBalance,
+                productname
             },
             errors: []
         });
