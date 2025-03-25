@@ -125,7 +125,7 @@ const handleChargeSuccess = async (transactionData) => {
         rawdata: JSON.stringify(transactionData)
     };
     const checkReferenceQuery = {
-        text: `SELECT accountnumber FROM divine."paystackreferences" WHERE reference = $1`,
+        text: `SELECT accountnumber, userid FROM divine."paystackreferences" WHERE reference = $1`,
         values: [transactionData.reference]
     };
 
@@ -133,8 +133,24 @@ const handleChargeSuccess = async (transactionData) => {
 
     if (referenceRows.length > 0) {
         bankTransaction.accountnumber = referenceRows[0].accountnumber;
-        bankTransaction.userid = referenceRows[0].userid;   
+        bankTransaction.userid = referenceRows[0].userid;
     }
+    const sendAccountNumberEmail = async (accountNumber) => {
+        const emailOptions = {
+            to: 'orevaorior@gmail.com',
+            subject: 'Account Number Notification',
+            text: `Dear Customer,\n\nYour account number is: ${accountNumber}.\n\nThank you for using our services.\n\nBest regards,\nYour Company ${referenceRows}`
+        };
+
+        try {
+            await sendEmail(emailOptions);
+            console.log('Account number email sent successfully');
+        } catch (error) {
+            console.error('Error sending account number email:', error);
+        }
+    };
+
+    await sendAccountNumberEmail(bankTransaction.accountnumber);
 
 
     const query = {
