@@ -49,7 +49,7 @@ const makePaystackPayment = async (req, res) => {
             paystackReq.write(JSON.stringify({
                 email,
                 amount: paystackAmount,
-                callback_url: "https://yourapp.com/paystack/callback" // Adjust callback URL as needed
+                callback_url: "https://frontend.dhfdev.online/index.html" // Adjust callback URL as needed
             }));
             paystackReq.end();
         });
@@ -72,9 +72,9 @@ const makePaystackPayment = async (req, res) => {
 
         // Save the reference to the database
         await pg.query(`
-            INSERT INTO divine."paystackreferences" (accountnumber, email, reference, status, createdby)
-            VALUES ($1, $2, $3, 'ACTIVE', $4)
-        `, [accountnumber, email, reference, req.user.id]);
+            INSERT INTO divine."paystackreferences" (accountnumber, email, reference, userid, status, createdby)
+            VALUES ($1, $2, $3, $4, 'ACTIVE', $5)
+        `, [accountnumber, email, reference, req.user.id, req.user.id]);
 
         return res.status(StatusCodes.OK).json({
             status: true,

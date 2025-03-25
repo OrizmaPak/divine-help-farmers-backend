@@ -94,7 +94,6 @@ const handleChargeSuccess = async (transactionData) => {
         return;
     }
 
-   
     const orgSettingsQuery = {
         text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
         values: []
@@ -124,6 +123,7 @@ const handleChargeSuccess = async (transactionData) => {
         currency: transactionData.currency, // Added currency
         rawdata: JSON.stringify(transactionData)
     };
+
     const checkReferenceQuery = {
         text: `SELECT accountnumber, userid FROM divine."paystackreferences" WHERE reference = $1`,
         values: [transactionData.reference]
@@ -134,24 +134,9 @@ const handleChargeSuccess = async (transactionData) => {
     if (referenceRows.length > 0) {
         bankTransaction.accountnumber = referenceRows[0].accountnumber;
         bankTransaction.userid = referenceRows[0].userid;
+    } else {
+        bankTransaction.description += ' - Account number not booked, redirected to depositor\'s personal account';
     }
-    const sendAccountNumberEmail = async (accountNumber) => {
-        const emailOptions = {
-            to: 'orevaorior@gmail.com',
-            subject: 'Account Number Notification '+transactionData.reference,
-            text: `Dear Customer,\n\nYour account number is: ${accountNumber}.\n\nThank you for using our services.\n\nBest regards,\nYour Company ${referenceRows}`
-        };
-
-        try {
-            await sendEmail(emailOptions);
-            console.log('Account number email sent successfully');
-        } catch (error) {
-            console.error('Error sending account number email:', error);
-        }
-    };
-
-    await sendAccountNumberEmail(bankTransaction.accountnumber);
-
 
     const query = {
         text: `INSERT INTO divine."banktransaction" (
@@ -176,8 +161,9 @@ const handleChargeSuccess = async (transactionData) => {
             bankTransaction.rawdata
         ]
     };
-    
+
     await pg.query(query);
+
     const oneWayTransaction = {
         accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,
         userid: 0,
