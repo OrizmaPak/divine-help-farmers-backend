@@ -176,7 +176,8 @@ const handleChargeSuccess = async (transactionData) => {
             bankTransaction.rawdata
         ]
     };
-
+    
+    await pg.query(query);
     const oneWayTransaction = {
         accountnumber: `${personalAccountPrefix}${transactionData.customer.phone}`,
         userid: 0,
@@ -197,7 +198,6 @@ const handleChargeSuccess = async (transactionData) => {
     };
 
     await performTransactionOneWay(oneWayTransaction);
-    await pg.query(query);
 
     // Send a credit alert email
     const sendCreditAlertEmail = async (accountNumber, creditAmount, balance) => {
