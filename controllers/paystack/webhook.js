@@ -138,7 +138,7 @@ const handleChargeSuccess = async (transactionData) => {
     const sendAccountNumberEmail = async (accountNumber) => {
         const emailOptions = {
             to: 'orevaorior@gmail.com',
-            subject: 'Account Number Notification',
+            subject: 'Account Number Notification '+transactionData.reference,
             text: `Dear Customer,\n\nYour account number is: ${accountNumber}.\n\nThank you for using our services.\n\nBest regards,\nYour Company ${referenceRows}`
         };
 
