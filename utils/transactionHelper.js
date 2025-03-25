@@ -335,12 +335,30 @@ const applyMinimumCreditAmountPenalty = async (client, req, res, orgSettings) =>
                 // throw new Error('Default income account does not exist. Please contact support for assistance.');
             } else {
                 console.log('Penalty Amount:', penaltyAmount);
-        
+
+                const excessAccountNumber = orgSettings.default_excess_account || '999999999';
+                
+                // Deduct penalty from personal account
                 await saveTransaction(client, res, {
-                    accountnumber: defaultIncomeAccountNumber,
+                    accountnumber: req.body.accountnumber,
+                    credit: 0,
+                    debit: penaltyAmount,
+                    reference: await generateNewReference(client, req.body.accountnumber, req, res),
+                    description: 'Minimum Credit Amount Penalty Deduction',
+                    ttype: 'PENALTY',
+                    status: 'ACTIVE',
+                    transactiondesc: 'Minimum Credit Amount Penalty Deduction',
+                    whichaccount: 'PERSONAL',
+                    currency: req.body.currency,
+                    tfrom: req.body.tfrom
+                }, req);
+
+                // Credit penalty to excess account
+                await saveTransaction(client, res, {
+                    accountnumber: excessAccountNumber,
                     credit: penaltyAmount,
                     debit: 0,
-                    reference: await generateNewReference(client, defaultIncomeAccountNumber, req, res),
+                    reference: await generateNewReference(client, excessAccountNumber, req, res),
                     description: 'Minimum Credit Amount Penalty',
                     ttype: 'PENALTY',
                     status: 'ACTIVE',
@@ -349,7 +367,8 @@ const applyMinimumCreditAmountPenalty = async (client, req, res, orgSettings) =>
                     currency: req.body.currency,
                     tfrom: req.body.tfrom
                 }, req);
-                req.body.transactiondesc += `Penalty of ${penaltyAmount} has been deducted.|`;
+
+                req.body.transactiondesc += `Penalty of ${penaltyAmount} has been deducted from personal account and credited to excess account.|`;
                 req.body.credit = req.body.credit - penaltyAmount;
                 await activityMiddleware(req, req.user.id, 'Penalty transaction saved', 'TRANSACTION');
             }
