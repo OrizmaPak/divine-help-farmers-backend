@@ -4,6 +4,27 @@ const { activityMiddleware } = require("../../../middleware/activity");
 const { generateText } = require("../../ai/ai");
 
 const getMemberPropertyAccounts = async (req, res) => {
+  
+  if (req.query.userid) {
+    const userQuery = {
+        text: `SELECT * FROM divine."User" WHERE id = $1`,
+        values: [req.query.userid]
+    };
+    const { rows: [userData] } = await pg.query(userQuery);
+
+    if (!userData) {
+        return res.status(StatusCodes.NOT_FOUND).json({
+            status: false,
+            message: "User not found",
+            statuscode: StatusCodes.NOT_FOUND,
+            data: null,
+            errors: ["User with the provided ID does not exist"]
+        });
+    }
+
+    req.user = userData;
+}
+
   const { member } = req.query;
   const user = req.user || {};
 
