@@ -1074,214 +1074,187 @@ function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
  * @param {string} date - The reference date in ISO format (YYYY-MM-DD).
  * @returns {object} - An object containing the startDate and endDate in ISO format.
  */
+/**
+ * Based on the prompt's comprehensive time interval coding system, this function
+ * calculates the transaction period (start and end dates) by interpreting the code
+ * and a reference date.
+ */
+// Start of Selection
 function getTransactionPeriod(code, date) {
-    console.log(code, date);
-  
-    // 1. Parse the reference date
-    const referenceDate = new Date(date);
-    if (isNaN(referenceDate)) {
-      throw new Error("Invalid reference date provided.");
-    }
-  
-    // 2. Split the code into combinations separated by '+'
-    const combinations = code.split('+').map(c => c.trim());
-  
-    // We'll interpret the code sequentially to determine:
-    //  - startDate: the first valid date matching code(s),
-    //  - intervals: sum of M / Y / DT parts for endDate calculation.
-  
-    // 3. Initialize startDate based on referenceDate
-    let startDate = new Date(referenceDate);
-  
-    // 4. Initialize interval accumulators
-    let totalMonthInterval = 0;
-    let totalYearInterval  = 0;
-    let totalDayInterval   = 0;
-  
-    // 5. Helper: clampDayToMonth => if e.g. day=31 in April => 30
-    function clampDayToMonth(year, month, desiredDay) {
-      const daysInMonth = new Date(year, month + 1, 0).getDate(); // last day in {year, month}
-      return (desiredDay > daysInMonth) ? daysInMonth : desiredDay;
-    }
-  
-    // 6. Helper: getFallbackWeek => if W5 doesn’t exist, try W4, W3, ...
-    function getFallbackWeek(originalWeek, daysInMonth) {
-      // e.g. if user says W5 but it doesn't exist, we fallback to W4, W3, ...
-      // if user says W1 but there's no full week? We'll just clamp to at least W1 => picks earliest part of month
-      let w = originalWeek;
-      while (w > 1) {
-        // Check if this w is at least feasible
-        // e.g. W5 means days 29..35 in a 31-day month => that might exist, but if it's 28-day month it won't
-        // A quick approach is:
-        //   The first day of W5 is day (4 * 7) + 1 = 29 (counting from W1=1..7)
-        //   If 29 > daysInMonth, fallback to W4 => day(3 * 7 +1=22) => check if 22>daysInMonth => fallback etc.
-        const firstDayOfWeek = (w - 1) * 7 + 1; // e.g. W5 => 29, W4 => 22, etc.
-        if (firstDayOfWeek <= daysInMonth) {
-          return w; // found a feasible week
-        }
-        w--;
+  console.log(code, date);
+
+  // 1. Parse the reference date
+  const referenceDate = new Date(date);
+  if (isNaN(referenceDate)) {
+    throw new Error("Invalid reference date provided.");
+  }
+
+  // 2. Split the code into combinations separated by '+'
+  const combinations = code.split('+').map(c => c.trim());
+
+  // We'll interpret the code sequentially to determine:
+  //  - startDate: the first valid date matching code(s),
+  //  - intervals: sum of M / Y / DT parts for endDate calculation.
+
+  // 3. Initialize startDate based on referenceDate
+  let startDate = new Date(referenceDate);
+
+  // 4. Initialize interval accumulators
+  let totalMonthInterval = 0;
+  let totalYearInterval  = 0;
+  let totalDayInterval   = 0;
+
+  // 5. Helper: clampDayToMonth => if e.g. day=31 in April => 30
+  function clampDayToMonth(year, month, desiredDay) {
+    const daysInMonth = new Date(year, month + 1, 0).getDate(); // Last day in {year, month}
+    return (desiredDay > daysInMonth) ? daysInMonth : desiredDay;
+  }
+
+  // 6. Helper: getFallbackWO => if WO5 doesn’t exist, try WO4, WO3, ...
+  function getFallbackWO(originalWO, daysInMonth) {
+    let w = originalWO;
+    while (w > 1) {
+      // The first day of WO5 is day 29 (4*7+1), WO4 is 22, etc.
+      const firstDayOfWeek = (w - 1) * 7 + 1; 
+      if (firstDayOfWeek <= daysInMonth) {
+        return w; // found a feasible occurrence
       }
-      // If nothing else, fallback to W1
-      return 1;
+      w--;
     }
-  
-    // 7. Process each combination to set or adjust startDate and collect intervals
-    for (const combination of combinations) {
-      const parts = combination.split(/\s+/);
-  
-      // Each combination can contain multiple parts like: D2 W2 M3 or DT10 or M2 Y1, etc.
-      for (const part of parts) {
-        if (part.startsWith('D')) {
-          // -----------------------------
-          // Handle day codes
-          // -----------------------------
-          const isT = part.endsWith('T');
-  
-          // Extract dayNumber (accounting for trailing 'T' if present)
-          const dayStr = isT 
-            ? part.substring(1, part.length - 1)  // e.g. "D31T" => "31"
-            : part.substring(1);                 // e.g. "D2"   => "2"
-          const dayNumber = parseInt(dayStr, 10);
-          if (isNaN(dayNumber) || dayNumber < 1) {
-            throw new Error(`Invalid day code: ${part}`);
-          }
-  
-          if (isT) {
-            // e.g. D31T => specific day of the month
-            // clamp if dayNumber doesn't exist
-            const year  = startDate.getFullYear();
-            const month = startDate.getMonth();
-  
-            let clampedDay = clampDayToMonth(year, month, dayNumber);
-            startDate.setDate(clampedDay);
-  
-            // If after clamping, we ended up in the past relative to referenceDate,
-            // you might choose to jump to the next month. But "no skip" means we keep it if it's valid.
-            // If you do want to skip, you'd do something like:
-            /*
-               if (startDate < referenceDate) {
-                 const newMonth = month + 1;
-                 const newYear = year + Math.floor(newMonth / 12);
-                 const nextMonth = newMonth % 12;
-                 clampedDay = clampDayToMonth(newYear, nextMonth, dayNumber);
-                 startDate = new Date(newYear, nextMonth, clampedDay);
-               }
-            */
-          } else {
-            // e.g. D2 => day of the week
-            // Map D7 => Sunday(0), otherwise dayNumber => dayNumber
-            // But the original code used dayNumber===7 => 0, else dayNumber => let diff = target - startDate.getDay()
-            let targetDay = (dayNumber === 7) ? 0 : dayNumber; 
-            let diff = targetDay - startDate.getDay();
-            if (diff <= 0) diff += 7;
-            startDate.setDate(startDate.getDate() + diff);
-          }
+    return 1; // fallback to WO1 if all else fails
+  }
+
+  // 7. Process each combination to set or adjust startDate and collect intervals
+  for (const combination of combinations) {
+    // Each combination can contain multiple parts like: D3 WO2 M3 Y2, or DT10, or M2, etc.
+    const parts = combination.split(/\s+/);
+
+    for (const part of parts) {
+      if (part.startsWith('D')) {
+        // -----------------------------
+        // Handle day codes (D1..D7 or D1T..D31T)
+        // -----------------------------
+        const isT = part.endsWith('T');
+        const dayStr = isT ? part.substring(1, part.length - 1) : part.substring(1);
+        const dayNumber = parseInt(dayStr, 10);
+
+        if (isNaN(dayNumber) || dayNumber < 1) {
+          throw new Error(`Invalid day code: ${part}`);
         }
-        else if (part.startsWith('W')) {
-          // -----------------------------
-          // Handle week codes (W1..W5)
-          // -----------------------------
-          let weekNumber = parseInt(part.substring(1), 10);
-          if (isNaN(weekNumber) || weekNumber < 1 || weekNumber > 5) {
-            throw new Error(`Invalid week code: ${part}`);
-          }
-  
+
+        if (isT) {
+          // e.g. D31T => specific day of the month
           const year  = startDate.getFullYear();
           const month = startDate.getMonth();
-          const daysInMonth = new Date(year, month + 1, 0).getDate();
-  
-          // Fallback logic: if W5 doesn’t exist, fallback to W4, etc.
-          const finalWeek = getFallbackWeek(weekNumber, daysInMonth);
-  
-          // The first day of that "finalWeek"
-          // e.g. W1 => day(0*7+1)=1, W2=>8, W3=>15, W4=>22, W5=>29
-          const computedDay = (finalWeek - 1) * 7 + 1;
-          
-          // Set startDate to that day
-          startDate = new Date(year, month, computedDay);
-  
-        }
-        else if (part.startsWith('M')) {
-          // -----------------------------
-          // Collect month intervals
-          // -----------------------------
-          const mVal = parseInt(part.substring(1), 10);
-          if (isNaN(mVal) || mVal < 1) {
-            throw new Error(`Invalid month interval: ${part}`);
-          }
-          totalMonthInterval += mVal;
-        }
-        else if (part.startsWith('Y')) {
-          // -----------------------------
-          // Collect year intervals
-          // -----------------------------
-          const yVal = parseInt(part.substring(1), 10);
-          if (isNaN(yVal) || yVal < 1) {
-            throw new Error(`Invalid year interval: ${part}`);
-          }
-          totalYearInterval += yVal;
-        }
-        else if (part.startsWith('DT')) {
-          // -----------------------------
-          // Collect day intervals
-          // -----------------------------
-          const dVal = parseInt(part.substring(2), 10);
-          if (isNaN(dVal) || dVal < 1) {
-            throw new Error(`Invalid day interval: ${part}`);
-          }
-          totalDayInterval += dVal;
-        }
-        else {
-          // Unknown code part
-          throw new Error(`Unknown code component: ${part}`);
+          let clampedDay = clampDayToMonth(year, month, dayNumber);
+          startDate.setDate(clampedDay);
+        } else {
+          // e.g. D1..D7 => day of the week
+          // According to the prompt: D1 => Sunday (0), D2 => Monday (1), ..., D7 => Saturday (6).
+          const targetDay = (dayNumber - 1) % 7;
+          let diff = targetDay - startDate.getDay();
+          if (diff < 0) diff += 7;
+          startDate.setDate(startDate.getDate() + diff);
         }
       }
+      else if (part.startsWith('WO')) {
+        // -----------------------------
+        // Handle week occurrence codes (WO1..WO5)
+        // -----------------------------
+        let woNumber = parseInt(part.substring(2), 10);
+        if (isNaN(woNumber) || woNumber < 1 || woNumber > 5) {
+          throw new Error(`Invalid week occurrence code: ${part}`);
+        }
+
+        const year  = startDate.getFullYear();
+        const month = startDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // Fallback logic if the specified occurrence doesn't exist
+        const finalWO = getFallbackWO(woNumber, daysInMonth);
+        const computedDay = (finalWO - 1) * 7 + 1;
+        startDate = new Date(year, month, computedDay);
+      }
+      else if (part.startsWith('M')) {
+        // -----------------------------
+        // Collect month intervals
+        // -----------------------------
+        const mVal = parseInt(part.substring(1), 10);
+        if (isNaN(mVal) || mVal < 1) {
+          throw new Error(`Invalid month interval: ${part}`);
+        }
+        totalMonthInterval += mVal;
+      }
+      else if (part.startsWith('Y')) {
+        // -----------------------------
+        // Collect year intervals
+        // -----------------------------
+        const yVal = parseInt(part.substring(1), 10);
+        if (isNaN(yVal) || yVal < 1) {
+          throw new Error(`Invalid year interval: ${part}`);
+        }
+        totalYearInterval += yVal;
+      }
+      else if (part.startsWith('DT')) {
+        // -----------------------------
+        // Collect day intervals
+        // -----------------------------
+        const dVal = parseInt(part.substring(2), 10);
+        if (isNaN(dVal) || dVal < 1) {
+          throw new Error(`Invalid day interval: ${part}`);
+        }
+        totalDayInterval += dVal;
+      }
+      else {
+        // Unknown code part
+        throw new Error(`Unknown code component: ${part}`);
+      }
     }
-  
-    // 8. Calculate endDate based on collected intervals
-    //    We interpret these intervals as “from startDate plus these intervals”
-    const endDate = new Date(startDate);
-  
-    // Year interval
-    if (totalYearInterval !== 0) {
-      endDate.setFullYear(endDate.getFullYear() + totalYearInterval);
-    }
-    // Month interval
-    if (totalMonthInterval !== 0) {
-      // If the day is 31 and the next month doesn't have 31, set it to the last valid day
-      const currentDay = endDate.getDate();
-      const currentMonth = endDate.getMonth();
-      const currentYear  = endDate.getFullYear();
-  
-      let newMonth = currentMonth + totalMonthInterval;
-      let newYear  = currentYear + Math.floor(newMonth / 12);
-      newMonth     = newMonth % 12;
-  
-      // clamp day
-      const clampedDay = clampDayToMonth(newYear, newMonth, currentDay);
-  
-      endDate.setFullYear(newYear);
-      endDate.setMonth(newMonth);
-      endDate.setDate(clampedDay);
-    }
-    // Day interval
-    if (totalDayInterval !== 0) {
-      endDate.setDate(endDate.getDate() + totalDayInterval);
-    }
-  
-    // 9. Return the transaction period in ISO (YYYY-MM-DD)
-    function formatISO(dateObj) {
-      const y = dateObj.getFullYear();
-      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const d = String(dateObj.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-  
-    return {
-      startDate: formatISO(startDate),
-      endDate:   formatISO(endDate),
-    };
   }
+
+  // 8. Calculate endDate based on collected intervals
+  //    We interpret these intervals as “from startDate plus these intervals”
+  const endDate = new Date(startDate);
+
+  // Apply year interval
+  if (totalYearInterval !== 0) {
+    endDate.setFullYear(endDate.getFullYear() + totalYearInterval);
+  }
+
+  // Apply month interval
+  if (totalMonthInterval !== 0) {
+    const currentDay = endDate.getDate();
+    const currentMonth = endDate.getMonth();
+    const currentYear  = endDate.getFullYear();
+
+    let newMonth = currentMonth + totalMonthInterval;
+    let newYear  = currentYear + Math.floor(newMonth / 12);
+    newMonth     = newMonth % 12;
+
+    const clampedDay = clampDayToMonth(newYear, newMonth, currentDay);
+    endDate.setFullYear(newYear);
+    endDate.setMonth(newMonth);
+    endDate.setDate(clampedDay);
+  }
+
+  // Apply day interval
+  if (totalDayInterval !== 0) {
+    endDate.setDate(endDate.getDate() + totalDayInterval);
+  }
+
+  // 9. Return the transaction period in ISO (YYYY-MM-DD)
+  function formatISO(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  return {
+    startDate: formatISO(startDate),
+    endDate:   formatISO(endDate),
+  };
+}
   
 
 // Export the functions for use in other modules
