@@ -119,7 +119,7 @@ const processCashCollection = async (req, res) => {
         //     });
         // }
 
-        const depositLimit = cashierLimitData[0].depositlimit??200000000;
+        const depositLimit = (cashierLimitData.length > 0 ? cashierLimitData[0].depositlimit : 200000000);
 
         
         

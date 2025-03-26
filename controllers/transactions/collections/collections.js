@@ -99,7 +99,7 @@ const processCollection = async (req, res) => {
         //     });
         // }
 
-        const depositLimit = cashierLimitData[0].depositlimit??200000000;
+        const depositLimit = (cashierLimitData.length > 0 && cashierLimitData[0].depositlimit) ? cashierLimitData[0].depositlimit : 200000000;
 
         const timestamp = new Date().getTime();
         const today = new Date();
