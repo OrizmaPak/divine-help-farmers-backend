@@ -436,43 +436,46 @@ const handleRefundProcessing = async (data) => {
     console.log('Handling refund.processing:', data);
 };
 
+/**
+ * Rewritten code snippet for handleRefundProcessed
+ */
+
+// Start of Selection
 const handleRefundProcessed = async (transactionData) => {
-    const orgSettingsQuery = {
-        text: `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`,
-        values: []
+    // 1. Check paystackreferences table with transactionData.transaction_reference
+    const paystackRefQuery = {
+        text: `SELECT accountnumber, userid, email FROM divine."paystackreferences" WHERE reference = $1 LIMIT 1`,
+        values: [transactionData.transaction_reference]
     };
+    const { rows: refRows } = await pg.query(paystackRefQuery);
 
-    const { rows: orgRows } = await pg.query(orgSettingsQuery);
-    const personalAccountPrefix = orgRows[0].personal_account_prefix;
+    if (!refRows.length) {
+        console.log('No paystack reference found for transaction reference:', transactionData.transaction_reference);
+        return;
+    }
 
-    // Fetch user details using the email
-    const userQuery = {
-        text: `SELECT id, phone FROM divine."User" WHERE email = $1 LIMIT 1`,
-        values: [transactionData.customer.email]
-    };
+    const paystackRef = refRows[0];
+    const accountNumber = paystackRef.accountnumber;
+    const userId = parseInt(paystackRef.userid, 10) || 0;
 
-    const { rows: userRows } = await pg.query(userQuery);
-    const user = userRows[0];
-    const userId = user.id;
-    const userPhone = user.phone;
-
+    // 2. Build the transaction objects
     const bankTransaction = {
-        accountnumber: `${personalAccountPrefix}${userPhone}`,
+        accountnumber: accountNumber,
         userid: userId,
         description: transactionData.merchant_note,
-        debit: Math.floor(transactionData.amount / 100), // Remove the last two digits
+        debit: Math.floor(transactionData.amount / 100), // remove the last two digits
         credit: 0,
-        ttype: "DEBIT", // Assuming the type is REFUND
-        tfrom: 'BANK', // Assuming the sender bank is not provided
-        createdby: 0, // Assuming system created
-        valuedate: new Date(), // Assuming current date as valuedate
+        ttype: "DEBIT", // type is REFUND
+        tfrom: 'BANK',  // not provided, assume "BANK"
+        createdby: 0,   // system created
+        valuedate: new Date(),
         reference: transactionData.refund_reference,
-        transactiondate: new Date(), // Assuming current date as transactiondate
+        transactiondate: new Date(),
         transactiondesc: transactionData.merchant_note,
         transactionref: transactionData.refund_reference,
         status: 'ACTIVE',
         whichaccount: 'PERSONNAL',
-        currency: transactionData.currency, // Added currency
+        currency: transactionData.currency,
         rawdata: JSON.stringify(transactionData)
     };
 
@@ -501,7 +504,7 @@ const handleRefundProcessed = async (transactionData) => {
     };
 
     const oneWayTransaction = {
-        accountnumber: `${personalAccountPrefix}${userPhone}`,
+        accountnumber: accountNumber,
         userid: userId,
         debit: bankTransaction.debit,
         credit: bankTransaction.credit,
@@ -515,14 +518,14 @@ const handleRefundProcessed = async (transactionData) => {
         transactionreference: bankTransaction.transactionref,
         status: bankTransaction.status,
         whichaccount: 'PERSONNAL',
-        currency: bankTransaction.currency, // Added currency
+        currency: bankTransaction.currency,
         description: transactionData.merchant_note
     };
 
     await performTransactionOneWay(oneWayTransaction);
     await pg.query(query);
 
-    // Send a refund alert email
+    // 3. Helper functions
     const sendRefundAlertEmail = async (accountNumber, debitAmount, balance) => {
         const emailSubject = 'Refund Alert from DIVINE HELP FARMERS';
         const emailBody = `
@@ -534,23 +537,20 @@ const handleRefundProcessed = async (transactionData) => {
             <p>Available Balance: ₦${balance.toLocaleString('en-US')}</p>
             <p>Thank you for banking with DIVINE HELP FARMERS.</p>
         `;
-        await sendEmail({ to: `${transactionData.customer.email}`, subject: emailSubject, text: '', html: emailBody });
+        await sendEmail({ to: transactionData.customer.email, subject: emailSubject, text: '', html: emailBody });
     };
 
-    // Calculate the balance from the transaction table
-    const calculateBalance = async (accountNumber) => { 
+    const calculateBalance = async (acctNumber) => {
         const balanceQuery = {
             text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1`,
-            values: [accountNumber]
+            values: [acctNumber]
         };
         const { rows } = await pg.query(balanceQuery);
         return rows[0].balance;
     };
 
-    // Execute the functions
-    const accountNumber = `${personalAccountPrefix}${userPhone}`;
+    // 4. Perform final tasks
     const debitAmount = bankTransaction.debit;
-
     const balance = await calculateBalance(accountNumber);
     await sendRefundAlertEmail(accountNumber, debitAmount, balance);
 

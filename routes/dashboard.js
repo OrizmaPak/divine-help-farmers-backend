@@ -7,6 +7,8 @@ const { getMemberRotaryAccounts } = require('../controllers/dashboard/member/rot
 const { getPersonalAccountDetails } = require('../controllers/dashboard/member/personal');
 const { getAccountYearlyTransactions } = require('../controllers/dashboard/member/nettransaction/account');
 const { getUserMemberSavingsMonthly } = require('../controllers/dashboard/member/nettransaction/savings');
+const { getGLBalances } = require('../controllers/dashboard/admin/glbalance');
+const { getDefaultAccountKeysAndNames } = require('../controllers/dashboard/admin/nettransactions/gllist');
 const router = express.Router();
 
 // BRANCH MANAGEMENT
@@ -33,5 +35,11 @@ router.route('/nettransactionaccount')
 
 router.route('/netsavingstransaction')
     .get(getUserMemberSavingsMonthly)
+
+router.route('/glbalance')
+    .get(getGLBalances)
+
+router.route('/gllist')
+    .get(getDefaultAccountKeysAndNames)
 
 module.exports = router; 

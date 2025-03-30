@@ -103,17 +103,21 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
         // 10. Compulsory Deposit Logic
         if (savingsProduct.compulsorydeposit) {
             console.log("Handling compulsory deposit logic.");
-        
-            // Check if credit is less than the compulsory deposit amount
+
+            // 1. Determine whether backdated or future transactions are allowed
+            const allowBackDated = savingsProduct.allow_back_dated_transaction === 'YES';
+            const allowFuture = savingsProduct.allow_future_transaction === 'YES';
+
+            // 2. Check if credit is less than the compulsory deposit amount
             if (credit < savingsProduct.compulsorydepositfrequencyamount) {
                 console.log("Credit amount is less than compulsory deposit amount.");
                 transactionStatus = 'FAILED';
                 reasonForRejection = 'Credit amount is less than compulsory deposit amount';
-                 await handleCreditRedirectToPersonnalAccount(
+                await handleCreditRedirectToPersonnalAccount(
                     client,
                     req,
                     res,
-                    accountuser, 
+                    accountuser,
                     generateNewReference(client, accountnumber, req, res),
                     reasonForRejection,
                     whichaccount
@@ -133,82 +137,123 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                 req.body.transactiondesc += 'Credit amount is less than compulsory deposit amount.|';
                 return next();
             }
-        
-            // Calculate the remainder
+
+            // 3. Calculate the remainder
             const remainder = credit % savingsProduct.compulsorydepositfrequencyamount;
             console.log("Calculated remainder for compulsory deposit:", remainder);
-        
-            // Get the last transaction on the account
+
+            // 4. Get the last transaction on the account
             const lastTransactionQuery = `
-                SELECT * FROM divine."transaction"
+                SELECT *
+                FROM divine."transaction"
                 WHERE accountnumber = $1 AND status = 'ACTIVE'
                 ORDER BY transactiondate DESC
                 LIMIT 1
             `;
             const lastTransactionResult = await client.query(lastTransactionQuery, [accountnumber]);
-            let lastTransactionDate = new Date();
-        
-            // If there is a previous transaction, set the lastTransactionDate to the date of that transaction
+
+            // Also pull all existing active transactions for date-level checks
+            const existingTransQuery = `
+                SELECT transactiondate
+                FROM divine."transaction"
+                WHERE accountnumber = $1
+                  AND status = 'ACTIVE'
+            `;
+            const { rows: existingTransactions } = await client.query(existingTransQuery, [accountnumber]);
+            const hasTransactionOnThatDate = (someDate) => {
+                const compareDay = new Date(someDate).toDateString();
+                return existingTransactions.some(
+                    (row) => new Date(row.transactiondate).toDateString() === compareDay
+                );
+            };
+
+            // 5. Determine the last transaction date
+            const lastDates = generateNextDates(savingsProduct.compulsorydepositfrequency, -2);
+            console.log("Last transaction dates:", lastDates);
+            const lastDate = lastDates[lastDates.length - 1];
+            let lastTransactionDate = new Date(new Date(lastDate).setDate(new Date(lastDate).getDate() - 1));
+            console.log("Last transaction date (initial):", lastTransactionDate);
+
             if (lastTransactionResult.rowCount > 0) {
                 lastTransactionDate = new Date(lastTransactionResult.rows[0].transactiondate);
-                console.log("Last transaction date:", lastTransactionDate);
+                console.log("Last transaction date (from DB):", lastTransactionDate);
             }
-        
-            // Get the transaction period based on the compulsory deposit frequency and the last transaction date
-            const { startDate, endDate } = getTransactionPeriod(savingsProduct.compulsorydepositfrequency, lastTransactionDate);
-            console.log("Transaction period from", startDate, "to", endDate);
-        
-            // Check if today's date falls within the calculated transaction period
+
+            // 6. Get transaction period based on compulsory deposit frequency
+            const { startDate, endDate: periodEnd } = getTransactionPeriod(
+                savingsProduct.compulsorydepositfrequency,
+                lastTransactionDate
+            );
+            console.log("Transaction period from", startDate, "to", periodEnd);
+
+            // 7. Check if today's date falls within the calculated transaction period
             const today = new Date();
-            const isWithinPeriod = today >= new Date(startDate) && today <= new Date(endDate);
+            const isWithinPeriod = today >= new Date(startDate) && today <= new Date(periodEnd);
             console.log("Is today within the transaction period?", isWithinPeriod);
-        
-            const multipleOfFrequency = Math.floor(credit / savingsProduct.compulsorydepositfrequencyamount);
+
+            // 8. Determine multiple of frequency
+            const multipleOfFrequency = Math.floor(
+                credit / savingsProduct.compulsorydepositfrequencyamount
+            );
             console.log("Multiple of frequency amount:", multipleOfFrequency);
-        
-            // Generate all relevant dates based on the frequency
-            const dates = generateNextDates(savingsProduct.compulsorydepositfrequency, multipleOfFrequency, endDate);
-            console.log("All calculated dates:", dates);
-        
-            // Separate past and future dates
-            const pastDates = dates.filter(date => new Date(date) < today);
-            const futureDates = dates.filter(date => new Date(date) >= today);
+
+            // 9. Generate all relevant dates based on the frequency
+            const allDates = generateNextDates(
+                savingsProduct.compulsorydepositfrequency,
+                multipleOfFrequency,
+                periodEnd
+            );
+            console.log("All calculated dates:", allDates);
+
+            // 10. Separate past and future dates
+            const pastDates = allDates.filter(date => new Date(date) < today);
+            const futureDates = allDates.filter(date => new Date(date) > today);
             console.log("Past dates:", pastDates, "Future dates:", futureDates);
-        
-            // Initialize remaining balance
+
+            // 11. Enforce rules around backdated/future-dated transactions
+            //     If NOT allowed, exclude them from distribution
+            const validPastDates = allowBackDated ? pastDates : [];
+            const validFutureDates = allowFuture ? futureDates : [];
+
+            // 12. Check if there's already a transaction in the current period
+            const hasTransactionThisPeriod = lastTransactionResult.rows.some(row => {
+                const rowDate = new Date(row.transactiondate);
+                return rowDate >= new Date(startDate) && rowDate <= new Date(periodEnd);
+            });
+
+            // 13. If there's no transaction in this period, post one chunk for this period
+            //     unless there's already a transaction on the exact date we intend to post
             let remainingBalance = credit;
-        
-            if (savingsProduct.compulsorydeposittype === 'FIXED') {
-                console.log("Handling FIXED compulsory deposit type.");
-        
-                // Distribute deposits to all dates
-                for (const date of dates) {
-                    if (remainingBalance >= savingsProduct.compulsorydepositfrequencyamount) {
+            if (!hasTransactionThisPeriod) {
+                console.log("No payment found for the current period. Attempting to pay one frequency amount.");
+                if (remainingBalance >= savingsProduct.compulsorydepositfrequencyamount) {
+                    const periodDate = isWithinPeriod ? today : periodEnd;
+                    // Check if we already posted on periodDate
+                    if (hasTransactionOnThatDate(periodDate)) {
+                        console.log("A transaction already exists for this period date. Skipping posting for this period.");
+                    } else {
                         const transactionData = {
-                            accountnumber: accountnumber,
+                            accountnumber,
                             credit: savingsProduct.compulsorydepositfrequencyamount,
                             reference: generateNewReference(client, accountnumber, req, res),
-                            description: description,
-                            ttype: ttype,
+                            description,
+                            ttype,
                             status: 'ACTIVE',
-                            transactiondate: date,
+                            transactiondate: periodDate,
                             whichaccount
                         };
                         await saveTransaction(client, res, transactionData, req);
-                        await activityMiddleware(req.user.id, 'Transaction saved for FIXED type', 'TRANSACTION');
+                        await activityMiddleware(
+                            req.user.id,
+                            'Transaction posted for current period (one chunk)',
+                            'TRANSACTION'
+                        );
                         remainingBalance -= savingsProduct.compulsorydepositfrequencyamount;
-                    } else {
-                        break; // No more funds to allocate
                     }
-                }
-        
-                console.log("Remaining balance after FIXED deposits:", remainingBalance);
-        
-                // Redirect any remaining balance to personal account
-                if (remainingBalance > 0) {
-                    console.log("Redirecting remaining balance to personal account.");
+                } else {
+                    console.log("Not enough credit to pay one frequency chunk for the period. Redirecting to personal account.");
                     transactionStatus = 'REDIRECTED';
-                    reasonForRejection = 'Remaining balance redirected to personal account';
+                    reasonForRejection = 'Remaining balance redirected to personal account - insufficient for period chunk';
                     await handleCreditRedirectToPersonnalAccount(
                         client,
                         req,
@@ -219,7 +264,133 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                         whichaccount,
                         remainingBalance
                     );
-                    await client.query('COMMIT'); // Commit the transaction
+                    await client.query('COMMIT');
+                    await activityMiddleware(
+                        req,
+                        req.user.id,
+                        'Transaction committed after not enough funds for one chunk in current period',
+                        'TRANSACTION'
+                    );
+                    req.transactionError = {
+                        status: StatusCodes.MISDIRECTED_REQUEST,
+                        message: 'Remaining balance redirected to personal account.',
+                        errors: ['Not enough credit for one chunk in current period.']
+                    };
+                    req.body.transactiondesc += 'Not enough credit for one chunk in current period.|';
+                    return next();
+                }
+            }
+
+            // 14. Proceed with normal distribution logic if we still have leftover
+            //     Also check if there's already a transaction for 'today' to avoid double-posting
+            const hasTransactionToday = hasTransactionOnThatDate(today);
+
+            if (hasTransactionToday) {
+                // If the current day already has a transaction, redirect leftover
+                if (remainingBalance > 0) {
+                    console.log("Today's date already has a transaction. Redirecting leftover to personal account.");
+                    transactionStatus = 'REDIRECTED';
+                    reasonForRejection = 'A transaction already exists for today, leftover is redirected';
+                    await handleCreditRedirectToPersonnalAccount(
+                        client,
+                        req,
+                        res,
+                        accountuser,
+                        generateNewReference(client, accountnumber, req, res),
+                        reasonForRejection,
+                        whichaccount,
+                        remainingBalance
+                    );
+                }
+                await client.query('COMMIT');
+                await activityMiddleware(
+                    req,
+                    req.user.id,
+                    'Transaction committed after discovering a transaction on today, leftover redirected',
+                    'TRANSACTION'
+                );
+                req.transactionError = {
+                    status: StatusCodes.MISDIRECTED_REQUEST,
+                    message: 'Leftover redirected because there is already a transaction today.',
+                    errors: ['Already transacted today.']
+                };
+                req.body.transactiondesc += 'Leftover redirected because there is already a transaction today.|';
+                return next();
+            }
+
+            console.log("Handling distribution logic for compulsory deposit type:", savingsProduct.compulsorydeposittype);
+
+            if (remainingBalance <= 0) {
+                // All funds used or posted
+                await client.query('COMMIT');
+                await activityMiddleware(
+                    req.user.id,
+                    'All funds for compulsory deposit have been posted or redirected',
+                    'TRANSACTION'
+                );
+                return next();
+            }
+
+            // ---------------------------------------------------------------------
+            // FIXED Type Distribution
+            // ---------------------------------------------------------------------
+            if (savingsProduct.compulsorydeposittype === 'FIXED') {
+                console.log("Handling FIXED compulsory deposit type.");
+
+                // Distribute deposits to each valid date (past or future if allowed) in freq increments
+                for (const date of allDates) {
+                    const dateObj = new Date(date);
+
+                    // Skip if date is in the past and not allowed
+                    if (dateObj < today && !allowBackDated) continue;
+                    // Skip if date is in the future and not allowed
+                    if (dateObj > today && !allowFuture) continue;
+                    // Skip if there's already a transaction on that day
+                    if (hasTransactionOnThatDate(dateObj)) {
+                        console.log(`A transaction is already posted on ${dateObj}. Skipping this date.`);
+                        continue;
+                    }
+
+                    if (remainingBalance >= savingsProduct.compulsorydepositfrequencyamount) {
+                        const transactionData = {
+                            accountnumber,
+                            credit: savingsProduct.compulsorydepositfrequencyamount,
+                            reference: generateNewReference(client, accountnumber, req, res),
+                            description,
+                            ttype,
+                            status: 'ACTIVE',
+                            transactiondate: date,
+                            whichaccount
+                        };
+                        await saveTransaction(client, res, transactionData, req);
+                        await activityMiddleware(
+                            req.user.id,
+                            `Transaction saved for FIXED type on ${date}`,
+                            'TRANSACTION'
+                        );
+                        remainingBalance -= savingsProduct.compulsorydepositfrequencyamount;
+                    } else {
+                        break; // Not enough funds to allocate another chunk
+                    }
+                }
+
+                console.log("Remaining balance after FIXED deposits:", remainingBalance);
+                // Redirect any leftover to personal account
+                if (remainingBalance > 0) {
+                    console.log("Redirecting remaining balance to personal account (FIXED).");
+                    transactionStatus = 'REDIRECTED';
+                    reasonForRejection = 'Remaining balance redirected to personal account (FIXED)';
+                    await handleCreditRedirectToPersonnalAccount(
+                        client,
+                        req,
+                        res,
+                        accountuser,
+                        generateNewReference(client, accountnumber, req, res),
+                        reasonForRejection,
+                        whichaccount,
+                        remainingBalance
+                    );
+                    await client.query('COMMIT');
                     await activityMiddleware(
                         req,
                         req.user.id,
@@ -234,29 +405,40 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                     req.body.transactiondesc += 'Remaining balance redirected to personal account.|';
                     return next();
                 }
-        
+
+            // ---------------------------------------------------------------------
+            // MINIMUM Type Distribution
+            // ---------------------------------------------------------------------
             } else if (savingsProduct.compulsorydeposittype === 'MINIMUM') {
                 console.log("Handling MINIMUM compulsory deposit type.");
-        
-                // Distribute deposits to past dates first
-                for (const date of pastDates) {
+
+                // 1) Distribute deposits to valid past dates first
+                for (const date of validPastDates) {
                     if (remainingBalance >= savingsProduct.compulsorydepositfrequencyamount) {
+                        // Skip if there's already a transaction on that date
+                        if (hasTransactionOnThatDate(new Date(date))) {
+                            console.log(`A transaction is already posted on ${date}. Skipping this past date.`);
+                            continue;
+                        }
                         const transactionData = {
-                            accountnumber: accountnumber,
+                            accountnumber,
                             credit: savingsProduct.compulsorydepositfrequencyamount,
                             reference: generateNewReference(client, accountnumber, req, res),
-                            description: description,
-                            ttype: ttype,
+                            description,
+                            ttype,
                             status: 'ACTIVE',
                             transactiondate: date,
                             whichaccount
                         };
                         await saveTransaction(client, res, transactionData, req);
-                        await activityMiddleware(req.user.id, 'Transaction saved for past date (MINIMUM)', 'TRANSACTION');
+                        await activityMiddleware(
+                            req.user.id,
+                            `Transaction saved for past date (MINIMUM) on ${date}`,
+                            'TRANSACTION'
+                        );
                         remainingBalance -= savingsProduct.compulsorydepositfrequencyamount;
                     } else {
                         console.log(`Insufficient balance for past date deposit on ${date}. Redirecting remaining balance.`);
-                        // Redirect the remaining balance to personal account
                         transactionStatus = 'REDIRECTED';
                         reasonForRejection = 'Remaining balance redirected to personal account';
                         await handleCreditRedirectToPersonnalAccount(
@@ -269,7 +451,7 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                             whichaccount,
                             remainingBalance
                         );
-                        await client.query('COMMIT'); // Commit the transaction
+                        await client.query('COMMIT');
                         await activityMiddleware(
                             req,
                             req.user.id,
@@ -285,38 +467,46 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                         return next();
                     }
                 }
-        
-                console.log("Remaining balance after past deposits:", remainingBalance);
-        
-                // If there is remaining balance, handle current/future dates
+
+                console.log("Remaining balance after past deposits (MINIMUM):", remainingBalance);
+
+                // 2) Next, handle current/future dates if leftover remains
                 if (remainingBalance > 0) {
-                    console.log("Processing first future date for MINIMUM deposit.");
-        
-                    // Find the first future date
-                    if (futureDates.length > 0) {
-                        const firstFutureDate = futureDates[0];
-                        console.log(`First future date: ${firstFutureDate}`);
-        
-                        if (remainingBalance >= savingsProduct.compulsorydepositfrequencyamount) {
-                            // Deposit all remaining balance to the first future date
-                            const transactionData = {
-                                accountnumber: accountnumber,
-                                credit: remainingBalance, // Deposit entire remaining balance
-                                reference: generateNewReference(client, accountnumber, req, res),
-                                description: description,
-                                ttype: ttype,
-                                status: 'ACTIVE',
-                                transactiondate: firstFutureDate,
-                                whichaccount
-                            };
-                            await saveTransaction(client, res, transactionData, req);
-                            await activityMiddleware(req.user.id, 'Transaction saved for first future date (MINIMUM)', 'TRANSACTION');
-                            remainingBalance = 0; // All funds allocated
-                        } else {
-                            // Remaining balance is less than frequency amount; redirect to personal account
-                            console.log("Remaining balance less than frequency amount. Redirecting to personal account.");
+                    console.log("Processing current or future dates for MINIMUM deposit.");
+                    if (allowFuture && validFutureDates.length > 0) {
+                        // If future is allowed, distribute for valid future dates
+                        for (const date of validFutureDates) {
+                            if (remainingBalance >= savingsProduct.compulsorydepositfrequencyamount) {
+                                if (hasTransactionOnThatDate(new Date(date))) {
+                                    console.log(`A transaction is already posted on ${date}. Skipping this future date.`);
+                                    continue;
+                                }
+                                const transactionData = {
+                                    accountnumber,
+                                    credit: savingsProduct.compulsorydepositfrequencyamount,
+                                    reference: generateNewReference(client, accountnumber, req, res),
+                                    description,
+                                    ttype,
+                                    status: 'ACTIVE',
+                                    transactiondate: date,
+                                    whichaccount
+                                };
+                                await saveTransaction(client, res, transactionData, req);
+                                await activityMiddleware(
+                                    req.user.id,
+                                    `Transaction saved for future date (MINIMUM) on ${date}`,
+                                    'TRANSACTION'
+                                );
+                                remainingBalance -= savingsProduct.compulsorydepositfrequencyamount;
+                            } else {
+                                break; // Not enough for another chunk
+                            }
+                        }
+                        // If leftover remains and is not enough for another frequency chunk, redirect
+                        if (remainingBalance > 0 && remainingBalance < savingsProduct.compulsorydepositfrequencyamount) {
+                            console.log("Remaining balance less than frequency amount. Redirecting to personal account (MINIMUM).");
                             transactionStatus = 'REDIRECTED';
-                            reasonForRejection = 'Remaining balance redirected to personal account';
+                            reasonForRejection = 'Remaining balance cannot form another chunk';
                             await handleCreditRedirectToPersonnalAccount(
                                 client,
                                 req,
@@ -327,26 +517,81 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                                 whichaccount,
                                 remainingBalance
                             );
-                            await client.query('COMMIT'); // Commit the transaction
+                            await client.query('COMMIT');
                             await activityMiddleware(
                                 req,
                                 req.user.id,
-                                'Transaction committed after redirecting remaining balance (MINIMUM)',
+                                'Transaction committed after leftover < frequency chunk (MINIMUM)',
                                 'TRANSACTION'
                             );
                             req.transactionError = {
                                 status: StatusCodes.MISDIRECTED_REQUEST,
                                 message: 'Remaining balance redirected to personal account.',
-                                errors: ['Remaining balance redirected to personal account.']
+                                errors: ['Remaining balance less than frequency amount.']
                             };
-                            req.body.transactiondesc += 'Remaining balance redirected to personal account.|';
+                            req.body.transactiondesc += 'Remaining balance less than frequency amount.|';
+                            return next();
+                        }
+                    } else if (!allowFuture && isWithinPeriod) {
+                        // If not allowing future dates but we are still in the current period, post once if possible
+                        if (remainingBalance >= savingsProduct.compulsorydepositfrequencyamount) {
+                            if (!hasTransactionOnThatDate(today)) {
+                                const transactionData = {
+                                    accountnumber,
+                                    credit: savingsProduct.compulsorydepositfrequencyamount,
+                                    reference: generateNewReference(client, accountnumber, req, res),
+                                    description,
+                                    ttype,
+                                    status: 'ACTIVE',
+                                    transactiondate: today,
+                                    whichaccount
+                                };
+                                await saveTransaction(client, res, transactionData, req);
+                                await activityMiddleware(
+                                    req.user.id,
+                                    'Transaction saved for today (MINIMUM)',
+                                    'TRANSACTION'
+                                );
+                                remainingBalance -= savingsProduct.compulsorydepositfrequencyamount;
+                            } else {
+                                console.log("A transaction already exists for today. Skipping today's post, leftover may be redirected.");
+                            }
+                        }
+                        // Redirect leftover if it's below one chunk or no more valid days
+                        if (remainingBalance > 0) {
+                            console.log("Redirecting leftover to personal account (MINIMUM) - no future allowed or leftover not enough.");
+                            transactionStatus = 'REDIRECTED';
+                            reasonForRejection = 'Remaining balance cannot be posted - no valid days or leftover < chunk';
+                            await handleCreditRedirectToPersonnalAccount(
+                                client,
+                                req,
+                                res,
+                                accountuser,
+                                generateNewReference(client, accountnumber, req, res),
+                                reasonForRejection,
+                                whichaccount,
+                                remainingBalance
+                            );
+                            await client.query('COMMIT');
+                            await activityMiddleware(
+                                req,
+                                req.user.id,
+                                'Transaction committed after leftover cannot be fully posted (MINIMUM)',
+                                'TRANSACTION'
+                            );
+                            req.transactionError = {
+                                status: StatusCodes.MISDIRECTED_REQUEST,
+                                message: 'Leftover redirected to personal account.',
+                                errors: ['Leftover not posted because no future allowed or not enough for another chunk.']
+                            };
+                            req.body.transactiondesc += 'Leftover redirected to personal account.|';
                             return next();
                         }
                     } else {
-                        // No future dates available; redirect remaining balance
-                        console.log("No future dates available. Redirecting remaining balance to personal account.");
+                        // No valid future or no more places to post => redirect leftover
+                        console.log("No remainder can be posted - no valid future or current date => leftover redirected (MINIMUM).");
                         transactionStatus = 'REDIRECTED';
-                        reasonForRejection = 'Remaining balance redirected to personal account';
+                        reasonForRejection = 'Remaining balance redirected to personal account (MINIMUM - no valid date)';
                         await handleCreditRedirectToPersonnalAccount(
                             client,
                             req,
@@ -357,39 +602,37 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                             whichaccount,
                             remainingBalance
                         );
-                        await client.query('COMMIT'); // Commit the transaction
+                        await client.query('COMMIT');
                         await activityMiddleware(
                             req,
                             req.user.id,
-                            'Transaction committed after no future dates available (MINIMUM)',
+                            'Transaction committed after no valid date for leftover (MINIMUM)',
                             'TRANSACTION'
                         );
                         req.transactionError = {
                             status: StatusCodes.MISDIRECTED_REQUEST,
                             message: 'Remaining balance redirected to personal account.',
-                            errors: ['Remaining balance redirected to personal account.']
+                            errors: ['No valid date for leftover.']
                         };
                         req.body.transactiondesc += 'Remaining balance redirected to personal account.|';
                         return next();
                     }
                 }
-        
+
             } else {
                 // Handle other deposit types if necessary
                 console.log("Unhandled compulsory deposit type:", savingsProduct.compulsorydeposittype);
                 // You might want to handle other types or throw an error
             }
-        
-            // Commit the transaction if all deposits are handled successfully
+
+            // 15. Commit the transaction if all deposits have been handled successfully
             await client.query('COMMIT');
             await activityMiddleware(req.user.id, 'All compulsory deposits handled successfully', 'TRANSACTION');
-        
-            // Optionally, set a success response or proceed further
-            // For example:
-            // req.body.transactiondesc += 'All compulsory deposits handled successfully.|';
-            // return next();
-        }
 
+            // Optionally, set a success response or proceed further    
+            return next();
+        }
+ 
         transactionStatus = 'ACTIVE';
 
         console.log('its saving without a problem')

@@ -300,7 +300,7 @@ const saveTransactionMiddleware = async (req, res, next) => {
                 && loanAccountResult.rowCount === 0 
                 && glAccountResult.rowCount === 0 
                 && propertyAccountResult.rowCount === 0 
-                && rotaryAccountResult.rowCount === 0) {
+                && rotaryAccountResult.rowCount === 0) { 
             // If account number is invalid, save the transaction as failed
             await saveFailedTransaction(client, req, res, 'Invalid account number', await generateNewReference(client, accountnumber, req, res), whichaccount);
             await client.query('COMMIT'); // Commit the transaction
@@ -321,7 +321,8 @@ const saveTransactionMiddleware = async (req, res, next) => {
 
         // Check for currency mismatch and date restrictions
         const currentDate = new Date();
-        if (!orgSettings.allow_back_dated_transaction && new Date(transactiondate) < currentDate) {
+        if (orgSettings.allow_back_dated_transaction == 'NO' && new Date(transactiondate).toDateString() < currentDate.toDateString()) {
+            console.log('back dated transactions are not allowed', transactiondate, currentDate);
             transactionStatus = 'FAILED';
             reasonForRejection = 'Back-dated transactions are not allowed';
             // Immediately save the transaction as failed and stop processing
@@ -335,8 +336,8 @@ const saveTransactionMiddleware = async (req, res, next) => {
             };
             req.body.transactiondesc += 'Transaction failed due to back-dated transaction.|';
             return next();
-        }
-        if (!orgSettings.allow_future_transaction && new Date(transactiondate) > currentDate) {
+        } 
+        if (orgSettings.allow_future_transaction == 'NO' && new Date(transactiondate) > currentDate) {
             transactionStatus = 'FAILED';
             reasonForRejection = 'Future transactions are not allowed';
             // Immediately save the transaction as failed and stop processing

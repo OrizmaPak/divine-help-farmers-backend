@@ -59,7 +59,7 @@ const getMemberSavings = async (req, res) => {
 
             // Calculate balance for each account
             const balanceQuery = {
-                text: `SELECT SUM(credit) - SUM(debit) as balance FROM divine."transaction" WHERE accountnumber = $1`,
+                text: `SELECT SUM(credit) - SUM(debit) as balance FROM divine."transaction" WHERE accountnumber = $1 AND status = 'ACTIVE'`,
                 values: [accountnumber]
             };
             const { rows: [{ balance }] } = await pg.query(balanceQuery);
@@ -113,7 +113,7 @@ const getMemberSavings = async (req, res) => {
             Here is a summary of your last two transactions: ${transactionSummary}
         `;
 
-        const aiSummary = await generateText(prompt);
+        const aiSummary = await generateText(prompt); 
 
         await activityMiddleware(req, user.id, 'Member savings fetched successfully', 'SAVINGS');
 

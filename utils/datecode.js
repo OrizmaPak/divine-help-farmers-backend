@@ -809,36 +809,44 @@ function generateDates(code) {
  * @param {Date} [currentDate=new Date()] - The starting date.
  * @returns {string[]} - An array of dates in ISO format.
  */
-function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {    
+function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
     // 1. Validate the currentDate
     const currentDate = new Date(currentDateInput);
     if (isNaN(currentDate)) {
         throw new Error('Invalid currentDate provided. Please provide a valid date.');
     }
 
-    // 2. Split code into combinations
+    // 2. Handle zero dates or interpret negative as "last N dates"
+    if (numberOfDates === 0) {
+        return [];
+    }
+
+    // If negative, we'll generate dates in the past. We'll unify the logic by using a boolean flag.
+    const forward = numberOfDates > 0;
+    const totalDates = Math.abs(numberOfDates);
+
+    // 3. Split code into combinations
     const combinations = code.split('+').map(combo => combo.trim());
 
-    // 3. For each combination, parse the parts and create a "getNextDate" function
-    const nextDateFunctions = combinations.map(combo => {
+    // 4. Parse the parts in each combination and build a function to get either next or previous dates
+    const dateFunctions = combinations.map(combo => {
         const parts = combo.split(/\s+/);
 
-        let dayCode    = null; // { type: 'specific' | 'weekday', day: number }
-        let weekOccur  = null; // integer 1..5
-        let monthInt   = 1;    // Mx
-        let yearInt    = 1;    // Yx
-        let dayInt     = null; // DTx
+        let dayCode   = null; // { type: 'specific' | 'weekday', day: number }
+        let weekOccur = null; // integer 1..5
+        let monthInt  = 1;    // Mx
+        let yearInt   = 1;    // Yx
+        let dayInt    = null; // DTx
 
+        // Parse the parts
         for (const part of parts) {
             if (part.startsWith('DT')) {
-                // e.g. DT10
                 const n = parseInt(part.slice(2), 10);
                 if (isNaN(n) || n < 1) {
                     throw new Error(`Invalid day interval: ${part}`);
                 }
                 dayInt = n;
             } else if (part.startsWith('D')) {
-                // e.g. D31T, D7, etc.
                 if (part.endsWith('T')) {
                     // DxxT => specific day of the month
                     const d = parseInt(part.slice(1, -1), 10);
@@ -852,7 +860,7 @@ function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
                     if (isNaN(d) || d < 1 || d > 7) {
                         throw new Error(`Invalid weekday code: ${part}`);
                     }
-                    // Convert to 0..6 => Sunday..Saturday
+                    // Convert 1..7 => 0..6
                     dayCode = { type: 'weekday', day: d - 1 };
                 }
             } else if (part.startsWith('WO')) {
@@ -881,57 +889,40 @@ function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
             }
         }
 
-        // --- Helper Functions ---
+        // ------------------------------------------------------
+        // Helper functions for FORWARD logic
+        // ------------------------------------------------------
 
-        // A) If we have DT, it’s just day-based intervals:
         function getNextForDayInterval(fromDate) {
             const next = new Date(fromDate);
             next.setDate(next.getDate() + dayInt);
             return next;
         }
 
-        // B) If we have a specific day (DxxT)
-        //    Clamps to the last day if day > #daysInMonth,
-        //    fallback if it's in the past, tries the same month (no skip).
         function getNextForSpecificDay(fromDate) {
             let year  = fromDate.getFullYear();
             let month = fromDate.getMonth();
 
-            // Build a date in the *current* month first
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const desiredDay  = (dayCode.day > daysInMonth) ? daysInMonth : dayCode.day;
-
             let target = new Date(year, month, desiredDay);
 
-            // If that date is <= 'fromDate', we look at the next month
-            // BUT let's see if we want "no skip" meaning if dayCode.day=31 but fromDate=the 30th => we can still do 31 if it exists
-            // Actually we only skip forward if it's truly less (or equal).
             if (target <= fromDate) {
-                // move ahead by monthInt
-                // but in small increments if monthInt>1, we do that many months
                 month += monthInt;
-
-                // normalize year/month
                 while (month > 11) {
                     year  += 1;
                     month -= 12;
                 }
-
                 const daysNewMonth = new Date(year, month + 1, 0).getDate();
                 const dDay         = (dayCode.day > daysNewMonth) ? daysNewMonth : dayCode.day;
                 target = new Date(year, month, dDay);
             }
 
-            // now apply year interval (Y2 => +1 year to get the “next” if that’s how you interpret it, or Y2 => skip 2 years, etc.)
-            // Typically Y2 means “every 2 years” so from the first occurrence, we’d add + (2 -1) = +1? 
-            // If you want to jump 2 full years from now, do +2. 
-            // We'll do the standard approach: + (yearInt - 1)
+            // Typically Y2 => every 2 years, so from the first occurrence + (yearInt - 1)
             target.setFullYear(target.getFullYear() + (yearInt - 1));
-
             return target;
         }
 
-        // C) If we have a weekday w/o WO => next occurrence of that weekday in the future
         function getNextForPlainWeekday(fromDate) {
             const next = new Date(fromDate);
             let diff = dayCode.day - next.getDay();
@@ -940,28 +931,19 @@ function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
             return next;
         }
 
-        // D) If we have a weekday + WO => pick nth occurrence
-        //    If the nth occurrence doesn’t exist, fallback to (n-1), (n-2), etc.
-        //    If absolutely none exist, *then* move to the next interval.
         function getNextForNthWeekday(fromDate) {
             let year  = fromDate.getFullYear();
             let month = fromDate.getMonth();
 
-            // 1) Try current month for the nth occurrence
             let candidate = findNthOrFallback(year, month, dayCode.day, weekOccur);
-
-            // 2) If the candidate is null or <= fromDate, we move forward by monthInt
             if (!candidate || candidate <= fromDate) {
                 month += monthInt;
-                // normalize
                 while (month > 11) {
                     year  += 1;
                     month -= 12;
                 }
-
                 candidate = findNthOrFallback(year, month, dayCode.day, weekOccur);
 
-                // if still null, we keep going in increments of monthInt (rare)
                 while (!candidate) {
                     month += monthInt;
                     while (month > 11) {
@@ -971,54 +953,104 @@ function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
                     candidate = findNthOrFallback(year, month, dayCode.day, weekOccur);
                 }
             }
-
-            // now apply year interval
             candidate.setFullYear(candidate.getFullYear() + (yearInt - 1));
             return candidate;
         }
 
-        // --- Core Logic for "getNextDate" ---
-        function getNextDate(fromDate) {
-            // 1) Day Interval only? => DT
-            if (dayInt && !dayCode) {
-                return getNextForDayInterval(fromDate);
-            }
-            // 2) Specific day => DxxT
-            if (dayCode && dayCode.type === 'specific') {
-                return getNextForSpecificDay(fromDate);
-            }
-            // 3) Weekday => D1..D7
-            if (dayCode && dayCode.type === 'weekday') {
-                // 3a) No WO => plain weekday
-                if (!weekOccur) {
-                    return getNextForPlainWeekday(fromDate);
-                }
-                // 3b) Have WO => nth occurrence
-                return getNextForNthWeekday(fromDate);
-            }
-            throw new Error(`Incomplete combination: "${combo}"`);
+        // ------------------------------------------------------
+        // Helper functions for BACKWARD logic
+        // ------------------------------------------------------
+
+        function getPrevForDayInterval(fromDate) {
+            const prev = new Date(fromDate);
+            prev.setDate(prev.getDate() - dayInt);
+            return prev;
         }
 
-        // Helper used by getNextForNthWeekday:
-        // Attempt the nth occurrence. If it doesn't exist, fallback to n-1, etc.
-        function findNthOrFallback(year, month, weekday, nth) {
-            // e.g. weekday=2 => Tuesday, nth=5 => 5th Tuesday
-            // If 5th doesn’t exist, try 4th, 3rd, etc.
+        function getPrevForSpecificDay(fromDate) {
+            let year  = fromDate.getFullYear();
+            let month = fromDate.getMonth();
 
-            // We'll build from the largest fallback down
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const desiredDay  = (dayCode.day > daysInMonth) ? daysInMonth : dayCode.day;
+            let target = new Date(year, month, desiredDay);
+
+            if (target >= fromDate) {
+                // move backward by monthInt
+                month -= monthInt;
+                while (month < 0) {
+                    year  -= 1;
+                    month += 12;
+                }
+                const daysNewMonth = new Date(year, month + 1, 0).getDate();
+                const dDay         = (dayCode.day > daysNewMonth) ? daysNewMonth : dayCode.day;
+                target = new Date(year, month, dDay);
+            }
+            target.setFullYear(target.getFullYear() - (yearInt - 1));
+            return target;
+        }
+
+        function getPrevForPlainWeekday(fromDate) {
+            const prev = new Date(fromDate);
+            let diff = prev.getDay() - dayCode.day;
+            if (diff <= 0) diff += 7;
+            prev.setDate(prev.getDate() - diff);
+            return prev;
+        }
+
+        function getPrevForNthWeekday(fromDate) {
+            let year  = fromDate.getFullYear();
+            let month = fromDate.getMonth();
+
+            let candidate = findNthOrFallbackReverse(year, month, dayCode.day, weekOccur);
+            if (!candidate || candidate >= fromDate) {
+                month -= monthInt;
+                while (month < 0) {
+                    year  -= 1;
+                    month += 12;
+                }
+                candidate = findNthOrFallbackReverse(year, month, dayCode.day, weekOccur);
+
+                while (!candidate) {
+                    month -= monthInt;
+                    while (month < 0) {
+                        year  -= 1;
+                        month += 12;
+                    }
+                    candidate = findNthOrFallbackReverse(year, month, dayCode.day, weekOccur);
+                }
+            }
+            candidate.setFullYear(candidate.getFullYear() - (yearInt - 1));
+            return candidate;
+        }
+
+        // Shared helper used by forward logic
+        function findNthOrFallback(year, month, weekday, nth) {
             for (let tryN = nth; tryN >= 1; tryN--) {
                 const candidate = computeNthWeekday(year, month, weekday, tryN);
                 if (candidate) {
                     return candidate;
                 }
             }
-            // If none exist, return null => triggers next month
             return null;
         }
 
+        // Shared helper used by backward logic
+        function findNthOrFallbackReverse(year, month, weekday, nth) {
+            // We'll see if nth up to 1 can exist
+            for (let tryN = nth; tryN >= 1; tryN--) {
+                const candidate = computeNthWeekday(year, month, weekday, tryN);
+                if (candidate) {
+                    return candidate;
+                }
+            }
+            return null;
+        }
+
+        // computeNthWeekday is the same for forward/backward - it just calculates
         function computeNthWeekday(year, month, weekday, n) {
             const firstDay     = new Date(year, month, 1);
-            const firstWeekday = firstDay.getDay(); // 0..6
+            const firstWeekday = firstDay.getDay();
             const offset       = (weekday - firstWeekday + 7) % 7;
             const dateNum      = 1 + offset + (n - 1) * 7;
             const lastDay      = new Date(year, month + 1, 0).getDate();
@@ -1026,42 +1058,81 @@ function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
             return new Date(year, month, dateNum);
         }
 
-        return getNextDate;
+        // Decide which "getDate" function to call, based on forward/backward
+        function getDate(fromDate, forwardFlag) {
+            if (dayInt && !dayCode) {
+                return forwardFlag
+                    ? getNextForDayInterval(fromDate)
+                    : getPrevForDayInterval(fromDate);
+            }
+            if (dayCode && dayCode.type === 'specific') {
+                return forwardFlag
+                    ? getNextForSpecificDay(fromDate)
+                    : getPrevForSpecificDay(fromDate);
+            }
+            if (dayCode && dayCode.type === 'weekday') {
+                if (!weekOccur) {
+                    return forwardFlag
+                        ? getNextForPlainWeekday(fromDate)
+                        : getPrevForPlainWeekday(fromDate);
+                }
+                return forwardFlag
+                    ? getNextForNthWeekday(fromDate)
+                    : getPrevForNthWeekday(fromDate);
+            }
+            throw new Error(`Incomplete combination: "${combo}"`);
+        }
+
+        // Return a function that will compute the next or previous date from the given date
+        return function (fromDate) {
+            return getDate(fromDate, forward);
+        };
     });
 
-    // 4. Iteratively pick the earliest next date among all combinations
+    // 5. We'll create a loop that moves forward or backward to find the earliest or latest date
     const results = [];
-    let fromDate  = new Date(currentDate);
+    let pivotDate = new Date(currentDate);
 
-    while (results.length < numberOfDates) {
-        // For each combination, figure out the next date from 'fromDate'
-        const candidates = nextDateFunctions.map(fn => fn(fromDate));
+    // If going forward, each iteration picks the earliest date strictly > pivotDate.
+    // If going backward, each iteration picks the latest date strictly < pivotDate.
+    for (let i = 0; i < totalDates; i++) {
+        const candidates = dateFunctions.map(fn => fn(pivotDate));
+        let chosen = null;
 
-        // Find the earliest among them (strictly > fromDate)
-        let earliest  = null;
-        let earliestI = -1;
-
-        for (let i = 0; i < candidates.length; i++) {
-            const c = candidates[i];
-            if (!earliest || c < earliest) {
-                earliest  = c;
-                earliestI = i;
+        if (forward) {
+            // pick the earliest candidate that is strictly > pivotDate
+            for (const c of candidates) {
+                if (c > pivotDate && (!chosen || c < chosen)) {
+                    chosen = c;
+                }
+            }
+        } else {
+            // pick the latest candidate that is strictly < pivotDate
+            for (const c of candidates) {
+                if (c < pivotDate && (!chosen || c > chosen)) {
+                    chosen = c;
+                }
             }
         }
 
-        // If earliest is valid and strictly > fromDate, keep it
-        if (earliest && earliest > fromDate) {
-            const yyyy = earliest.getFullYear();
-            const mm   = String(earliest.getMonth() + 1).padStart(2, '0');
-            const dd   = String(earliest.getDate()).padStart(2, '0');
-            results.push(`${yyyy}-${mm}-${dd}`);
-
-            // Advance fromDate so next iteration picks strictly after
-            fromDate = earliest;
-        } else {
-            // If we can't find anything strictly greater, break to avoid infinite loop
+        if (!chosen) {
+            // If we can't find a valid next/previous date, we break to avoid infinite loops.
             break;
         }
+
+        const yyyy = chosen.getFullYear();
+        const mm   = String(chosen.getMonth() + 1).padStart(2, '0');
+        const dd   = String(chosen.getDate()).padStart(2, '0');
+        results.push(`${yyyy}-${mm}-${dd}`);
+
+        // Advance or retreat the pivot date
+        pivotDate = chosen;
+    }
+
+    // If we are going backward, the results array is from the most recent to the oldest.
+    // If we want them in chronological ascending order, we can reverse here.
+    if (!forward) {
+        results.reverse();
     }
 
     return results;
