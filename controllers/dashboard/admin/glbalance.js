@@ -3,7 +3,9 @@
  * 1. It fetches all default account values from Organisationsettings (id=1).
  * 2. For each default account that has a numeric value (not null or 0),
  *    it sums credit minus debit from the "transaction" table for status 'ACTIVE'.
- * 3. It returns a JSON with the computed balances, including total credit and total debit for each account.
+ * 3. It also fetches the last 30 days of transactions for each account.
+ * 4. It returns a JSON with the computed balances, including total credit and total debit for each account,
+ *    plus the transactions from the last 30 days.
  */
 
 // Start Generation Here
@@ -73,6 +75,7 @@ const getGLBalances = async (req, res) => {
         for (const accountKey of defaultAccountKeys) {
             const accountNumber = orgSettings[accountKey];
             const accountName = accountKey.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+
             if (accountNumber && accountNumber !== 0) {
                 // Query the transaction table for the sum of credit and debit
                 const sumQuery = {
@@ -84,13 +87,27 @@ const getGLBalances = async (req, res) => {
                 };
                 const { rows: [transSum] } = await pg.query(sumQuery);
 
+                // Query the transaction table for the last 30 days of transactions
+                const last30DaysQuery = {
+                    text: `SELECT *
+                           FROM divine."transaction"
+                           WHERE status = 'ACTIVE'
+                           AND accountnumber = $1
+                           AND transactiondate >= CURRENT_DATE - INTERVAL '30 days'
+                           ORDER BY transactiondate DESC`,
+                    values: [accountNumber]
+                };
+                const { rows: last30DaysTransactions } = await pg.query(last30DaysQuery);
+
                 const balance = parseFloat(transSum.totalcredit) - parseFloat(transSum.totaldebit);
+
                 balances[accountKey] = {
                     accountNumber,
                     accountName,
                     balance,
                     totalCredit: parseFloat(transSum.totalcredit),
-                    totalDebit: parseFloat(transSum.totaldebit)
+                    totalDebit: parseFloat(transSum.totaldebit),
+                    last30DaysTransactions
                 };
             } else {
                 balances[accountKey] = {
@@ -98,7 +115,8 @@ const getGLBalances = async (req, res) => {
                     accountName,
                     balance: 0,
                     totalCredit: 0,
-                    totalDebit: 0
+                    totalDebit: 0,
+                    last30DaysTransactions: []
                 };
             }
         }
