@@ -46,36 +46,43 @@ const addGLTransaction = async (req, res) => {
 
         // Handle customer accounts if applicable
         const customerQueries = [];
-        if (customerrow > 0) {
+        if (Number(customerrow) > 0) {
+            console.log('customerrow', customerrow);
             for (let i = 1; i <= customerrow; i++) {
+                //console.log(i, req.body[`cusamount${i}`], req.body[`cusaccountnumber${i}`], req.body[`accounttype${i}`])
                 const amount = parseFloat(req.body[`cusamount${i}`]);
                 const accountNumber = req.body[`cusaccountnumber${i}`];
                 const accounttype = req.body[`accounttype${i}`];
 
-                // Check customer account balance if debiting and bypassbalance is not YES
-                if (customertype === 'DEBIT' && bypassbalance !== 'YES') {
-                    const { rows: [{ balance }] } = await pg.query(`
-                        SELECT SUM(credit) - SUM(debit) AS balance
-                        FROM divine."transaction"
-                        WHERE accountnumber = $1
-                    `, [accountNumber]);
+                // Check customer account balance if debiting
+                if (customertype == 'DEBIT') {
+                    if (bypassbalance !== 'YES') {
+                        const { rows: [{ balance }] } = await pg.query(`
+                            SELECT SUM(credit) - SUM(debit) AS balance
+                            FROM divine."transaction"
+                            WHERE accountnumber = $1
+                        `, [accountNumber]);
 
-                    if (balance < amount) {
-                        await pg.query('ROLLBACK'); // Rollback transaction
-                        return res.status(StatusCodes.BAD_REQUEST).json({
-                            status: false,
-                            message: `Insufficient balance in customer account ${accountNumber}`,
-                            statuscode: StatusCodes.BAD_REQUEST,
-                            data: null,
-                            errors: []
-                        });
+                        if (balance < amount) {
+                            await pg.query('ROLLBACK'); // Rollback transaction
+                            return res.status(StatusCodes.BAD_REQUEST).json({
+                                status: false,
+                                message: `Insufficient balance in customer account ${accountNumber}`,
+                                statuscode: StatusCodes.BAD_REQUEST,
+                                data: null,
+                                errors: []
+                            });
+                        }
                     }
                     totalDebit += amount;
-                } else if (customertype === 'CREDIT') {
+                } else if (customertype == 'CREDIT') {
                     totalCredit += amount;
                 }
             }
         }
+
+
+        //console.log('totalCredit', totalCredit, 'totalDebit', totalDebit);
 
         // Ensure credits and debits balance
         if (totalCredit !== totalDebit) {
