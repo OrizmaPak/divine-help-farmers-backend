@@ -21,7 +21,7 @@ const getGLBalances = async (req, res) => {
         };
         const { rows } = await pg.query(orgSettingsQuery);
 
-        if (!rows.length) {
+        if (!rows.length) {  
             return res.status(StatusCodes.NOT_FOUND).json({
                 status: false,
                 message: "Organisationsettings not found",
