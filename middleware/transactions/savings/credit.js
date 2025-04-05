@@ -45,7 +45,7 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
         // 7. Savings Product Rules - Allow Deposit
         if (credit > 0 && !savingsProduct.allowdeposit) {
             console.log("Deposits not allowed on this product, redirecting transaction.");
-            transactionStatus = 'REDIRECTED';
+            transactionStatus = 'REDIRECTED'; 
             const reasonForRejection = 'Deposits not allowed on this product';
             // Handle redirection to excess account logic
             await handleCreditRedirectToPersonnalAccount(

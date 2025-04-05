@@ -5,9 +5,11 @@ const { generateNewReference } = require("../../../utils/transactionHelper");
 
 const addGLTransaction = async (req, res) => {
     const { creditglrow, debitglrow, customerrow, customertype, bypassbalance="NO" } = req.body;
+    const user = req.user
     let totalCredit = 0;
     let totalDebit = 0;
     req.body.transactionRef = 'GLT-'+generateid();
+    let transactionRef = req.body.transactionref || null;
 
     const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" LIMIT 1`;
     const orgSettingsResult = await pg.query(orgSettingsQuery);
@@ -54,7 +56,7 @@ const addGLTransaction = async (req, res) => {
                 if (customertype === 'DEBIT' && bypassbalance !== 'YES') {
                     const { rows: [{ balance }] } = await pg.query(`
                         SELECT SUM(credit) - SUM(debit) AS balance
-                        FROM transaction
+                        FROM divine."transaction"
                         WHERE accountnumber = $1
                     `, [accountNumber]);
 
@@ -95,7 +97,7 @@ const addGLTransaction = async (req, res) => {
 
                 const { rows: [{ balance }] } = await pg.query(`
                     SELECT SUM(credit) - SUM(debit) AS balance
-                    FROM transaction
+                    FROM divine."transaction"
                     WHERE accountnumber = $1
                 `, [accountNumber]);
 
@@ -122,15 +124,15 @@ const addGLTransaction = async (req, res) => {
             const reference = await generateNewReference(pg, accountNumber, req);
 
             queries.push(pg.query(`
-                INSERT INTO transaction (accountnumber, credit, transactionref, dateadded, status, userid, currency, description, image, branch, registrationpoint, approvedby, updateddated, transactiondate, transactiondesc, cashref, updatedby, ttype, tfrom, createdby, valuedate, reference, whichaccount, voucher, tax)
+                INSERT INTO divine."transaction" (accountnumber, credit, transactionref, dateadded, status, userid, currency, description, image, branch, registrationpoint, approvedby, updateddated, transactiondate, transactiondesc, cashref, updatedby, ttype, tfrom, createdby, valuedate, reference, whichaccount, voucher, tax)
                 VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
             `, [
                 accountNumber, 
                 amount, 
                 req.body.transactionref || null, 
                 'ACTIVE', 
-                req.body.userid || null, 
-                req.body.currency || null, 
+                req.user.id, // Ensure userid is not null
+                req.body.currency || "NGN", 
                 req.body.description || null, 
                 req.body.image || null, 
                 req.user.branch || null, 
@@ -159,15 +161,15 @@ const addGLTransaction = async (req, res) => {
             const reference = await generateNewReference(pg, accountNumber, req);
 
             queries.push(pg.query(`
-                INSERT INTO transaction (accountnumber, debit, transactionref, dateadded, status, userid, currency, description, image, branch, registrationpoint, approvedby, updateddated, transactiondate, transactiondesc, cashref, updatedby, ttype, tfrom, createdby, valuedate, reference, whichaccount, voucher, tax)
+                INSERT INTO divine."transaction" (accountnumber, debit, transactionref, dateadded, status, userid, currency, description, image, branch, registrationpoint, approvedby, updateddated, transactiondate, transactiondesc, cashref, updatedby, ttype, tfrom, createdby, valuedate, reference, whichaccount, voucher, tax)
                 VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
             `, [
                 accountNumber, 
                 amount, 
                 req.body.transactionref || null, 
                 'ACTIVE', 
-                req.body.userid || null, 
-                req.body.currency || null, 
+                req.body.userid || user.id, 
+                req.body.currency || "NGN", 
                 req.body.description || null, 
                 req.body.image || null, 
                 req.user.branch || null, 
@@ -199,15 +201,15 @@ const addGLTransaction = async (req, res) => {
 
                 if (customertype === 'DEBIT') {
                     customerQueries.push(pg.query(`
-                        INSERT INTO transaction (accountnumber, debit, transactionref, dateadded, status, userid, currency, description, image, branch, registrationpoint, approvedby, updateddated, transactiondate, transactiondesc, cashref, updatedby, ttype, tfrom, createdby, valuedate, reference, whichaccount, voucher, tax)
+                        INSERT INTO divine."transaction" (accountnumber, debit, transactionref, dateadded, status, userid, currency, description, image, branch, registrationpoint, approvedby, updateddated, transactiondate, transactiondesc, cashref, updatedby, ttype, tfrom, createdby, valuedate, reference, whichaccount, voucher, tax)
                         VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
                     `, [
                         accountNumber, 
                         amount, 
                         req.body.transactionref || null, 
                         'ACTIVE', 
-                        req.body.userid || null, 
-                        req.body.currency || null, 
+                        req.body.userid || user.id, 
+                        req.body.currency || "NGN", 
                         req.body.description || null, 
                         req.body.image || null, 
                         req.user.branch || null, 
@@ -229,15 +231,15 @@ const addGLTransaction = async (req, res) => {
                     ]));
                 } else if (customertype === 'CREDIT') {
                     customerQueries.push(pg.query(`
-                        INSERT INTO transaction (accountnumber, credit, transactionref, dateadded, status, userid, currency, description, image, branch, registrationpoint, approvedby, updateddated, transactiondate, transactiondesc, cashref, updatedby, ttype, tfrom, createdby, valuedate, reference, whichaccount, voucher, tax)
+                        INSERT INTO divine."transaction" (accountnumber, credit, transactionref, dateadded, status, userid, currency, description, image, branch, registrationpoint, approvedby, updateddated, transactiondate, transactiondesc, cashref, updatedby, ttype, tfrom, createdby, valuedate, reference, whichaccount, voucher, tax)
                         VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
                     `, [
                         accountNumber, 
                         amount, 
                         req.body.transactionref || null, 
                         'ACTIVE', 
-                        req.body.userid || null, 
-                        req.body.currency || null, 
+                        req.body.userid || user.id, 
+                        req.body.currency || "NGN", 
                         req.body.description || null, 
                         req.body.image || null, 
                         req.user.branch || null, 
