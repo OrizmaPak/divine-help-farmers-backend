@@ -75,6 +75,9 @@ const getAssetsByKeys = async (req, res) => {
             // treat the retrieved float as the accountnumber (stringify it)
             const accountnumber = String(accountNumValue).trim();
 
+            // generate account name by replacing underscores with spaces and capitalizing each word
+            const accountName = singleKey.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
             // structure to hold monthly data for this account
             let monthlyData = {
                 january: { credit: 0, debit: 0, balance: 0 },
@@ -149,6 +152,7 @@ const getAssetsByKeys = async (req, res) => {
 
             allKeysData.push({
                 key: singleKey,
+                accountName,
                 accountnumber,
                 balance_brought_forward: balanceBroughtForward,
                 monthlyData,
