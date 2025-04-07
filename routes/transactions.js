@@ -20,6 +20,9 @@ const { approveWithdrawalRequest } = require('../controllers/transactions/withdr
 const { internalTransfer } = require('../controllers/transactions/transfer/internaltransfer');
 const { makePaystackPayment } = require('../controllers/transactions/makepayment/paystackterminal');
 const { addGLTransaction } = require('../controllers/glaccounts/gltransaction/addgltransaction');
+const { createBulkTransaction } = require('../controllers/transactions/bulk/create');
+const { viewBulkTransactions } = require('../controllers/transactions/bulk/viewbulk');
+const { approveDeclineBulkTransactions } = require('../controllers/transactions/bulk/approvedeclinebulk');
 const router = express.Router();
 
  
@@ -86,8 +89,17 @@ router.route('/makedeposit')
 router.route('/addgltransaction')
     .post(addGLTransaction)
 
+router.route('/bulktransaction')
+    .post(createBulkTransaction)
+
+router.route('/viewbulk')
+    .get(viewBulkTransactions)
+
+router.route('/approvedeclinebulk')
+    .post(approveDeclineBulkTransactions)
  
 
      
 
 module.exports = router;  
+
