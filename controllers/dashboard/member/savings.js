@@ -82,7 +82,8 @@ const getMemberSavings = async (req, res) => {
                 accountnumber,
                 balance: Number(balance),
                 transactions,
-                productname
+                productname,
+                savingsproductid // Add the product ID to the response
             };
         }));
 

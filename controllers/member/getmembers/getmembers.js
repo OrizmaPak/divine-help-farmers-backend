@@ -14,7 +14,7 @@
                        LEFT JOIN divine."Branch" b ON u.branch = b.id
                        LEFT JOIN divine."Registrationpoint" rp ON u.registrationpoint = rp.id`,
                 values: []
-            };
+            }; 
     
             // Determine access level based on user role and permissions
             let whereClause = '';
@@ -126,5 +126,4 @@
         }
     };
     
-    module.exports = { getUsers };
- 
+    module.exports = { getUsers }; 
