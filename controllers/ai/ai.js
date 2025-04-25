@@ -7,10 +7,10 @@ const client = new OpenAI({
 });
 
 // Function to generate text using OpenAI
-async function generateText(prompt) {
+async function generateText(prompt, model='gpt-4o') {
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-4o',
+      model,
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 350,
       temperature: 0.7, 

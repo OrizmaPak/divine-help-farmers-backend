@@ -3,6 +3,8 @@ const { saveGmailDataToFile } = require('../controllers/incomings/gmail/gmail');
 const { saveMailDataToFile } = require('../controllers/incomings/fidelitytransactions/emails');
 const { getfiletoobj } = require('../controllers/incomings/datacollection/filetojson');
 const { saveDataToGoogleSheet, getDataByPhoneNumber, getAllDataFromGoogleSheet } = require('../controllers/incomings/datacollection/datatoexcel');
+const { getMatchingPhoneNumbers } = require('../controllers/incomings/datacollection/numbertoname');
+const { updateBalances } = require('../controllers/incomings/datacollection/filetojsonbalance');
 const router = express.Router();
 
 
@@ -18,8 +20,12 @@ router.route('/jsontosheet')
     .post(saveDataToGoogleSheet)
 router.route('/getdatabyphonenumber')
     .get(getDataByPhoneNumber)
-router.route('/getalldata')
+router.route('/getalldata') 
     .get(getAllDataFromGoogleSheet)
+router.route('/numbertoname')
+    .get(getMatchingPhoneNumbers)
+router.route('/filetojsonbalance')
+    .post(updateBalances)
 
 
     
