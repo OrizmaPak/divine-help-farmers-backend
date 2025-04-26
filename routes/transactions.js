@@ -23,6 +23,7 @@ const { addGLTransaction } = require('../controllers/glaccounts/gltransaction/ad
 const { createBulkTransaction } = require('../controllers/transactions/bulk/create');
 const { viewBulkTransactions } = require('../controllers/transactions/bulk/viewbulk');
 const { approveDeclineBulkTransactions } = require('../controllers/transactions/bulk/approvedeclinebulk');
+const { getProducts } = require('../controllers/transactions/bulk/getproducts');
 const router = express.Router();
 
  
@@ -97,6 +98,9 @@ router.route('/viewbulk')
 
 router.route('/approvedeclinebulk')
     .post(approveDeclineBulkTransactions)
+
+router.route('/getproducts')
+    .post(getProducts)
  
 
      
