@@ -2,7 +2,7 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 
 const getProducts = async (req, res) => {
-    const { accounttype, membership } = req.body;
+    const { accounttype, membership } = req.query;
 
     try {
         if (!accounttype || !membership) {

@@ -100,7 +100,7 @@ router.route('/approvedeclinebulk')
     .post(approveDeclineBulkTransactions)
 
 router.route('/getproducts')
-    .post(getProducts)
+    .get(getProducts)
  
 
      
