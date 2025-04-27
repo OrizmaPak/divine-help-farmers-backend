@@ -94,7 +94,7 @@ router.route('/bulktransaction')
     .post(createBulkTransaction)
 
 router.route('/viewbulk')
-    .get(viewBulkTransactions)
+    .get(viewBulkTransactions) 
 
 router.route('/approvedeclinebulk')
     .post(approveDeclineBulkTransactions)

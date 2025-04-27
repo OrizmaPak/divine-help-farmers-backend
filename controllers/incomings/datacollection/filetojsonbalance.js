@@ -4,29 +4,37 @@ require('dotenv').config();
 
 /**
  * POST /update-balances
- * Body: { phonenumber, sharecapital, thriftsavings, specialsavings }
+ * Body: { phonenumber, sharecapital, thriftsavings, specialsavings, code }
  */
 async function updateBalances(req, res) {
+  const codecheck = [
+    { "code": "CANADA", "name": "Wisdom Dev" },
+    { "code": "LONDON", "name": "Oreva Dev" },
+    { "code": "NEWYORK", "name": "Yray Tester" },
+    { "code": "CHICAGO", "name": "Gabriel Tester" },
+    { "code": "USA", "name": "John Esegine" },
+    { "code": "PHILADELPHIA", "name": "Moses Staff" },
+    { "code": "FRANCISCO", "name": "Samuel Staff" },
+    { "code": "NIGERIA", "name": "Tobore Staff" },
+    { "code": "HOUSTON", "name": "Engineer Lucky" },
+  ];
+
   try {
     /* ───────── 1. Validate input ───────── */
-    const { phonenumber, sharecapital, thriftsavings, specialsavings } = req.body;
+    const { phonenumber, sharecapital, thriftsavings, specialsavings, code } = req.body;
 
-    if (
-      !phonenumber ||
-      sharecapital === undefined ||
-      thriftsavings === undefined ||
-      specialsavings === undefined
-    ) {
+    if (!phonenumber || sharecapital === undefined || thriftsavings === undefined || specialsavings === undefined || !code) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         error: true,
-        message: 'Phone number, share capital, thrift savings, and special savings are required.',
+        message: 'Phone number, share capital, thrift savings, special savings, and code are required.',
         statuscode: StatusCodes.BAD_REQUEST,
         data: null,
         errors: [
           { field: 'phonenumber', message: 'Phone number is required.' },
           { field: 'sharecapital', message: 'Share capital is required.' },
           { field: 'thriftsavings', message: 'Thrift savings is required.' },
-          { field: 'specialsavings', message: 'Special savings is required.' }
+          { field: 'specialsavings', message: 'Special savings is required.' },
+          { field: 'code', message: 'Code is required.' }
         ],
       });
     }
@@ -92,6 +100,30 @@ async function updateBalances(req, res) {
       const a1Cell = `${colToA1(targetIdx)}${rowNumber}`;
       return { range: `Data Collection!${a1Cell}`, values: [[payload[k]]] };
     });
+
+    // Get the name associated with the code
+    const codeEntry = codecheck.find(entry => entry.code === code);
+    if (!codeEntry) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error: true,
+        message: 'Code not found in codecheck.',
+        statuscode: StatusCodes.BAD_REQUEST,
+        data: null,
+        errors: [{ field: 'code', message: 'Code not found.' }],
+      });
+    }
+    const name = codeEntry.name;
+
+    // Determine the column to update the name based on the target index
+    const nameColumn = (data.some(d => d.range.includes('N') || d.range.includes('O') || d.range.includes('P'))) ? 'T' : 'U';
+    const nameRange = `Data Collection!${nameColumn}${rowNumber}`;
+    data.push({ range: nameRange, values: [[name]] });
+
+    // Determine the column to update the date based on the target index
+    const dateColumn = (data.some(d => d.range.includes('N') || d.range.includes('O') || d.range.includes('P'))) ? 'V' : 'W';
+    const dateRange = `Data Collection!${dateColumn}${rowNumber}`;
+    const currentDate = new Date().toISOString();
+    data.push({ range: dateRange, values: [[currentDate]] });
 
     /* ───────── 6. Push the update (atomic & fast) ───────── */
     await sheets.spreadsheets.values.batchUpdate({

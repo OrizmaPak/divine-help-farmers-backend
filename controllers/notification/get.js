@@ -21,7 +21,7 @@ const getNotificationsByUserId = async (req, res) => {
         const query = {
             text: queryText,
             values: queryValues
-        };
+        }; 
 
         const result = await pg.query(query);
         const notifications = result.rows;

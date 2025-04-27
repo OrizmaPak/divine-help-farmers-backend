@@ -1,19 +1,22 @@
     const { google } = require('googleapis');
     const { StatusCodes } = require('http-status-codes');
+    
+    
 
     const saveDataToGoogleSheet = async (req, res) => {
+        
         const codecheck = [
-            { "code": "CANADA", "name": "Wisdom Dev" },
-            { "code": "LONDON", "name": "Oreva Dev" },
-            { "code": "NEWYORK", "name": "Yray Tester" },
-            { "code": "CHICAGO", "name": "Gabriel Tester" },
-            { "code": "USA", "name": "John Esegine" },
-            { "code": "PHILADELPHIA", "name": "Moses Staff" },
-            { "code": "FRANCISCO", "name": "Samuel Staff" },
-            { "code": "NIGERIA", "name": "Tobore Staff" },
-            { "code": "HOUSTON", "name": "Engineer Lucky" },
-        ];
-      
+                { "code": "CANADA", "name": "Wisdom Dev" },
+                { "code": "LONDON", "name": "Oreva Dev" },
+                { "code": "NEWYORK", "name": "Yray Tester" },
+                { "code": "CHICAGO", "name": "Gabriel Tester" },
+                { "code": "USA", "name": "John Esegine" },
+                { "code": "PHILADELPHIA", "name": "Moses Staff" },
+                { "code": "FRANCISCO", "name": "Samuel Staff" },
+                { "code": "NIGERIA", "name": "Tobore Staff" },
+                { "code": "HOUSTON", "name": "Engineer Lucky" },
+            ];
+            
         try {
             const data = req.body; 
     
