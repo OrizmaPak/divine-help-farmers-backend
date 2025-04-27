@@ -1,11 +1,7 @@
     const { google } = require('googleapis');
     const { StatusCodes } = require('http-status-codes');
     
-    
-
-    const saveDataToGoogleSheet = async (req, res) => {
-        
-        const codecheck = [
+    const codecheck = [
                 { "code": "CANADA", "name": "Wisdom Dev" },
                 { "code": "LONDON", "name": "Oreva Dev" },
                 { "code": "NEWYORK", "name": "Yray Tester" },
@@ -16,7 +12,11 @@
                 { "code": "NIGERIA", "name": "Tobore Staff" },
                 { "code": "HOUSTON", "name": "Engineer Lucky" },
             ];
-            
+
+
+const saveDataToGoogleSheet = async (req, res) => {
+        
+        
         try {
             const data = req.body; 
     
@@ -315,7 +315,7 @@ const getAllDataFromGoogleSheet = async (req, res) => {
         // Replace with your actual Spreadsheet ID
         const spreadsheetId = '1UGZ9x-2_xii2M18L0-3mbIxHJ6nI6oORdjiS07FKB2k';
         // Specify the exact range to include all relevant columns (A to M)
-        const range = 'Data Collection!A:M';
+        const range = 'Data Collection!A:W';
 
         // Fetch data from the specified range in the spreadsheet
         const response = await sheets.spreadsheets.values.get({
@@ -356,6 +356,9 @@ const getAllDataFromGoogleSheet = async (req, res) => {
                 date_joined: row[6] ? new Date(row[6]).toISOString() : null,
                 batch_no: row[7] || null,
                 unit: row[8] || null,
+                sharesbalance: row[16] !== '' ? row[16] || null : row[13] || null,
+                thriftsavings: row[17] !== '' ? row[17] || null : row[14] || null,
+                specialsavings: row[18] !== '' ? row[18] || null : row[15] || null,
                 // Additional fields if needed can be added here
                 // For example:
                 // created_by: row[9] || null,
@@ -395,4 +398,252 @@ const getAllDataFromGoogleSheet = async (req, res) => {
     }
 };
 
-module.exports = { saveDataToGoogleSheet, getDataByPhoneNumber, getAllDataFromGoogleSheet };
+
+const getMatchingPhoneNumbers = async (req, res) => {
+    try {
+        const { number } = req.query;
+
+        // Validate the presence of the number in the query
+        if (!number) {
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                error: true,
+                message: 'Number is required.',
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: [{ field: 'number', message: 'Number is required.' }]
+            });
+        }
+
+        // Initialize Google Sheets API client with read-only access
+        const auth = new google.auth.GoogleAuth({
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
+
+        const authClient = await auth.getClient();
+        const sheets = google.sheets({ version: 'v4', auth: authClient });
+
+        // Replace with your actual Spreadsheet ID
+        const spreadsheetId = '1UGZ9x-2_xii2M18L0-3mbIxHJ6nI6oORdjiS07FKB2k';
+        // Specify the exact range to include all relevant columns (A to M)
+        const range = 'Data Collection!A:M';
+
+        // Fetch data from the specified range in the spreadsheet
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range,
+        });
+
+        const rows = response.data.values;
+
+        // Log the number of rows fetched for debugging
+        console.log(`Total rows fetched: ${rows ? rows.length : 0}`);
+
+        // Check if there are enough rows (at least one header row and one data row)
+        if (!rows || rows.length <= 1) { // Assuming first row is header
+            return res.status(StatusCodes.NOT_FOUND).json({
+                error: true,
+                message: 'No data found in the sheet.',
+                statuscode: StatusCodes.NOT_FOUND,
+                data: null,
+                errors: []
+            });
+        }
+
+        // Use regex to find matching phone numbers
+        const regex = new RegExp(number, 'i');
+        const matchingRows = rows.slice(1).filter(row => regex.test(row[0]));
+
+        // Log the number of matching rows found
+        console.log(`Total matching rows found: ${matchingRows.length}`);
+
+        // If no matching phone numbers are found, return a 404 response
+        if (matchingRows.length === 0) {
+            return res.status(StatusCodes.NOT_FOUND).json({
+                error: true,
+                message: 'No matching phone numbers found.',
+                statuscode: StatusCodes.NOT_FOUND,
+                data: [],
+                errors: []
+            });
+        }
+
+        // Map the matching rows to the desired structure
+        const dataObjects = matchingRows.map(row => ({
+            phonenumber: row[0] || null,
+            firstname: row[1] || null,
+            lastname: row[2] || null,
+            othernames: row[3] || null,
+            email: row[4] || null,
+            branch: row[5] || null,
+            date_joined: row[6] ? new Date(row[6]).toISOString() : null,
+            batch_no: row[7] || null,
+            unit: row[8] || null,
+        }));
+
+        // Log the number of data objects created
+        console.log(`Total data objects created: ${dataObjects.length}`);
+
+        // Return the array of data objects as a successful response
+        return res.status(StatusCodes.OK).json({
+            error: false,
+            message: 'Matching phone numbers retrieved successfully.',
+            statuscode: StatusCodes.OK,
+            data: dataObjects,
+            errors: []
+        });
+
+    } catch (error) {
+        // Log the error details for debugging
+        console.error('Error retrieving matching phone numbers from Google Sheets:', error);
+
+        // Return a 500 response indicating an internal server error
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            error: true,
+            message: 'Failed to retrieve matching phone numbers from Google Sheets.',
+            statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+            data: null,
+            errors: [{ message: error.message }]
+        });
+    }
+};
+
+
+async function updateBalances(req, res) {
+  
+    try {
+      /* ───────── 1. Validate input ───────── */
+      const { phonenumber, sharecapital, thriftsavings, specialsavings, code } = req.body;
+  
+      if (!phonenumber || sharecapital === undefined || thriftsavings === undefined || specialsavings === undefined || !code) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error: true,
+          message: 'Phone number, share capital, thrift savings, special savings, and code are required.',
+          statuscode: StatusCodes.BAD_REQUEST,
+          data: null,
+          errors: [
+            { field: 'phonenumber', message: 'Phone number is required.' },
+            { field: 'sharecapital', message: 'Share capital is required.' },
+            { field: 'thriftsavings', message: 'Thrift savings is required.' },
+            { field: 'specialsavings', message: 'Special savings is required.' },
+            { field: 'code', message: 'Code is required.' }
+          ],
+        });
+      }
+  
+      /* ───────── 2. Auth Sheets API ───────── */
+      const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+      const authClient = await auth.getClient();
+      const sheets = google.sheets({ version: 'v4', auth: authClient });
+  
+      /* ───────── 3. Locate row by phone number ───────── */
+      const spreadsheetId = '1UGZ9x-2_xii2M18L0-3mbIxHJ6nI6oORdjiS07FKB2k';
+      const headerRange = 'Data Collection!A:P'; // Read up to column P to check existing values
+  
+      const { data: { values: rows = [] } } = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: headerRange,
+      });
+  
+      const rowIndexToUpdate = rows.findIndex(r => r[0] === phonenumber);
+  
+      if (rowIndexToUpdate === -1) {
+        return res.status(StatusCodes.NOT_FOUND).json({
+          error: true,
+          message: 'Phone number not found in the sheet.',
+          statuscode: StatusCodes.NOT_FOUND,
+          data: null,
+          errors: [{ field: 'phonenumber', message: 'Phone number not found.' }],
+        });
+      }
+  
+      /* ───────── 4. Helpers ───────── */
+      const isBlank = v => v === '' || v === null || v === undefined;
+  
+      function nextFree(startIdx, rowArr) {
+        let idx = startIdx;
+        while (!isBlank(rowArr[idx])) idx += 3; // hop N→Q→T … or O→R→U … or P→S→V … until blank
+        return idx;
+      }
+  
+      function colToA1(idx) {
+        let s = '', n = idx;
+        while (n >= 0) {
+          s = String.fromCharCode((n % 26) + 65) + s;
+          n = Math.floor(n / 26) - 1;
+        }
+        return s;
+      }
+  
+      /* ───────── 5. Build batchUpdate payload ───────── */
+      const row = rows[rowIndexToUpdate];
+      const rowNumber = rowIndexToUpdate + 1; // A1 notation is 1-based
+  
+      // Base positions for N, O, P
+      const bases = [13, 14, 15]; // Indices for columns N, O, P (0-based)
+      const payload = [sharecapital, thriftsavings, specialsavings];
+      const fields = ['sharecapital', 'thriftsavings', 'specialsavings'];
+  
+      const data = bases.map((base, k) => {
+        let targetIdx = base;
+        if (!isBlank(row[base])) {
+          targetIdx = nextFree(base, row); // Find the next available column 3 steps away
+        }
+        const a1Cell = `${colToA1(targetIdx)}${rowNumber}`;
+        return { range: `Data Collection!${a1Cell}`, values: [[payload[k]]] };
+      });
+  
+      // Get the name associated with the code
+      const codeEntry = codecheck.find(entry => entry.code === code);
+      if (!codeEntry) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          error: true,
+          message: 'Code not found in codecheck.',
+          statuscode: StatusCodes.BAD_REQUEST,
+          data: null,
+          errors: [{ field: 'code', message: 'Code not found.' }],
+        });
+      }
+      const name = codeEntry.name;
+  
+      // Determine the column to update the name based on the target index
+      const nameColumn = (data.some(d => d.range.includes('N') || d.range.includes('O') || d.range.includes('P'))) ? 'T' : 'U';
+      const nameRange = `Data Collection!${nameColumn}${rowNumber}`;
+      data.push({ range: nameRange, values: [[name]] });
+  
+      // Determine the column to update the date based on the target index
+      const dateColumn = (data.some(d => d.range.includes('N') || d.range.includes('O') || d.range.includes('P'))) ? 'V' : 'W';
+      const dateRange = `Data Collection!${dateColumn}${rowNumber}`;
+      const currentDate = new Date().toISOString();
+      data.push({ range: dateRange, values: [[currentDate]] });
+  
+      /* ───────── 6. Push the update (atomic & fast) ───────── */
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        resource: {
+          valueInputOption: 'USER_ENTERED', // let Sheets treat numbers as numbers
+          data,
+        },
+      });
+  
+      /* ───────── 7. All good ───────── */
+      return res.status(StatusCodes.OK).json({
+        error: false,
+        message: 'Balances updated successfully.',
+        statuscode: StatusCodes.OK,
+        data: { phonenumber, sharecapital, thriftsavings, specialsavings },
+        errors: [],
+      });
+    } catch (error) {
+      console.error('Processing Error:', error);
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        error: true,
+        message: 'Failed to update balances.',
+        statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+        data: null,
+        errors: [{ message: error.message }],
+      });
+    }
+  }
+
+
+module.exports = { saveDataToGoogleSheet, getDataByPhoneNumber, getAllDataFromGoogleSheet, updateBalances, getMatchingPhoneNumbers };
