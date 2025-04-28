@@ -333,7 +333,7 @@ const getAllDataFromGoogleSheet = async (req, res) => {
             return res.status(StatusCodes.NOT_FOUND).json({
                 error: true,
                 message: 'No data found in the sheet.',
-                statuscode: StatusCodes.NOT_FOUND,
+                statuscode: StatusCodes.NOT_FOUND, 
                 data: [],
                 errors: []
             });
@@ -516,6 +516,7 @@ async function updateBalances(req, res) {
   
       if (!phonenumber || sharecapital === undefined || thriftsavings === undefined || specialsavings === undefined || !code) {
         return res.status(StatusCodes.BAD_REQUEST).json({
+          status: false,
           error: true,
           message: 'Phone number, share capital, thrift savings, special savings, and code are required.',
           statuscode: StatusCodes.BAD_REQUEST,
@@ -548,6 +549,7 @@ async function updateBalances(req, res) {
   
       if (rowIndexToUpdate === -1) {
         return res.status(StatusCodes.NOT_FOUND).json({
+          status: false,
           error: true,
           message: 'Phone number not found in the sheet.',
           statuscode: StatusCodes.NOT_FOUND,
@@ -596,6 +598,7 @@ async function updateBalances(req, res) {
       const codeEntry = codecheck.find(entry => entry.code === code);
       if (!codeEntry) {
         return res.status(StatusCodes.BAD_REQUEST).json({
+          status: false,
           error: true,
           message: 'Code not found in codecheck.',
           statuscode: StatusCodes.BAD_REQUEST,
@@ -627,6 +630,7 @@ async function updateBalances(req, res) {
   
       /* ───────── 7. All good ───────── */
       return res.status(StatusCodes.OK).json({
+        status: true,
         error: false,
         message: 'Balances updated successfully.',
         statuscode: StatusCodes.OK,
@@ -636,6 +640,7 @@ async function updateBalances(req, res) {
     } catch (error) {
       console.error('Processing Error:', error);
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: false,
         error: true,
         message: 'Failed to update balances.',
         statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
