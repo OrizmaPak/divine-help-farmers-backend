@@ -11,6 +11,7 @@
                 { "code": "FRANCISCO", "name": "Samuel Staff" },
                 { "code": "NIGERIA", "name": "Tobore Staff" },
                 { "code": "HOUSTON", "name": "Engineer Lucky" },
+                { "code": "KUWAIT", "name": "Bright Tester" },
             ];
 
 
