@@ -101,7 +101,7 @@ const processWithdrawal = async (req, res) => {
         `, [userid]);
 
         // Store the withdrawal limit
-        const withdrawalLimit = cashierLimitData[0].withdrawallimit;
+        const withdrawalLimit = cashierLimitData[0]?.withdrawallimit || 0;
 
         // Generate a unique cash reference for the transaction if not provided
         const timestamp = new Date().getTime();
