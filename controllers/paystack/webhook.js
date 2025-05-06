@@ -2,6 +2,7 @@ const { StatusCodes } = require("http-status-codes");
 const { sendEmail } = require("../../utils/sendEmail");
 const pg = require("../../db/pg");
 const { performTransactionOneWay } = require("../../middleware/transactions/performTransaction");
+const { sendNotification } = require("../../utils/transactionHelper");
 
 const paystackWebhook = async (req, res) => {
     console.log('here called')

@@ -216,4 +216,4 @@ async function updateuser(req, res) {
     }
 }
 
-module.exports = { updateuser }
+module.exports = { updateuser } 

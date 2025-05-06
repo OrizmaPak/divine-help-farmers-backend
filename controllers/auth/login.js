@@ -10,12 +10,11 @@ const https = require('https');
 
 async function login(req, res) {
     const { email, password, verify = '', device = '' } = req.body;
-    console.log({ email, password });
 
     // Basic validation
     if (!email || !password || !isValidEmail(email)) {
         let errors = [];
-        if (!email) {
+        if (!email) { 
             errors.push({
                 field: 'Email',
                 message: 'Email not found'
@@ -23,15 +22,15 @@ async function login(req, res) {
         }
         if (!password) {
             errors.push({
-                field: 'Password',
+                field: 'Password', 
                 message: 'Password not found'
-            });
+            }); 
         }
         if (!isValidEmail(email)) {
             errors.push({
-                field: 'Email',
+                field: 'Email', 
                 message: 'Invalid email format'
-            });
+            }); 
         }
  
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -39,7 +38,7 @@ async function login(req, res) {
             message: "Missing Fields",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
-            errors: errors
+            errors: errors  
         });
     }
 
@@ -74,7 +73,6 @@ async function login(req, res) {
             const token = jwt.sign({ user: userWithoutPermissions }, process.env.JWT_SECRET, {
                 expiresIn: process.env.SESSION_EXPIRATION_HOUR + 'h',
             });
-            console.log(token);
 
             // STORE THE SESSION
             await pg.query(`INSERT INTO divine."Session" 
@@ -129,15 +127,14 @@ async function login(req, res) {
                             const paystackCreateReq = https.request(paystackCreateOptions, paystackCreateRes => {
                                 let createData = '';
 
-                                paystackCreateRes.on('data', (chunk) => {
+                                paystackCreateRes.on('data', (chunk) => { 
                                     createData += chunk;
-                                });
-
+                                }); 
+  
                                 paystackCreateRes.on('end', async () => {
-                                    const createdUser = JSON.parse(createData);
-                                    console.log('User created on Paystack:', createdUser);
+                                    const createdUser = JSON.parse(createData); 
 
-                                    // Check if the user has a dedicated account
+                                    // Check if the user has a dedicated account  
                                     if (!createdUser.data.dedicated_account) {
                                         // Create a dedicated account for the user
                                         const dedicatedAccountOptions = {
@@ -165,7 +162,6 @@ async function login(req, res) {
 
                                             dedicatedAccountRes.on('end', async () => {
                                                 const accountData = JSON.parse(dedicatedAccountData);
-                                                console.log('Dedicated account created:', accountData);
 
                                                 // Update user profile with account details
                                                 await pg.query(`UPDATE divine."User" SET account_number = $1, account_name = $2, bank_name = $3 WHERE id = $4`, 
@@ -271,7 +267,6 @@ async function login(req, res) {
                             },
                             errors: []
                         };
-                        console.log(responseData)
                         return res.status(StatusCodes.OK).json(responseData);
                     });
                 }).on('error', error => {
@@ -297,7 +292,21 @@ async function login(req, res) {
                 };
                 return res.status(StatusCodes.OK).json(responseData); 
             } 
-        } 
+        } else {
+            // TRACK THE ACTIVITY
+            await activityMiddleware(req, existingUser.id, 'Login Attempt Failed due to incorrect password', 'AUTH');
+            
+            return res.status(StatusCodes.UNAUTHORIZED).json({
+                status: false,
+                message: "Incorrect password",
+                statuscode: StatusCodes.UNAUTHORIZED,
+                data: null,
+                errors: [{
+                    field: 'Password',
+                    message: 'The password you entered is incorrect.'
+                }]
+            });
+        }
     } catch (err) {
         console.error('Unexpected Error:', err);
         //  TRACK THE ACTIVITY
