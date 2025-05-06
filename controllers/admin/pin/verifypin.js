@@ -45,7 +45,7 @@ const verifyPin = async (req, res) => {
                 statuscode: StatusCodes.UNAUTHORIZED,
                 data: null,
                 errors: []
-            });
+            }); 
         }
 
         if (!user.pin) {
