@@ -9,52 +9,44 @@ const approveWithdrawalRequest = async (req, res) => {
     const { id } = req.body;
     const user = req.user;
 
-    // Validate required fields
     if (!id) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
             message: "Withdrawal request ID is required",
             statuscode: StatusCodes.BAD_REQUEST,
-            data: null, 
+            data: null,
             errors: []
         });
     }
 
     const client = pg;
-
     try {
         await client.query('BEGIN');
 
-        // Fetch the withdrawal request to get the account number and amount
-        const fetchQuery = {
-            text: `SELECT * FROM divine."withdrawalrequest" WHERE id = $1`,
+        // Fetch withdrawal request
+        const { rows: requestRows } = await client.query({
+            text: `SELECT * FROM divine."withdrawalrequest" WHERE id = $1 AND requeststatus = 'PENDING'`,
             values: [id]
-        };
-
-        const { rows: requestRows } = await client.query(fetchQuery);
-
+        });
         if (requestRows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(StatusCodes.NOT_FOUND).json({
                 status: false,
-                message: "Withdrawal request not found",
+                message: "Withdrawal request not found or already approved",
                 statuscode: StatusCodes.NOT_FOUND,
                 data: null,
                 errors: []
             });
         }
-
         const withdrawalRequest = requestRows[0];
 
         // Check account balance
-        const balanceQuery = {
-            text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1`,
+        const { rows: balanceRows } = await client.query({
+            text: `SELECT COALESCE(SUM(credit),0) - COALESCE(SUM(debit),0) AS balance 
+                   FROM divine."transaction" WHERE accountnumber = $1`,
             values: [withdrawalRequest.accountnumber]
-        };
-
-        const { rows: balanceRows } = await client.query(balanceQuery);
-        const accountBalance = balanceRows[0].balance || 0;
-
+        });
+        const accountBalance = Number(balanceRows[0].balance);
         if (accountBalance < withdrawalRequest.amount) {
             await client.query('ROLLBACK');
             return res.status(StatusCodes.BAD_REQUEST).json({
@@ -67,13 +59,10 @@ const approveWithdrawalRequest = async (req, res) => {
         }
 
         // Fetch user details
-        const userQuery = {
+        const { rows: userRows } = await client.query({
             text: `SELECT * FROM divine."User" WHERE id = $1`,
             values: [withdrawalRequest.userid]
-        };
-
-        const { rows: userRows } = await client.query(userQuery);
-
+        });
         if (userRows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(StatusCodes.NOT_FOUND).json({
@@ -84,9 +73,9 @@ const approveWithdrawalRequest = async (req, res) => {
                 errors: []
             });
         }
-
         const accountuser = userRows[0];
 
+        // Determine bank details
         let bankDetails;
         if (accountuser.bank_account_number) {
             bankDetails = {
@@ -111,27 +100,25 @@ const approveWithdrawalRequest = async (req, res) => {
             });
         }
 
-        // Check if recipient exists in paystackrecipient table
-        const recipientQuery = {
-            text: `SELECT * FROM divine."paystackrecipient" WHERE accountnumber = $1 AND bank = $2`,
+        // Look up existing Paystack recipient
+        const { rows: recipientRows } = await client.query({
+            text: `SELECT recipient FROM divine."paystackrecipient"
+                   WHERE accountnumber = $1 AND bank = $2`,
             values: [bankDetails.accountNumber, bankDetails.bank]
-        };
-
-        const { rows: recipientRows } = await client.query(recipientQuery);
+        });
 
         let recipientCode;
         if (recipientRows.length > 0) {
             recipientCode = recipientRows[0].recipient;
         } else {
-            // If not found, create a new recipient on Paystack
+            // Create new Paystack recipient
             const recipientParams = JSON.stringify({
-                "type": "nuban",
-                "name": bankDetails.name || "Unknown User",
-                "account_number": bankDetails.accountNumber,
-                "bank_code": bankDetails.bank,
-                "currency": "NGN"
+                type: "nuban",
+                name: bankDetails.name || "Unknown User",
+                account_number: bankDetails.accountNumber,
+                bank_code: bankDetails.bank,
+                currency: "NGN"
             });
-
             const recipientOptions = {
                 hostname: 'api.paystack.co',
                 port: 443,
@@ -143,100 +130,108 @@ const approveWithdrawalRequest = async (req, res) => {
                 }
             };
 
-            await new Promise((resolve, reject) => {
-                const recipientReq = https.request(recipientOptions, ress => {
-                    let data = '';
-
-                    ress.on('data', (chunk) => {
-                        console.log('Received chunk of data:', chunk);
-                        data += chunk;
-                    });
-
-                    ress.on('end', async () => {
-                        try {
-                            const paystackResponse = JSON.parse(data);
-                            if (!paystackResponse.status) {
-                                await client.query('ROLLBACK');
-                                return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-                                    status: false,
-                                    message: "Failed to create Paystack transfer recipient",
-                                    statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
-                                    data: null,
-                                    errors: [paystackResponse.message]
-                                });
-                            }
-                            recipientCode = paystackResponse.data.recipient_code;
-
-                            // Save the new recipient to the paystackrecipient table
-                            const insertRecipientQuery = {
-                                text: `INSERT INTO divine."paystackrecipient" (accountnumber, bank, recipient, dateadded, status, createdby) VALUES ($1, $2, $3, $4, $5, $6)`,
-                                values: [bankDetails.accountNumber, bankDetails.bank, recipientCode, new Date().toISOString(), 'ACTIVE', req.user.id]
-                            };
-
-                            await client.query(insertRecipientQuery);
-
-                            // Make a transfer to the account
-                            await makeTransferToAccount(recipientCode, withdrawalRequest.amount);
-                            resolve();
-                        } catch (error) {
-                            await client.query('ROLLBACK');
-                            console.error('Error processing Paystack response:', error);
-                            reject(error);
-                        }
-                    });
-                }).on('error', async error => {
-                    console.error(error);
-                    await client.query('ROLLBACK');
-                    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-                        status: false,
-                        message: "Error communicating with Paystack",
-                        statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
-                        data: null,
-                        errors: [error.message]
-                    });
-                });
-
-                recipientReq.write(recipientParams);
-                recipientReq.end();
-            });
-        }
-
-        let transref
-
-        // If recipient already exists, make a transfer to the account
-        if (recipientCode) {
+            let paystackResponse;
             try {
-                const transferResponse = await makeTransferToAccount(recipientCode, withdrawalRequest.amount, 'recipient');
-                console.log('Transfer successful:', transferResponse);
+                paystackResponse = await new Promise((resolve, reject) => {
+                    const paystackReq = https.request(recipientOptions, payRes => {
+                        let data = '';
+                        payRes.on('data', chunk => data += chunk);
+                        payRes.on('end', () => {
+                            try {
+                                resolve(JSON.parse(data));
+                            } catch (err) {
+                                reject(err);
+                            }
+                        });
+                    });
+                    paystackReq.on('error', err => reject(err));
+                    paystackReq.write(recipientParams);
+                    paystackReq.end();
+                });
+            } catch (err) {
+                await client.query('ROLLBACK');
+                console.error('Error communicating with Paystack:', err);
+                return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                    status: false,
+                    message: "Error communicating with Paystack",
+                    statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    data: null,
+                    errors: [err.message]
+                });
+            }
 
-                // Assuming transferResponse contains a transaction reference
-                transref = transferResponse.reference;
-                console.log('Transaction Reference:', transref);
-            } catch (error) {
-                console.error('Transfer failed:', error);
+            if (!paystackResponse.status) {
                 await client.query('ROLLBACK');
                 return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                     status: false,
-                    message: "Failed to make transfer",
+                    message: "Failed to create Paystack transfer recipient",
                     statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
                     data: null,
-                    errors: [error.message]
+                    errors: [paystackResponse.message]
                 });
             }
+
+            recipientCode = paystackResponse.data.recipient_code;
+            await client.query({
+                text: `INSERT INTO divine."paystackrecipient"
+                       (accountnumber, bank, recipient, dateadded, status, createdby)
+                       VALUES ($1, $2, $3, $4, $5, $6)`,
+                values: [
+                    bankDetails.accountNumber,
+                    bankDetails.bank,
+                    recipientCode,
+                    new Date().toISOString(),
+                    'ACTIVE',
+                    user.id
+                ]
+            });
         }
 
-        // Perform a one-way transaction using performTransactionOneWay
+        // Make a single transfer
+        let transferResponse;
+        try {
+            transferResponse = await makeTransferToAccount(
+                recipientCode,
+                withdrawalRequest.amount,
+                'recipient'
+            );
+
+            if (!transferResponse || !transferResponse.status) {
+                await client.query('ROLLBACK');
+                console.error('Transfer failed at Paystack');
+                return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                    status: false,
+                    message: "Transfer failed at Paystack",
+                    statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                    data: null,
+                    errors: ["Transfer failed at Paystack"]
+                });
+            }
+        } catch (err) {
+            await client.query('ROLLBACK');
+            console.error('Transfer failed:', err);
+            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+                status: false,
+                message: "Failed to make transfer",
+                statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+                data: null,
+                errors: [err.message]
+            });
+        }
+        const transref = transferResponse.reference || '';
+
+        // Create transaction record
         const transactionData = {
             accountnumber: withdrawalRequest.accountnumber,
             credit: 0,
             debit: withdrawalRequest.amount,
             reference: "",
             transactiondate: new Date(),
-            transactiondesc: 'Withdrawal approved || '+transref,
+            transactiondesc: `Withdrawal approved || ${transref}`,
             currency: 'NGN',
             description: 'Withdrawal approved',
-            branch: req.user.id,
-            registrationpoint: req.user.registrationpoint,
+            branch: user.id,
+            registrationpoint: user.registrationpoint,
             ttype: 'DEBIT',
             tfrom: 'BANK',
             tax: false,
@@ -244,9 +239,10 @@ const approveWithdrawalRequest = async (req, res) => {
             status: 'ACTIVE',
             dateadded: new Date()
         };
-
-        const transactionResult = await performTransactionOneWay(transactionData, withdrawalRequest.userid);
-
+        const transactionResult = await performTransactionOneWay(
+            transactionData,
+            withdrawalRequest.userid
+        );
         if (!transactionResult.status) {
             await client.query('ROLLBACK');
             return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -258,16 +254,14 @@ const approveWithdrawalRequest = async (req, res) => {
             });
         }
 
-        // Update the request status to APPROVED
-        const updateQuery = {
+        // Update withdrawal request status
+        const { rows: updatedRows } = await client.query({
             text: `UPDATE divine."withdrawalrequest"
                    SET requeststatus = 'APPROVED'
-                   WHERE id = $1 RETURNING *`,
+                   WHERE id = $1
+                   RETURNING *`,
             values: [id]
-        };
-
-        const { rows: updatedRows } = await client.query(updateQuery);
-
+        });
         if (updatedRows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(StatusCodes.NOT_FOUND).json({
@@ -280,8 +274,12 @@ const approveWithdrawalRequest = async (req, res) => {
         }
 
         await client.query('COMMIT');
-        await activityMiddleware(req, user.id, 'Withdrawal request approved and withdrawal successful', 'WITHDRAWAL');
-
+        await activityMiddleware(
+            req,
+            user.id,
+            'Withdrawal request approved and withdrawal successful',
+            'WITHDRAWAL'
+        );
         return res.status(StatusCodes.OK).json({
             status: true,
             message: "Withdrawal request approved and withdrawal successful",
@@ -289,11 +287,16 @@ const approveWithdrawalRequest = async (req, res) => {
             data: updatedRows[0],
             errors: []
         });
+
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Unexpected Error:', error);
-        await activityMiddleware(req, user.id, 'An unexpected error occurred approving withdrawal request', 'WITHDRAWAL');
-
+        await activityMiddleware(
+            req,
+            user.id,
+            'An unexpected error occurred approving withdrawal request',
+            'WITHDRAWAL'
+        );
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
             message: "An unexpected error occurred",
@@ -301,8 +304,6 @@ const approveWithdrawalRequest = async (req, res) => {
             data: null,
             errors: [error.message]
         });
-    } finally {
-        // client.release();
     }
 };
 
