@@ -262,7 +262,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
         }
 
         if (incomeAccountNumber) { 
-            const thenewref = await generateNewReference(client, accountnumber, req);
+            const thenewref = await generateNewReference(client, incomeAccountNumber, req);
             await client.query(
                 `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14, $15, $16, $17, $18)`,
                 [incomeAccountNumber, credit, debit, thenewref, description, ttype, status, transactiondate, 'GLACCOUNT', finalValuedate, transactiondesc, createdBy, currency, userid, tfrom, transactionref, cashref, req.body.branch]
