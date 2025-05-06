@@ -101,7 +101,7 @@ const processWithdrawal = async (req, res) => {
         `, [userid]);
 
         // Store the withdrawal limit
-        const withdrawalLimit = cashierLimitData[0]?.withdrawallimit || 0;
+        const withdrawalLimit = cashierLimitData[0]?.withdrawallimit || 50000;
 
         // Generate a unique cash reference for the transaction if not provided
         const timestamp = new Date().getTime();
@@ -143,7 +143,7 @@ const processWithdrawal = async (req, res) => {
                 await pg.query('ROLLBACK');
                 return res.status(StatusCodes.FORBIDDEN).json({
                     status: false,
-                    message: `Transaction amount for row ${i} exceeds the cashier limit of ${withdrawalLimit}. The customer associated with account number ${accountnumber} has already been informed about this issue. Please proceed to refund the customer.`,
+                    message: `Transaction amount exceeds the cashier limit of ${withdrawalLimit}. Please do not release the cash. The customer associated with account number ${accountnumber} should be informed to try withdrawing a lower amount.`,
                     statuscode: StatusCodes.FORBIDDEN,
                     data: null,
                     errors: []
