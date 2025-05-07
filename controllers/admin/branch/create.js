@@ -3,7 +3,7 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware
 
 const createbranch = async (req, res) => {
-    const { id="", branch, country, state, lga, address='', status="", userid } = req.body;
+    const { id = null, branch = null, country = null, state = null, lga = null, address = null, status = null, userid = null } = req.body;
     console.log({ branch, country, state, address });
 
     const user = req.user;
@@ -55,18 +55,18 @@ const createbranch = async (req, res) => {
 
     try {
         // Validate if user exists
-        if (userid) {
-            const { rows: userExists } = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [userid]);
-            if (userExists.length === 0) {
-                return res.status(StatusCodes.BAD_REQUEST).json({
-                    status: false,
-                    message: "User does not exist",
-                    statuscode: StatusCodes.BAD_REQUEST,
-                    data: null,
-                    errors: []
-                });
-            }
-        }
+        // if (userid) {
+        //     const { rows: userExists } = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [userid]);
+        //     if (userExists.length === 0) {
+        //         return res.status(StatusCodes.BAD_REQUEST).json({
+        //             status: false,
+        //             message: "User does not exist",
+        //             statuscode: StatusCodes.BAD_REQUEST,
+        //             data: null,
+        //             errors: []
+        //         });
+        //     }
+        // }
 
         if (!id) { // Check if branch already exists using raw query
             const { rows: thebranch } = await pg.query(`SELECT * FROM divine."Branch" WHERE branch = $1`, [branch]);
@@ -106,7 +106,7 @@ const createbranch = async (req, res) => {
         } else {
             query = await pg.query(`INSERT INTO divine."Branch" 
                 (branch, country, state, address, lga, createdby, userid) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7)`, [branch, country, state, address, lga, user.id, userid]);
+                VALUES ($1, $2, $3, $4, $5, $6, $7)`, [branch, country, state, address, lga, user.id, null]);
         }
 
         // NOW SAVE THE BRANCH
