@@ -55,15 +55,17 @@ const createbranch = async (req, res) => {
 
     try {
         // Validate if user exists
-        const { rows: userExists } = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [userid]);
-        if (userExists.length === 0) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "User does not exist",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });
+        if (userid) {
+            const { rows: userExists } = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [userid]);
+            if (userExists.length === 0) {
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    status: false,
+                    message: "User does not exist",
+                    statuscode: StatusCodes.BAD_REQUEST,
+                    data: null,
+                    errors: []
+                });
+            }
         }
 
         if (!id) { // Check if branch already exists using raw query
