@@ -17,30 +17,30 @@ const createbranch = async (req, res) => {
                 message: 'Branch name not found'
             });
         }
-        if (!country) {
-            errors.push({
-                field: 'Country', 
-                message: 'Country not found'
-            });
-        }
-        if (!state) {
-            errors.push({
-                field: 'State',
-                message: 'State not found'
-            });
-        }
-        if (!lga) {
-            errors.push({
-                field: 'lga',
-                message: 'Local Government Area not found'
-            });
-        }
-        if (!userid) {
-            errors.push({
-                field: 'User ID',
-                message: 'User ID not found'
-            });
-        }
+        // if (!country) {
+        //     errors.push({
+        //         field: 'Country', 
+        //         message: 'Country not found'
+        //     });
+        // }
+        // if (!state) {
+        //     errors.push({
+        //         field: 'State',
+        //         message: 'State not found'
+        //     });
+        // }
+        // if (!lga) {
+        //     errors.push({
+        //         field: 'lga',
+        //         message: 'Local Government Area not found'
+        //     });
+        // }
+        // if (!userid) {
+        //     errors.push({
+        //         field: 'User ID',
+        //         message: 'User ID not found'
+        //     });
+        // }
 
         if (errors.length > 0) {
             return res.status(StatusCodes.BAD_REQUEST).json({

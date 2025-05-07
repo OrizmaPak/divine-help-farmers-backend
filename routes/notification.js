@@ -1,6 +1,7 @@
 const express = require('express');
 const { deleteNotification } = require('../controllers/notification/deletenotice');
 const { getNotificationsByUserId } = require('../controllers/notification/get');
+const { sendSmsController } = require('../controllers/notification/sendSms');
 const router = express.Router();
 
 
@@ -10,6 +11,9 @@ router.route('/getnotifications')
     
 router.route('/delete')
     .delete(deleteNotification)
+
+router.route('/sendsms')
+    .post(sendSmsController)
 
 
     
