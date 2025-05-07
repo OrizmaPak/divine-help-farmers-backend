@@ -197,6 +197,7 @@ model Branch {
   id          Int        @id @default(autoincrement()) 
   branch      String
   country     String?
+  unitno      Int? @default(0)
   state       String?
   lga         String?
   address     String?

@@ -3,8 +3,8 @@ const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware
 
 const createbranch = async (req, res) => {
-    const { id = null, branch = null, country = null, state = null, lga = null, address = null, status = null, userid = null } = req.body;
-    console.log({ branch, country, state, address });
+    const { id="", branch, country, state, lga, address='', status="", userid, unitno=0 } = req.body;
+    console.log({ branch, country, state, address, unitno });
 
     const user = req.user;
     
@@ -55,17 +55,15 @@ const createbranch = async (req, res) => {
 
     try {
         // Validate if user exists
-        // if (userid) {
-        //     const { rows: userExists } = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [userid]);
-        //     if (userExists.length === 0) {
-        //         return res.status(StatusCodes.BAD_REQUEST).json({
-        //             status: false,
-        //             message: "User does not exist",
-        //             statuscode: StatusCodes.BAD_REQUEST,
-        //             data: null,
-        //             errors: []
-        //         });
-        //     }
+        // const { rows: userExists } = await pg.query(`SELECT * FROM divine."User" WHERE id = $1`, [userid]);
+        // if (userExists.length === 0) {
+        //     return res.status(StatusCodes.BAD_REQUEST).json({
+        //         status: false,
+        //         message: "User does not exist",
+        //         statuscode: StatusCodes.BAD_REQUEST,
+        //         data: null,
+        //         errors: []
+        //     });
         // }
 
         if (!id) { // Check if branch already exists using raw query
@@ -99,14 +97,15 @@ const createbranch = async (req, res) => {
                     state = $3, 
                     address = $4, 
                     lga = $5, 
-                    lastupdated = $6,
-                    userid = $7
-                    WHERE id = $8`, [branch, country, state, address, lga, new Date(), userid, id]);
+                    unitno = $6,
+                    lastupdated = $7,
+                    userid = $8
+                    WHERE id = $9`, [branch, country, state, address, lga, unitno, new Date(), userid??null, id]);
             }
         } else {
             query = await pg.query(`INSERT INTO divine."Branch" 
-                (branch, country, state, address, lga, createdby, userid) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7)`, [branch, country, state, address, lga, user.id, null]);
+                (branch, country, state, address, lga, unitno, createdby, userid) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [branch, country, state, address, lga, unitno, user.id, userid]);
         }
 
         // NOW SAVE THE BRANCH
