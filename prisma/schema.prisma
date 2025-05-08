@@ -235,6 +235,11 @@ model Organisationsettings {
   minimum_credit_amount                      Float    @default(2000)
   minimum_credit_amount_penalty              Float    @default(200)
 
+  credit_charge                              Float?    @default(0)
+  credit_charge_type                         String?   @default("AMOUNT")
+  debit_charge                               Float?    @default(0)
+  debit_charge_type                          String?   @default("AMOUNT")
+
   personal_transaction_prefix                String?
   loan_transaction_prefix                    String?
   rotary_transaction_prefix                  String? @default("")

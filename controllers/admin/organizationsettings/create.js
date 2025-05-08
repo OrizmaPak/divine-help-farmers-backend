@@ -29,6 +29,10 @@ const organizationsettings = async (req, res) => {
       sms_charge_members = "YES",
       minimum_credit_amount = 2000,
       minimum_credit_amount_penalty = 200,
+      credit_charge = null,
+      credit_charge_type = null,
+      debit_charge = null,
+      debit_charge_type = null,
 
       // Transaction prefixes
       personal_transaction_prefix = null,
@@ -249,6 +253,10 @@ const organizationsettings = async (req, res) => {
       sms_charge_members,
       minimum_credit_amount: parseNumber(minimum_credit_amount, 2000),
       minimum_credit_amount_penalty: parseNumber(minimum_credit_amount_penalty, 200),
+      credit_charge: parseNumber(credit_charge),
+      credit_charge_type,
+      debit_charge: parseNumber(debit_charge),
+      debit_charge_type,
       status,
 
       // Transaction prefixes
