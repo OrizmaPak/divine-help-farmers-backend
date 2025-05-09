@@ -208,7 +208,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         // console.log(`Transaction charge: ${transactionCharge}`);
 
         // Adjust amount based on transaction charge
-        const adjustedAmount = ransactionCharge;
+        const adjustedAmount = transactionCharge;
         // console.log(`Adjusted amount after transaction charge: ${adjustedAmount}`);
 
         // Construct account number
