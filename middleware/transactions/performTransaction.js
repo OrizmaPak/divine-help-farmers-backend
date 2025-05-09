@@ -1,4 +1,5 @@
 const pg = require("../../db/pg");
+const { generateNewReference } = require("../../utils/transactionHelper");
 const { activityMiddleware } = require("../activity");
 const saveTransactionMiddleware = require("./transaction");
 
@@ -158,7 +159,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
 
         // Fetch organisation settings
         const orgSettingsQuery = {
-            text: `SELECT personal_account_prefix, default_income_account, credit_charge, credit_charge_type, debit_charge, debit_charge_type, credit_charge_minimum, credit_charge_maximum, debit_charge_minimum, debit_charge_maximum FROM divine."Organisationsettings" LIMIT 1`,
+            text: `SELECT personal_account_prefix, default_income_account, default_personal_account, credit_charge, credit_charge_type, debit_charge, debit_charge_type, credit_charge_minimum, credit_charge_maximum, debit_charge_minimum, debit_charge_maximum FROM divine."Organisationsettings" LIMIT 1`,
             values: []
         };
         const { rows: orgRows } = await pg.query(orgSettingsQuery);
@@ -167,6 +168,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         }
         const personalAccountPrefix = orgRows[0].personal_account_prefix;
         const defaultIncomeAccount = orgRows[0].default_income_account;
+        const defaultPersonalAccount = orgRows[0].default_personal_account;
         const creditCharge = orgRows[0].credit_charge;
         const creditChargeType = orgRows[0].credit_charge_type;
         const debitCharge = orgRows[0].debit_charge;
@@ -192,10 +194,17 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         // Construct account number
         const accountNumber = `${personalAccountPrefix}${phone}`;
 
+
+
+        // Generate references for transactions
+        const debitReference = await generateNewReference(pg, accountNumber, {});
+        pg.body.reference = debitReference;
+        const creditReference = await generateNewReference(pg, defaultIncomeAccount, {});
+        const defaultPersonalDebitReference = await generateNewReference(pg, defaultPersonalAccount, {});
+
         // Create transactions
         const transactionData = {
             description: 'Interbank Income',
-            reference: '',
             transactiondesc: 'Interbank Income',
             transactionref: '',
             currency: 'NGN'
@@ -211,7 +220,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
             tfrom: 'BANK',
             createdby: 0,
             valuedate: new Date(),
-            reference: transactionData.reference,
+            reference: debitReference,
             transactiondate: new Date(),
             transactiondesc: transactionData.transactiondesc + ' Debit',
             transactionref: transactionData.transactionref,
@@ -230,12 +239,31 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
             tfrom: 'BANK',
             createdby: 0,
             valuedate: new Date(),
-            reference: transactionData.reference,
+            reference: creditReference,
             transactiondate: new Date(),
             transactiondesc: transactionData.transactiondesc + ' Credit',
             transactionref: transactionData.transactionref,
             status: 'ACTIVE',
             whichaccount: 'INCOME',
+            currency: transactionData.currency
+        };
+
+        const defaultPersonalDebitTransaction = {
+            accountnumber: defaultPersonalAccount,
+            userid: 0,
+            description: transactionData.description + ' Default Personal Account Debit',
+            debit: adjustedAmount,
+            credit: 0,
+            ttype: "DEBIT",
+            tfrom: 'BANK',
+            createdby: 0,
+            valuedate: new Date(),
+            reference: defaultPersonalDebitReference,
+            transactiondate: new Date(),
+            transactiondesc: transactionData.transactiondesc + ' Default Personal Account Debit',
+            transactionref: transactionData.transactionref,
+            status: 'ACTIVE',
+            whichaccount: 'PERSONAL',
             currency: transactionData.currency
         };
 
@@ -280,6 +308,26 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
             creditTransaction.status,
             creditTransaction.whichaccount,
             creditTransaction.currency
+        ];
+        await pg.query(saveTransactionQuery);
+
+        saveTransactionQuery.values = [
+            defaultPersonalDebitTransaction.accountnumber,
+            defaultPersonalDebitTransaction.userid,
+            defaultPersonalDebitTransaction.description,
+            defaultPersonalDebitTransaction.debit,
+            defaultPersonalDebitTransaction.credit,
+            defaultPersonalDebitTransaction.ttype,
+            defaultPersonalDebitTransaction.tfrom,
+            defaultPersonalDebitTransaction.createdby,
+            defaultPersonalDebitTransaction.valuedate,
+            defaultPersonalDebitTransaction.reference,
+            defaultPersonalDebitTransaction.transactiondate,
+            defaultPersonalDebitTransaction.transactiondesc,
+            defaultPersonalDebitTransaction.transactionref,
+            defaultPersonalDebitTransaction.status,
+            defaultPersonalDebitTransaction.whichaccount,
+            defaultPersonalDebitTransaction.currency
         ];
         await pg.query(saveTransactionQuery);
 
