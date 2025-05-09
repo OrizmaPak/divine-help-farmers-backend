@@ -108,7 +108,7 @@ const sendSmsDnd = (number, message) => {
     });
 };
 
-const formatPhoneNumber = (country, number) => {
+const formatPhoneNumber = (number, country='nigeria') => {
     // Define a basic mapping of country codes
     const countryCodes = {
         // African countries

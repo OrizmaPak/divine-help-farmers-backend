@@ -1,6 +1,6 @@
 const { StatusCodes } = require('http-status-codes');
 const { activityMiddleware } = require('../middleware/activity');
-const { sendSmsDnd } = require('./sendSms');
+const { sendSmsDnd, formatPhoneNumber } = require('./sendSms');
 const { maskValue, formatNumber } = require('./sanitizer');
 const { format } = require('path');
 const pg = require('../db/pg');
@@ -261,6 +261,15 @@ const saveTransaction = async (client, res, transactionData, req) => {
             [accountnumber, credit, debit, newReference, description, ttype, status, transactiondate, req.body.whichaccount, finalValuedate, transactiondesc, createdBy, currency, userid, tfrom, transactionref, cashref, req.body.branch]
         );
 
+        // Extract the phone number from the personal account number
+        const personalAccountPrefix = req.orgSettings.personal_account_prefix;
+        const personalAccountNumber = req.body.personalaccountnumber;
+
+        // Remove the prefix to get the phone number
+        let phoneNumber = personalAccountNumber.replace(personalAccountPrefix, '');
+        phoneNumber = formatPhoneNumber(phoneNumber);
+        
+
         let smsmessage;
 
         // Determine the appropriate account based on whichaccount and ttype
@@ -269,7 +278,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_savings_income_account : req.orgSettings.default_savings_account;
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
-Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
 Desc: SAVG ${description.length > 21 ? description.slice(0, 21) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
@@ -279,7 +288,7 @@ Powered by DIVINE HELP FARMERS`
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_loan_income_account : req.orgSettings.default_loan_account;
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
-Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
 Desc: LOAN ${description.length > 21 ? description.slice(0, 21) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
@@ -288,7 +297,7 @@ Powered by DIVINE HELP FARMERS`
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_property_income_account : req.orgSettings.default_property_account;
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
-Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
 Desc: PROT ${description.length > 21 ? description.slice(0, 21) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
@@ -297,7 +306,7 @@ Powered by DIVINE HELP FARMERS`
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_rotary_income_account : req.orgSettings.default_rotary_account;
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
-Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
 Desc: ROTY ${description.length > 21 ? description.slice(0, 21) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
@@ -306,14 +315,14 @@ Powered by DIVINE HELP FARMERS`
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_personal_income_account : req.orgSettings.default_personal_account;
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
-Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
 Desc: PERL ${description.length > 21 ? description.slice(0, 21) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
         }
 
-            if(status == 'ACTIVE')sendSmsDnd(req.body.personalaccountnumber, smsmessage);
+            if(status == 'ACTIVE')sendSmsDnd(phoneNumber, smsmessage);
 
         if (incomeAccountNumber) { 
             const thenewref = await generateNewReference(client, incomeAccountNumber, req);
@@ -455,9 +464,8 @@ const generateNewReference = async (client, accountnumber, req) => {
 
     console.log('accountnumber when generating ref', accountnumber);
 
-    // Check if orgSettings is available, if not, derive it
-    let orgSettings = req.orgSettings;
-    if (!orgSettings) {
+    // Fetch orgSettings if not present in the request
+    if (!req.orgSettings) {
         const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" LIMIT 1`;
         const orgSettingsResult = await client.query(orgSettingsQuery);
         if (orgSettingsResult.rowCount === 0) {
@@ -469,40 +477,44 @@ const generateNewReference = async (client, accountnumber, req) => {
             req.body.transactiondesc += 'Organisation settings not found.|';
             return;
         }
-        orgSettings = orgSettingsResult.rows[0];
+        req.orgSettings = orgSettingsResult.rows[0];
     }
 
-    if (accountnumber.toString().startsWith(orgSettings.personal_account_prefix)) {
-        console.log('orgSettings personal_transaction_prefix', orgSettings.personal_transaction_prefix);
-        prefix = orgSettings.personal_transaction_prefix;
+    if (accountnumber.toString().startsWith(req.orgSettings.personal_account_prefix)) {
+        // Check if the account number starts with personal account prefix
+        console.log('orgSettings personal_transaction_prefix', req.orgSettings.personal_transaction_prefix);
+        prefix = req.orgSettings.personal_transaction_prefix;
         identifier = '7P8L9';
         req.body.whichaccount = 'PERSONAL';
     }
-
+    // Check if the account number is in the savings table
     if (!prefix && !identifier) {
         const savingsQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
         const savingsResult = await client.query(savingsQuery, [accountnumber]);
         if (savingsResult.rowCount !== 0) {
-            console.log('orgSettings savings_transaction_prefix', orgSettings.savings_transaction_prefix);
-            prefix = orgSettings.savings_transaction_prefix;
+            console.log('orgSettings savings_transaction_prefix', req.orgSettings.savings_transaction_prefix);
+            prefix = req.orgSettings.savings_transaction_prefix;
             identifier = '1S2V3';
             req.body.whichaccount = 'SAVINGS';
         } else {
+            // Check if the account number is in the Accounts table
             const accountsQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
             const accountsResult = await client.query(accountsQuery, [accountnumber]);
             if (accountsResult.rowCount !== 0) {
-                console.log('orgSettings gl_transaction_prefix', orgSettings.gl_transaction_prefix);
-                prefix = orgSettings.gl_transaction_prefix;
+                console.log('orgSettings gl_transaction_prefix', req.orgSettings.gl_transaction_prefix);
+                prefix = req.orgSettings.gl_transaction_prefix;
                 identifier = '9G8L7';
                 req.body.whichaccount = 'GLACCOUNT';
             } else {
+                // Check if the account number is in the loan table
                 const loanQuery = `SELECT * FROM divine."loanaccounts" WHERE accountnumber = $1`;
                 const loanResult = await client.query(loanQuery, [accountnumber]);
                 if (loanResult.rowCount !== 0) {
-                    prefix = orgSettings.loan_transaction_prefix;
+                    prefix = req.orgSettings.loan_transaction_prefix;
                     identifier = '4L5N6';
                     req.body.whichaccount = 'LOAN';
                 } else {
+                    // If the account number can't be matched to anything, throw a response
                     req.transactionError = {
                         status: StatusCodes.BAD_REQUEST,
                         message: 'Invalid account number.',
@@ -517,6 +529,7 @@ const generateNewReference = async (client, accountnumber, req) => {
 
     console.log('whichaccount', req.body.whichaccount);
 
+    // Check if the needed prefix is set, if not return response
     if (!prefix) {
         req.transactionError = {
             status: StatusCodes.BAD_REQUEST,
@@ -527,6 +540,7 @@ const generateNewReference = async (client, accountnumber, req) => {
         return;
     }
 
+    // Generate the link
     const timestamp = Number(String(new Date().getTime() + Math.random()).replace('.', ''));
     if (req.body.reference) {
         link = req.body.reference.includes('|') ? req.body.reference.split('|')[1] : 'B-' + req.body.reference;
@@ -534,6 +548,7 @@ const generateNewReference = async (client, accountnumber, req) => {
         link = `S-${timestamp}`;
     }
 
+    // Construct the new reference
     const newReference = `${prefix}|${link}|${timestamp}|${identifier}`;
     req.body.reference = newReference;
     console.log('newReference', newReference);
