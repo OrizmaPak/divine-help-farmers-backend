@@ -358,7 +358,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
                 console.log('Sending notification of the charges...');
                let smsmessage = `Acct: ${maskValue(accountNumber)}
 Amt: ₦${formatNumber(Number(adjustedAmount))} 'DR'
-Desc: PERL ${description.length > 21 ? description.slice(0, 10) + '...' : description}
+Desc: PERL ${amounttype} CHARGES DEDUCTED
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
