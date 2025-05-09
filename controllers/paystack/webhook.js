@@ -1,7 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const { sendEmail } = require("../../utils/sendEmail");
 const pg = require("../../db/pg");
-const { performTransactionOneWay } = require("../../middleware/transactions/performTransaction");
+const { performTransactionOneWay, interbankIncome } = require("../../middleware/transactions/performTransaction");
 const { sendNotification } = require("../../utils/transactionHelper");
 
 const paystackWebhook = async (req, res) => {
@@ -253,6 +253,9 @@ const handleChargeSuccess = async (transactionData) => {
     const userNotificationDescription = `Your account ${accountNumber} has been credited with ₦${creditAmount.toLocaleString('en-US')}.`;
     await sendUserNotification(usere.id, userNotificationTitle, userNotificationDescription);
 
+    // Call interbankIncome for successful credit
+    await interbankIncome(bankTransaction.userid, transactionData.customer.phone, creditAmount, "CREDIT", balance, accountNumber);
+
     console.log(`The balance for account ${accountNumber} is ${balance}`);
 }
 
@@ -441,7 +444,6 @@ const handleRefundProcessing = async (data) => {
  * Rewritten code snippet for handleRefundProcessed
  */
 
-// Start of Selection
 const handleRefundProcessed = async (transactionData) => {
     // 1. Check paystackreferences table with transactionData.transaction_reference
     const paystackRefQuery = {
@@ -554,6 +556,9 @@ const handleRefundProcessed = async (transactionData) => {
     const debitAmount = bankTransaction.debit;
     const balance = await calculateBalance(accountNumber);
     await sendRefundAlertEmail(accountNumber, debitAmount, balance);
+
+    // Call interbankIncome for successful debit
+    await interbankIncome(userId, transactionData.customer.phone, debitAmount, "DEBIT", balance, accountNumber);
 
     console.log(`The balance for account ${accountNumber} after refund is ${balance}`);
 };

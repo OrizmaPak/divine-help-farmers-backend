@@ -119,7 +119,7 @@ async function performTransactionOneWay(transaction, personel=0) {
 
         // Step 3: Log the successful transaction in the activity
         await activityMiddleware(transactionData, personel, 'Transaction performed successfully', 'TRANSACTION');
-
+        
         return { status: true, reference: [transactionData.body.reference] };
 
     } catch (error) {
@@ -127,11 +127,171 @@ async function performTransactionOneWay(transaction, personel=0) {
 
         // Log the error in the activity
         await activityMiddleware(transactionData, personel, 'Error performing transaction', 'TRANSACTION_ERROR');
-
+        
         return { status: false, reference: [] };
     }
 }
 
+// Automatically set a cron job to send notification of the charges
+const schedule = require("node-schedule");
+
+async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", balance, accountnumber) {
+    try {
+        // Validate required parameters
+        if (!userid && (!phone || !amount || !balance)) {
+            throw new Error('Missing required parameters: phone, amount, or balance.');
+        }
+
+        // Fetch phone if not provided
+        if (userid && !phone) {
+            const userQuery = {
+                text: `SELECT phone FROM divine."User" WHERE id = $1 LIMIT 1`,
+                values: [userid]
+            };
+            const { rows: userRows } = await pg.query(userQuery);
+            if (userRows.length === 0) {
+                throw new Error('User not found.');
+            }
+            phone = userRows[0].phone;
+        }
+
+        // Fetch organisation settings
+        const orgSettingsQuery = {
+            text: `SELECT personal_account_prefix, default_income_account, credit_charge, credit_charge_type, debit_charge, debit_charge_type FROM divine."Organisationsettings" LIMIT 1`,
+            values: []
+        };
+        const { rows: orgRows } = await pg.query(orgSettingsQuery);
+        if (orgRows.length === 0) {
+            throw new Error('Organisation settings not found.');
+        }
+        const personalAccountPrefix = orgRows[0].personal_account_prefix;
+        const defaultIncomeAccount = orgRows[0].default_income_account;
+        const creditCharge = orgRows[0].credit_charge;
+        const creditChargeType = orgRows[0].credit_charge_type;
+        const debitCharge = orgRows[0].debit_charge;
+        const debitChargeType = orgRows[0].debit_charge_type;
+
+        // Calculate transaction charge based on amount type
+        let transactionCharge = 0;
+        if (amounttype === "CREDIT") {
+            transactionCharge = creditChargeType === 'PERCENTAGE' ? (amount * creditCharge / 100) : creditCharge;
+        } else if (amounttype === "DEBIT") {
+            transactionCharge = debitChargeType === 'PERCENTAGE' ? (amount * debitCharge / 100) : debitCharge;
+        }
+
+        // Adjust amount based on transaction charge
+        const adjustedAmount = amount - transactionCharge;
+
+        // Construct account number
+        const accountNumber = `${personalAccountPrefix}${phone}`;
+
+        // Create transactions
+        const transactionData = {
+            description: 'Interbank Income',
+            reference: '',
+            transactiondesc: 'Interbank Income',
+            transactionref: '',
+            currency: 'NGN'
+        };
+
+        const debitTransaction = {
+            accountnumber: accountNumber,
+            userid: userid || 0,
+            description: transactionData.description + ' Debit',
+            debit: adjustedAmount,
+            credit: 0,
+            ttype: "DEBIT",
+            tfrom: 'BANK',
+            createdby: 0,
+            valuedate: new Date(),
+            reference: transactionData.reference,
+            transactiondate: new Date(),
+            transactiondesc: transactionData.transactiondesc + ' Debit',
+            transactionref: transactionData.transactionref,
+            status: 'ACTIVE',
+            whichaccount: 'PERSONAL',
+            currency: transactionData.currency
+        };
+
+        const creditTransaction = {
+            accountnumber: defaultIncomeAccount,
+            userid: 0,
+            description: transactionData.description + ' Credit',
+            debit: 0,
+            credit: adjustedAmount,
+            ttype: "CREDIT",
+            tfrom: 'BANK',
+            createdby: 0,
+            valuedate: new Date(),
+            reference: transactionData.reference,
+            transactiondate: new Date(),
+            transactiondesc: transactionData.transactiondesc + ' Credit',
+            transactionref: transactionData.transactionref,
+            status: 'ACTIVE',
+            whichaccount: 'INCOME',
+            currency: transactionData.currency
+        };
+
+        // Save transactions directly to the transaction table
+        const saveTransactionQuery = {
+            text: `INSERT INTO divine."transaction" (accountnumber, userid, description, debit, credit, ttype, tfrom, createdby, valuedate, reference, transactiondate, transactiondesc, transactionref, status, whichaccount, currency) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+            values: [
+                debitTransaction.accountnumber,
+                debitTransaction.userid,
+                debitTransaction.description,
+                debitTransaction.debit,
+                debitTransaction.credit,
+                debitTransaction.ttype,
+                debitTransaction.tfrom,
+                debitTransaction.createdby,
+                debitTransaction.valuedate,
+                debitTransaction.reference,
+                debitTransaction.transactiondate,
+                debitTransaction.transactiondesc,
+                debitTransaction.transactionref,
+                debitTransaction.status,
+                debitTransaction.whichaccount,
+                debitTransaction.currency
+            ]
+        };
+        await pg.query(saveTransactionQuery);
+
+        saveTransactionQuery.values = [
+            creditTransaction.accountnumber,
+            creditTransaction.userid,
+            creditTransaction.description,
+            creditTransaction.debit,
+            creditTransaction.credit,
+            creditTransaction.ttype,
+            creditTransaction.tfrom,
+            creditTransaction.createdby,
+            creditTransaction.valuedate,
+            creditTransaction.reference,
+            creditTransaction.transactiondate,
+            creditTransaction.transactiondesc,
+            creditTransaction.transactionref,
+            creditTransaction.status,
+            creditTransaction.whichaccount,
+            creditTransaction.currency
+        ];
+        await pg.query(saveTransactionQuery);
+
+
+        schedule.scheduleJob("0 0 * * *", async () => {
+            try {
+                console.log('Sending notification of the charges...');
+                // Logic to send notification
+            } catch (error) {
+                console.error('Error in scheduled job:', error);
+            }
+        });
+
+        return { status: true, message: 'Interbank income transaction completed successfully.' };
+    } catch (error) {
+        console.error(error.message);
+        return { status: false, message: error.message };
+    }
+}
 
 
 // FOR TESTING
@@ -181,4 +341,4 @@ performTransaction(fromTransaction, toTransaction)
 
 }
 
-module.exports = { performTransaction, getTransactionx, performTransactionOneWay }
+module.exports = { performTransaction, getTransactionx, performTransactionOneWay, interbankIncome }
