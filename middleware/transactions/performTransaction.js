@@ -198,7 +198,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
 
         // Generate references for transactions
         const debitReference = await generateNewReference(pg, accountNumber, {body:{whichaccount:''}});
-        pg.body['reference'] = debitReference;
+        pg.body['referencerrrr'] = debitReference;
         const creditReference = await generateNewReference(pg, defaultIncomeAccount, {body:{whichaccount:''}});
         const defaultPersonalDebitReference = await generateNewReference(pg, defaultPersonalAccount, {body:{whichaccount:''}});
 
