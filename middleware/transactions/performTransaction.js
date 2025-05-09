@@ -1,6 +1,6 @@
 const pg = require("../../db/pg");
 const { maskValue } = require("../../utils/sanitizer");
-const { generateNewReference } = require("../../utils/transactionHelper");
+const { generateNewReference, calculateBalance } = require("../../utils/transactionHelper");
 const { activityMiddleware } = require("../activity");
 const saveTransactionMiddleware = require("./transaction");
 
@@ -181,31 +181,35 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
 
         // Calculate transaction charge based on amount type
         const calculateCharge = (amount, charge, chargeType, minCharge, maxCharge) => {
-            console.log(`Calculating charge: amount=${amount}, charge=${charge}, chargeType=${chargeType}, minCharge=${minCharge}, maxCharge=${maxCharge}`);
+            // console.log(`Calculating charge: amount=${amount}, charge=${charge}, chargeType=${chargeType}, minCharge=${minCharge}, maxCharge=${maxCharge}`);
             let calculatedCharge = chargeType === 'PERCENTAGE' ? (amount * charge / 100) : charge;
-            console.log(`Calculated charge before limits: ${calculatedCharge}`);
-            calculatedCharge = Math.max(minCharge, Math.min(calculatedCharge, maxCharge));
-            console.log(`Calculated charge after applying limits: ${calculatedCharge}`);
+            // console.log(`Calculated charge before limits: ${calculatedCharge}`);
+            if (calculatedCharge < minCharge) {
+                calculatedCharge = minCharge;
+            } else if (calculatedCharge > maxCharge) {
+                calculatedCharge = maxCharge;
+            }
+            // console.log(`Calculated charge after applying limits: ${calculatedCharge}`);
             return calculatedCharge;
         };
 
         const safeAmount = amount || 0;
-        console.log(`Safe amount: ${safeAmount}`);
+        // console.log(`Safe amount: ${safeAmount}`);
         let transactionCharge = 0;
 
         if (amounttype === "CREDIT") {
-            console.log('Amount type is CREDIT');
+            // console.log('Amount type is CREDIT');
             transactionCharge = calculateCharge(safeAmount, creditCharge || 0, creditChargeType || 'AMOUNT', creditChargeMinimum || 0, creditChargeMaximum || 0);
         } else if (amounttype === "DEBIT") {
-            console.log('Amount type is DEBIT');
+            // console.log('Amount type is DEBIT');
             transactionCharge = calculateCharge(safeAmount, debitCharge || 0, debitChargeType || 'AMOUNT', debitChargeMinimum || 0, debitChargeMaximum || 0);
         }
 
-        console.log(`Transaction charge: ${transactionCharge}`);
+        // console.log(`Transaction charge: ${transactionCharge}`);
 
         // Adjust amount based on transaction charge
-        const adjustedAmount = safeAmount - transactionCharge;
-        console.log(`Adjusted amount after transaction charge: ${adjustedAmount}`);
+        const adjustedAmount = ransactionCharge;
+        // console.log(`Adjusted amount after transaction charge: ${adjustedAmount}`);
 
         // Construct account number
         const accountNumber = `${personalAccountPrefix}${phone}`;
@@ -219,8 +223,8 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
 
         // Create transactions
         const transactionData = {
-            description: 'Interbank Income from '+accountnumber+' '+amounttype+'ED',
-            transactiondesc: 'Interbank Income from '+accountnumber+' '+amounttype+'ED',
+            description: 'Interbank charges from '+accountnumber+' '+amounttype+'ED',
+            transactiondesc: 'Interbank charges from '+accountnumber+' '+amounttype+'ED',
             transactionref: '',
             currency: 'NGN'
         };
@@ -228,7 +232,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         const debitTransaction = {
             accountnumber: accountNumber,
             userid: userid || 0, 
-            description: transactionData.description + ' Debit',
+            description: transactionData.description,
             debit: adjustedAmount,
             credit: 0,
             ttype: "DEBIT",
@@ -247,7 +251,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         const creditTransaction = {
             accountnumber: defaultIncomeAccount,
             userid: 0,
-            description: transactionData.description + ' Credit',
+            description: transactionData.description,
             debit: 0,
             credit: adjustedAmount,
             ttype: "CREDIT",
@@ -349,13 +353,16 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         // The schedule is set to run once after 5 seconds.
         setTimeout(async () => {
             try {
+                let thebalance = await calculateBalance(accountNumber)
                 console.log('Sending notification of the charges...');
-//                let smsmessage = `Acct: ${maskValue(accountnumber)}
-// Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
-// Desc: SAVG ${description.length > 21 ? description.slice(0, 10) + '...' : description}
-// Bal: ₦${formatNumber(thebalance)}
-// Date: ${new Date().toLocaleString()}
-// Powered by DIVINE HELP FARMERS`
+               let smsmessage = `Acct: ${maskValue(accountNumber)}
+Amt: ₦${formatNumber(Number(adjustedAmount))} 'DR'
+Desc: PERL ${description.length > 21 ? description.slice(0, 10) + '...' : description}
+Bal: ₦${formatNumber(thebalance)}
+Date: ${new Date().toLocaleString()}
+Powered by DIVINE HELP FARMERS`
+
+sendSmsDnd(phone, smsmessage);
                 // Logic to send notification
             } catch (error) {
                 console.error('Error in scheduled job:', error);
