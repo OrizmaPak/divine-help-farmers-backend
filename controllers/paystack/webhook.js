@@ -207,12 +207,12 @@ const handleChargeSuccess = async (transactionData) => {
             text: `SELECT firstname, lastname, id FROM divine."User" WHERE phone = $1`,
             values: [phone]
         };
-        const { rows: [usere] } = await pg.query(userQuery);
+        const { rows: [user] } = await pg.query(userQuery);
 
         const emailSubject = 'Transaction Notification';
         const emailBody = `
             <h1>Transaction Alert</h1>
-            <p>Account ${accountNumber} (${usere.firstname} ${usere.lastname}) has performed a transaction.</p>
+            <p>Account ${accountNumber} (${user.firstname} ${user.lastname}) has performed a transaction.</p>
             <p>Amount Credited: ₦${creditAmount.toLocaleString('en-US')}</p>
             <p>Source: Sent from ${transactionData.authorization.bank} by ${transactionData.authorization.account_name ?? transactionData.authorization.sender_name}.</p>
             <p>Transaction Time: ${new Date().toLocaleString()}</p>
@@ -251,7 +251,7 @@ const handleChargeSuccess = async (transactionData) => {
     // Create a notification for the user
     const userNotificationTitle = 'Transaction Successful';
     const userNotificationDescription = `Your account ${accountNumber} has been credited with ₦${creditAmount.toLocaleString('en-US')}.`;
-    await sendUserNotification(usere.id, userNotificationTitle, userNotificationDescription);
+    await sendUserNotification(user.id, userNotificationTitle, userNotificationDescription);
 
     // Call interbankIncome for successful credit
     await interbankIncome(bankTransaction.userid, transactionData.customer.phone, creditAmount, "CREDIT", balance, accountNumber);
