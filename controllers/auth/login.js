@@ -9,27 +9,21 @@ const { activityMiddleware } = require("../../middleware/activity");
 const https = require('https');
 
 async function login(req, res) {
-    const { email, password, verify = '', device = '' } = req.body;
+    const { login, password, verify = '', device = '' } = req.body;
 
     // Basic validation
-    if (!email || !password || !isValidEmail(email)) {
+    if (!login || !password) {
         let errors = [];
-        if (!email) { 
+        if (!login) { 
             errors.push({
-                field: 'Email',
-                message: 'Email not found'
+                field: 'Login',
+                message: 'Login not found'
             });
         }
         if (!password) {
             errors.push({
                 field: 'Password', 
                 message: 'Password not found'
-            }); 
-        }
-        if (!isValidEmail(email)) {
-            errors.push({
-                field: 'Email', 
-                message: 'Invalid email format'
             }); 
         }
  
@@ -43,13 +37,22 @@ async function login(req, res) {
     }
 
     try {
-        // Check if email already exists using raw query
-        const { rows: [existingUser] } = await pg.query(`SELECT * FROM divine."User" WHERE email = $1`, [email]);
+        let query, queryValue;
+        if (isValidEmail(login)) {
+            query = `SELECT * FROM divine."User" WHERE email = $1`;
+            queryValue = login;
+        } else {
+            query = `SELECT * FROM divine."User" WHERE phone = $1`;
+            queryValue = login;
+        }
+
+        // Check if user exists using raw query
+        const { rows: [existingUser] } = await pg.query(query, [queryValue]);
 
         if (!existingUser) {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: "Email not registered",
+                message: "User not registered",
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
                 errors: []
@@ -58,7 +61,7 @@ async function login(req, res) {
         if (existingUser.status != 'ACTIVE') {
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: `Your this account has been ${existingUser.status}`,
+                message: `Your account has been ${existingUser.status}`,
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
                 errors: []
@@ -86,7 +89,7 @@ async function login(req, res) {
                 const paystackCheckOptions = {
                     hostname: 'api.paystack.co',
                     port: 443,
-                    path: `/customer/${email}`,
+                    path: `/customer/${existingUser.email}`,
                     method: 'GET',
                     headers: {
                         Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`
@@ -199,7 +202,7 @@ async function login(req, res) {
                         // CHECK IF THE USER HAS VALIDATED HIS EMAIL
                         if (!existingUser.emailverified && verify) {
                             // create verification token
-                            const vtoken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: process.env.VERIFICATION_EXPIRATION_HOUR + 'h' });
+                            const vtoken = jwt.sign({ email: existingUser.email }, process.env.JWT_SECRET, { expiresIn: process.env.VERIFICATION_EXPIRATION_HOUR + 'h' });
                             // create a verification link and code
                             await pg.query(`INSERT INTO divine."VerificationToken" 
                                             (identifier, token, expires) 
@@ -207,7 +210,7 @@ async function login(req, res) {
 
                             // send confirmation email
                             await sendEmail({
-                                to: email,
+                                to: existingUser.email,
                                 subject: 'Confirm Your Email to Begin Your Journey with divine Help Farmers Cooperative 🎉',
                                 text: 'Verification is key to unlocking financial freedom. Confirm your email to start your path to financial empowerment with divine Help Farmers Cooperative Society.',
                                 html: `<!DOCTYPE html>
