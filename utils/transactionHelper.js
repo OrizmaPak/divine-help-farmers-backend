@@ -313,7 +313,7 @@ Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
         }
 
-            if(status == 'ACTIVE')sendSmsDnd(req.body.personalaccountnumber, message);
+            if(status == 'ACTIVE')sendSmsDnd(req.body.personalaccountnumber, smsmessage);
 
         if (incomeAccountNumber) { 
             const thenewref = await generateNewReference(client, incomeAccountNumber, req);
