@@ -28,8 +28,27 @@ function sanitizeValue(value) {
     return sanitizedValue;
 }
 
+function maskValue(value) {
+    // Convert the value to a string to ensure we can manipulate it
+    const valueStr = String(value);
+
+    // Check if the value is less than or equal to 4 characters, return as is
+    if (valueStr.length <= 4) {
+        return valueStr;
+    }
+
+    // Calculate the number of characters to mask, with a maximum of 6
+    const maskLength = Math.min(valueStr.length - 4, 6);
+    const maskedPart = '*'.repeat(maskLength);
+    const visiblePart = valueStr.slice(-4);
+
+    return maskedPart + visiblePart;
+}
+ 
+
 module.exports = {
     sanitizeRequest,
-    sanitizeValue
+    sanitizeValue,
+    maskValue
 };
 

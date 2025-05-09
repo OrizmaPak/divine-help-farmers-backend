@@ -2,7 +2,7 @@ const { StatusCodes } = require("http-status-codes");
 const { sendEmail } = require("../../utils/sendEmail");
 const pg = require("../../db/pg");
 const { performTransactionOneWay, interbankIncome } = require("../../middleware/transactions/performTransaction");
-const { sendNotification } = require("../../utils/transactionHelper");
+const { sendNotification, calculateBalance } = require("../../utils/transactionHelper");
 
 const paystackWebhook = async (req, res) => {
     console.log('here called')
@@ -195,7 +195,7 @@ const handleChargeSuccess = async (transactionData) => {
             <p>Transaction Time: ${new Date().toLocaleString()}</p>
             <p>Transaction Status: Successful</p>
             <p>Available Balance: ₦${balance.toLocaleString('en-US')}</p>
-            <p>Thank you for banking with DIVINE HELP FARMERS.</p>
+            <p>Thank you for saving with DIVINE HELP FARMERS.</p>
         `;
         await sendEmail({ to: `${transactionData.customer.email}`, subject: emailSubject, text: '', html: emailBody });
     };
@@ -233,15 +233,7 @@ const handleChargeSuccess = async (transactionData) => {
         await pg.query(notificationQuery);
     };
 
-    // Calculate the balance from the transaction table
-    const calculateBalance = async (accountNumber) => { 
-        const balanceQuery = {
-            text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1`,
-            values: [accountNumber]
-        };
-        const { rows } = await pg.query(balanceQuery);
-        return rows[0].balance;
-    };
+    
 
     // Execute the functions
     const accountNumber = `${personalAccountPrefix}${transactionData.customer.phone}`;
@@ -542,7 +534,7 @@ const handleRefundProcessed = async (transactionData) => {
             <p>Transaction Time: ${new Date().toLocaleString()}</p>
             <p>Transaction Status: Successful</p>
             <p>Available Balance: ₦${balance.toLocaleString('en-US')}</p>
-            <p>Thank you for banking with DIVINE HELP FARMERS.</p>
+            <p>Thank you for saving with DIVINE HELP FARMERS.</p>
         `;
         await sendEmail({ to: transactionData.customer.email, subject: emailSubject, text: '', html: emailBody });
     };

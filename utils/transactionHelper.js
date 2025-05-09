@@ -1,10 +1,23 @@
 const { StatusCodes } = require('http-status-codes');
 const { activityMiddleware } = require('../middleware/activity');
+const { sendSmsDnd } = require('./sendSms');
+const { maskValue } = require('./sanitizer');
+const { format } = require('path');
 
 
 // if (savingsProduct.withdrawalcharges > 0) {
 //     await applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount); 
 // }
+
+// Calculate the balance from the transaction table
+const calculateBalance = async (accountNumber) => { 
+    const balanceQuery = {
+        text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1`,
+        values: [accountNumber]
+    };
+    const { rows } = await pg.query(balanceQuery);
+    return rows[0].balance;
+};
 
 async function applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount) {
     console.log('req', req);
@@ -247,19 +260,59 @@ const saveTransaction = async (client, res, transactionData, req) => {
             [accountnumber, credit, debit, newReference, description, ttype, status, transactiondate, req.body.whichaccount, finalValuedate, transactiondesc, createdBy, currency, userid, tfrom, transactionref, cashref, req.body.branch]
         );
 
+        let smsmessage;
+
         // Determine the appropriate account based on whichaccount and ttype
         let incomeAccountNumber;
         if (req.body.whichaccount == 'SAVINGS') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_savings_income_account : req.orgSettings.default_savings_account;
+            let thebalance = await calculateBalance(accountNumber)
+            smsmessage = `Acct: ${maskValue(accountNumber)}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Desc: SAVG ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Bal: ₦${formatNumber(thebalance)}
+Date: ${new Date().toLocaleString()}
+Powered by DIVINE HELP FARMERS`
+
         } else if (req.body.whichaccount == 'LOAN') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_loan_income_account : req.orgSettings.default_loan_account;
+            let thebalance = await calculateBalance(accountNumber)
+            smsmessage = `Acct: ${maskValue(accountNumber)}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Desc: LOAN ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Bal: ₦${formatNumber(thebalance)}
+Date: ${new Date().toLocaleString()}
+Powered by DIVINE HELP FARMERS`
         } else if (req.body.whichaccount == 'PROPERTY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_property_income_account : req.orgSettings.default_property_account;
+            let thebalance = await calculateBalance(accountNumber)
+            smsmessage = `Acct: ${maskValue(accountNumber)}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Desc: PROT ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Bal: ₦${formatNumber(thebalance)}
+Date: ${new Date().toLocaleString()}
+Powered by DIVINE HELP FARMERS`
         } else if (req.body.whichaccount == 'ROTARY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_rotary_income_account : req.orgSettings.default_rotary_account;
+            let thebalance = await calculateBalance(accountNumber)
+            smsmessage = `Acct: ${maskValue(accountNumber)}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Desc: ROTY ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Bal: ₦${formatNumber(thebalance)}
+Date: ${new Date().toLocaleString()}
+Powered by DIVINE HELP FARMERS`
         } else if (req.body.whichaccount == 'PERSONAL') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_personal_income_account : req.orgSettings.default_personal_account;
+            let thebalance = await calculateBalance(accountNumber)
+            smsmessage = `Acct: ${maskValue(accountNumber)}
+Amt: ₦${formatNumber(Number(credit)>0?credit:debit)}.00 ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Desc: PERL ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Bal: ₦${formatNumber(thebalance)}
+Date: ${new Date().toLocaleString()}
+Powered by DIVINE HELP FARMERS`
         }
+
+            if(status == 'ACTIVE')sendSmsDnd(req.body.personalaccountnumber, message);
 
         if (incomeAccountNumber) { 
             const thenewref = await generateNewReference(client, incomeAccountNumber, req);
@@ -827,5 +880,6 @@ module.exports = {
     takeCharges,
     applySavingsCharge,
     makeTransferToAccount,
+    calculateBalance
 };
 // generateDates, // Uncomment if needed
