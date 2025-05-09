@@ -1,6 +1,6 @@
 const pg = require("../../db/pg");
 const { maskValue, formatNumber } = require("../../utils/sanitizer");
-const { formatPhoneNumber } = require("../../utils/sendSms");
+const { formatPhoneNumber, sendSmsDnd } = require("../../utils/sendSms");
 const { generateNewReference, calculateBalance } = require("../../utils/transactionHelper");
 const { activityMiddleware } = require("../activity");
 const saveTransactionMiddleware = require("./transaction");
