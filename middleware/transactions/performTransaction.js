@@ -180,43 +180,27 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         const debitChargeMaximum = orgRows[0].debit_charge_maximum;
 
         // Calculate transaction charge based on amount type
-        let transactionCharge = 0;
-        const safeAmount = amount || 0;
-        const safeCreditCharge = creditCharge || 0;
-        const safeCreditChargeType = creditChargeType || 'AMOUNT';
-        const safeDebitCharge = debitCharge || 0;
-        const safeDebitChargeType = debitChargeType || 'AMOUNT';
-        const safeCreditChargeMinimum = creditChargeMinimum || 0;
-        const safeCreditChargeMaximum = creditChargeMaximum || 0;
-        const safeDebitChargeMinimum = debitChargeMinimum || 0;
-        const safeDebitChargeMaximum = debitChargeMaximum || 0;
+        const calculateCharge = (amount, charge, chargeType, minCharge, maxCharge) => {
+            let calculatedCharge = chargeType === 'PERCENTAGE' ? (amount * charge / 100) : charge;
+            return Math.max(minCharge, Math.min(calculatedCharge, maxCharge));
+        };
 
-        console.log('Calculating transaction charge...');
-        console.log('Amount Type:', amounttype);
-        console.log('Safe Amount:', safeAmount);
+        const safeAmount = amount || 0;
+        let transactionCharge = 0;
 
         if (amounttype === "CREDIT") {
-            console.log('Credit Charge Type:', safeCreditChargeType);
-            console.log('Credit Charge:', safeCreditCharge);
-            transactionCharge = safeCreditChargeType === 'PERCENTAGE' ? (safeAmount * safeCreditCharge / 100) : safeCreditCharge;
-            console.log('Initial Transaction Charge (CREDIT):', transactionCharge);
-            transactionCharge = Math.max(safeCreditChargeMinimum, Math.min(transactionCharge, safeCreditChargeMaximum));
-            console.log('Final Transaction Charge (CREDIT):', transactionCharge);
+            transactionCharge = calculateCharge(safeAmount, creditCharge || 0, creditChargeType || 'AMOUNT', creditChargeMinimum || 0, creditChargeMaximum || 0);
         } else if (amounttype === "DEBIT") {
-            console.log('Debit Charge Type:', safeDebitChargeType);
-            console.log('Debit Charge:', safeDebitCharge);
-            transactionCharge = safeDebitChargeType === 'PERCENTAGE' ? (safeAmount * safeDebitCharge / 100) : safeDebitCharge;
-            console.log('Initial Transaction Charge (DEBIT):', transactionCharge);
-            transactionCharge = Math.max(safeDebitChargeMinimum, Math.min(transactionCharge, safeDebitChargeMaximum));
-            console.log('Final Transaction Charge (DEBIT):', transactionCharge);
+            transactionCharge = calculateCharge(safeAmount, debitCharge || 0, debitChargeType || 'AMOUNT', debitChargeMinimum || 0, debitChargeMaximum || 0);
         }
 
         // Adjust amount based on transaction charge
         const adjustedAmount = safeAmount - transactionCharge;
-        console.log('Adjusted Amount:', adjustedAmount);
 
         // Construct account number
         const accountNumber = `${personalAccountPrefix}${phone}`;
+
+
 
         // Generate references for transactions
         const debitReference = await generateNewReference(pg, accountNumber, {body:{whichaccount:''}});
@@ -356,6 +340,12 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         setTimeout(async () => {
             try {
                 console.log('Sending notification of the charges...');
+//                let smsmessage = `Acct: ${maskValue(accountnumber)}
+// Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+// Desc: SAVG ${description.length > 21 ? description.slice(0, 10) + '...' : description}
+// Bal: ₦${formatNumber(thebalance)}
+// Date: ${new Date().toLocaleString()}
+// Powered by DIVINE HELP FARMERS`
                 // Logic to send notification
             } catch (error) {
                 console.error('Error in scheduled job:', error);
