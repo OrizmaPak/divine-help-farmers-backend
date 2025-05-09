@@ -180,16 +180,26 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
 
         // Calculate transaction charge based on amount type
         let transactionCharge = 0;
+        const safeAmount = amount || 0;
+        const safeCreditCharge = creditCharge || 0;
+        const safeCreditChargeType = creditChargeType || 'AMOUNT';
+        const safeDebitCharge = debitCharge || 0;
+        const safeDebitChargeType = debitChargeType || 'AMOUNT';
+        const safeCreditChargeMinimum = creditChargeMinimum || 0;
+        const safeCreditChargeMaximum = creditChargeMaximum || 0;
+        const safeDebitChargeMinimum = debitChargeMinimum || 0;
+        const safeDebitChargeMaximum = debitChargeMaximum || 0;
+
         if (amounttype === "CREDIT") {
-            transactionCharge = creditChargeType === 'PERCENTAGE' ? (amount * creditCharge / 100) : creditCharge;
-            transactionCharge = Math.max(creditChargeMinimum, Math.min(transactionCharge, creditChargeMaximum));
+            transactionCharge = safeCreditChargeType === 'PERCENTAGE' ? (safeAmount * safeCreditCharge / 100) : safeCreditCharge;
+            transactionCharge = Math.max(safeCreditChargeMinimum, Math.min(transactionCharge, safeCreditChargeMaximum));
         } else if (amounttype === "DEBIT") {
-            transactionCharge = debitChargeType === 'PERCENTAGE' ? (amount * debitCharge / 100) : debitCharge;
-            transactionCharge = Math.max(debitChargeMinimum, Math.min(transactionCharge, debitChargeMaximum));
+            transactionCharge = safeDebitChargeType === 'PERCENTAGE' ? (safeAmount * safeDebitCharge / 100) : safeDebitCharge;
+            transactionCharge = Math.max(safeDebitChargeMinimum, Math.min(transactionCharge, safeDebitChargeMaximum));
         }
 
         // Adjust amount based on transaction charge
-        const adjustedAmount = amount - transactionCharge;
+        const adjustedAmount = safeAmount - transactionCharge;
 
         // Construct account number
         const accountNumber = `${personalAccountPrefix}${phone}`;
