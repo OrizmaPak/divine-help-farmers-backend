@@ -185,9 +185,9 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
             console.log(`Calculating charge: amount=${amount}, charge=${charge}, chargeType=${chargeType}, minCharge=${minCharge}, maxCharge=${maxCharge}`);
             let calculatedCharge = chargeType === 'PERCENTAGE' ? (amount * charge / 100) : charge;
             console.log(`Calculated charge before limits: ${calculatedCharge}`);
-            if (calculatedCharge < minCharge) {
+            if (minCharge > 0 && calculatedCharge < minCharge) {
                 calculatedCharge = minCharge;
-            } else if (calculatedCharge > maxCharge) {
+            } else if (maxCharge > 0 && calculatedCharge > maxCharge) {
                 calculatedCharge = maxCharge;
             }
             console.log(`Calculated charge after applying limits: ${calculatedCharge}`);
