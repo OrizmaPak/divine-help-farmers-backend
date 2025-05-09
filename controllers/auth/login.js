@@ -104,7 +104,7 @@ async function login(req, res) {
                         const paystackResponse = JSON.parse(data);
                         let dedicatedAccountInfo = {};
 
-                        if (paystackResponse.status === false) {
+                        if (paystackResponse.status === true) {
                             // User not found on Paystack, create the user
                             const paystackCreateOptions = {
                                 hostname: 'api.paystack.co',
