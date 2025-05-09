@@ -298,7 +298,8 @@ const calculateChargedebit = (product, amount) => {
 
 
 const applyMinimumCreditAmountPenalty = async (client, req, res, orgSettings) => {
-    if (req.body.credit < orgSettings.minimum_credit_amount && req.body.ttype !== 'CREDIT' && req.body.ttype !== 'DEBIT') {
+    console.log('the minimum credit amount', orgSettings.minimum_credit_amount)
+    if (req.body.credit < orgSettings.minimum_credit_amount && req.body.ttype == 'CREDIT') {
         const penaltyAmount = orgSettings.minimum_credit_amount_penalty;
         const defaultIncomeAccountNumber = orgSettings.default_income_account;
         const incomeAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
