@@ -3,6 +3,7 @@ const { activityMiddleware } = require('../middleware/activity');
 const { sendSmsDnd } = require('./sendSms');
 const { maskValue } = require('./sanitizer');
 const { format } = require('path');
+const pg = require('../db/pg');
 
 
 // if (savingsProduct.withdrawalcharges > 0) {
