@@ -1,5 +1,6 @@
 const pg = require("../../db/pg");
-const { maskValue } = require("../../utils/sanitizer");
+const { maskValue, formatNumber } = require("../../utils/sanitizer");
+const { formatPhoneNumber } = require("../../utils/sendSms");
 const { generateNewReference, calculateBalance } = require("../../utils/transactionHelper");
 const { activityMiddleware } = require("../activity");
 const saveTransactionMiddleware = require("./transaction");
@@ -362,7 +363,7 @@ Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
 
-sendSmsDnd(phone, smsmessage);
+sendSmsDnd(formatPhoneNumber(phone), smsmessage);
                 // Logic to send notification
             } catch (error) {
                 console.error('Error in scheduled job:', error);
