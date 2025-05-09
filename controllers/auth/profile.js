@@ -85,6 +85,7 @@ async function profile(req, res) {
 
                 paystackRes.on('end', () => {
                     const paystackResponse = JSON.parse(data);
+                    console.log('paystackResponse', paystackResponse)
                     if (paystackResponse.status) {
                         user.account_name = paystackResponse.data.dedicated_account.account_name;
                         user.account_number = paystackResponse.data.dedicated_account.account_number;
