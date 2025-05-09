@@ -1,4 +1,5 @@
 const pg = require("../../db/pg");
+const { maskValue } = require("../../utils/sanitizer");
 const { generateNewReference } = require("../../utils/transactionHelper");
 const { activityMiddleware } = require("../activity");
 const saveTransactionMiddleware = require("./transaction");
@@ -190,21 +191,32 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         const safeDebitChargeMinimum = debitChargeMinimum || 0;
         const safeDebitChargeMaximum = debitChargeMaximum || 0;
 
+        console.log('Calculating transaction charge...');
+        console.log('Amount Type:', amounttype);
+        console.log('Safe Amount:', safeAmount);
+
         if (amounttype === "CREDIT") {
+            console.log('Credit Charge Type:', safeCreditChargeType);
+            console.log('Credit Charge:', safeCreditCharge);
             transactionCharge = safeCreditChargeType === 'PERCENTAGE' ? (safeAmount * safeCreditCharge / 100) : safeCreditCharge;
+            console.log('Initial Transaction Charge (CREDIT):', transactionCharge);
             transactionCharge = Math.max(safeCreditChargeMinimum, Math.min(transactionCharge, safeCreditChargeMaximum));
+            console.log('Final Transaction Charge (CREDIT):', transactionCharge);
         } else if (amounttype === "DEBIT") {
+            console.log('Debit Charge Type:', safeDebitChargeType);
+            console.log('Debit Charge:', safeDebitCharge);
             transactionCharge = safeDebitChargeType === 'PERCENTAGE' ? (safeAmount * safeDebitCharge / 100) : safeDebitCharge;
+            console.log('Initial Transaction Charge (DEBIT):', transactionCharge);
             transactionCharge = Math.max(safeDebitChargeMinimum, Math.min(transactionCharge, safeDebitChargeMaximum));
+            console.log('Final Transaction Charge (DEBIT):', transactionCharge);
         }
 
         // Adjust amount based on transaction charge
         const adjustedAmount = safeAmount - transactionCharge;
+        console.log('Adjusted Amount:', adjustedAmount);
 
         // Construct account number
         const accountNumber = `${personalAccountPrefix}${phone}`;
-
-
 
         // Generate references for transactions
         const debitReference = await generateNewReference(pg, accountNumber, {body:{whichaccount:''}});
@@ -340,14 +352,15 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         ];
         await pg.query(saveTransactionQuery);
 
-        schedule.scheduleJob("0 0 * * *", async () => {
+        // The schedule is set to run once after 5 seconds.
+        setTimeout(async () => {
             try {
                 console.log('Sending notification of the charges...');
                 // Logic to send notification
             } catch (error) {
                 console.error('Error in scheduled job:', error);
             }
-        });
+        }, 5000);
 
         return { status: true, message: 'Interbank income transaction completed successfully.' };
     } catch (error) {
