@@ -1,7 +1,7 @@
 const { StatusCodes } = require('http-status-codes');
 const { activityMiddleware } = require('../middleware/activity');
 const { sendSmsDnd } = require('./sendSms');
-const { maskValue } = require('./sanitizer');
+const { maskValue, formatNumber } = require('./sanitizer');
 const { format } = require('path');
 const pg = require('../db/pg');
 

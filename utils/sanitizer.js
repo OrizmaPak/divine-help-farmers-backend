@@ -46,9 +46,22 @@ function maskValue(value) {
 }
  
 
+function formatNumber(number, zero = "1", dec=2) {
+    // If the number is 0 and zero is 0, return an empty string
+    if (number == 0 && zero == 0) return '';
+    if (!number) return number;
+    
+    // Ensure the number is rounded to two decimal places
+    let formattedNumber = parseFloat(number).toFixed(dec);
+  
+    // Use regex to add commas to the number
+    return formattedNumber.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
 module.exports = {
     sanitizeRequest,
     sanitizeValue,
-    maskValue
+    maskValue,
+    formatNumber
 };
 
