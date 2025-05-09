@@ -33,6 +33,10 @@ const organizationsettings = async (req, res) => {
       credit_charge_type = null,
       debit_charge = null,
       debit_charge_type = null,
+      credit_charge_minimum = null,
+      credit_charge_maximum = null,
+      debit_charge_minimum = null,
+      debit_charge_maximum = null,
 
       // Transaction prefixes
       personal_transaction_prefix = null,
@@ -257,6 +261,10 @@ const organizationsettings = async (req, res) => {
       credit_charge_type,
       debit_charge: parseNumber(debit_charge),
       debit_charge_type,
+      credit_charge_minimum: parseFloat(credit_charge_minimum),
+      credit_charge_maximum: parseFloat(credit_charge_maximum),
+      debit_charge_minimum: parseFloat(debit_charge_minimum),
+      debit_charge_maximum: parseFloat(debit_charge_maximum),
       status,
 
       // Transaction prefixes

@@ -237,8 +237,12 @@ model Organisationsettings {
 
   credit_charge                              Float?    @default(0)
   credit_charge_type                         String?   @default("AMOUNT")
+  credit_charge_minimum                     Float?    @default(0)
+  credit_charge_maximum                     Float?    @default(0)
   debit_charge                               Float?    @default(0)
   debit_charge_type                          String?   @default("AMOUNT")
+  debit_charge_minimum                       Float?    @default(0)
+  debit_charge_maximum                       Float?    @default(0)
 
   personal_transaction_prefix                String?
   loan_transaction_prefix                    String?

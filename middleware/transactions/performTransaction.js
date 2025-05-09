@@ -158,7 +158,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
 
         // Fetch organisation settings
         const orgSettingsQuery = {
-            text: `SELECT personal_account_prefix, default_income_account, credit_charge, credit_charge_type, debit_charge, debit_charge_type FROM divine."Organisationsettings" LIMIT 1`,
+            text: `SELECT personal_account_prefix, default_income_account, credit_charge, credit_charge_type, debit_charge, debit_charge_type, credit_charge_minimum, credit_charge_maximum, debit_charge_minimum, debit_charge_maximum FROM divine."Organisationsettings" LIMIT 1`,
             values: []
         };
         const { rows: orgRows } = await pg.query(orgSettingsQuery);
@@ -171,13 +171,19 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
         const creditChargeType = orgRows[0].credit_charge_type;
         const debitCharge = orgRows[0].debit_charge;
         const debitChargeType = orgRows[0].debit_charge_type;
+        const creditChargeMinimum = orgRows[0].credit_charge_minimum;
+        const creditChargeMaximum = orgRows[0].credit_charge_maximum;
+        const debitChargeMinimum = orgRows[0].debit_charge_minimum;
+        const debitChargeMaximum = orgRows[0].debit_charge_maximum;
 
         // Calculate transaction charge based on amount type
         let transactionCharge = 0;
         if (amounttype === "CREDIT") {
             transactionCharge = creditChargeType === 'PERCENTAGE' ? (amount * creditCharge / 100) : creditCharge;
+            transactionCharge = Math.max(creditChargeMinimum, Math.min(transactionCharge, creditChargeMaximum));
         } else if (amounttype === "DEBIT") {
             transactionCharge = debitChargeType === 'PERCENTAGE' ? (amount * debitCharge / 100) : debitCharge;
+            transactionCharge = Math.max(debitChargeMinimum, Math.min(transactionCharge, debitChargeMaximum));
         }
 
         // Adjust amount based on transaction charge
@@ -197,7 +203,7 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
 
         const debitTransaction = {
             accountnumber: accountNumber,
-            userid: userid || 0,
+            userid: userid || 0, 
             description: transactionData.description + ' Debit',
             debit: adjustedAmount,
             credit: 0,
@@ -276,7 +282,6 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
             creditTransaction.currency
         ];
         await pg.query(saveTransactionQuery);
-
 
         schedule.scheduleJob("0 0 * * *", async () => {
             try {
