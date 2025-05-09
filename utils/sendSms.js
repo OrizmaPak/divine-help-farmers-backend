@@ -2,7 +2,7 @@ const request = require('request');
 
 const sendSmsBulk = (number, message) => {
     return new Promise((resolve, reject) => {
-        if (!number || !message || !channel) {
+        if (!number || !message) {
             console.error("Number, message are required");
             return resolve(false);
         }
@@ -38,7 +38,7 @@ const sendSmsBulk = (number, message) => {
 
 const sendSms = (number, message) => {
     return new Promise((resolve, reject) => {
-        if (!number || !message || !channel) {
+        if (!number || !message) {
             console.error("Number, message are required");
             return resolve(false);
         }
@@ -74,7 +74,7 @@ const sendSms = (number, message) => {
 
 const sendSmsDnd = (number, message) => {
     return new Promise((resolve, reject) => {
-        if (!number || !message || !channel) {
+        if (!number || !message) {
             console.error("Number, message are required");
             return resolve(false);
         }
