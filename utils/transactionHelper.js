@@ -279,7 +279,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
 Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
-Desc: SAVG ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Desc: SAVG ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
@@ -289,7 +289,7 @@ Powered by DIVINE HELP FARMERS`
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
 Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
-Desc: LOAN ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Desc: LOAN ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
@@ -298,7 +298,7 @@ Powered by DIVINE HELP FARMERS`
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
 Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
-Desc: PROT ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Desc: PROT ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
@@ -307,7 +307,7 @@ Powered by DIVINE HELP FARMERS`
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
 Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
-Desc: ROTY ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Desc: ROTY ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
@@ -316,7 +316,7 @@ Powered by DIVINE HELP FARMERS`
             let thebalance = await calculateBalance(accountnumber)
             smsmessage = `Acct: ${maskValue(accountnumber)}
 Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
-Desc: PERL ${description.length > 21 ? description.slice(0, 21) + '...' : description}
+Desc: PERL ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
 Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
