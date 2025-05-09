@@ -181,21 +181,31 @@ async function interbankIncome(userid, phone, amount, amounttype = "CREDIT", bal
 
         // Calculate transaction charge based on amount type
         const calculateCharge = (amount, charge, chargeType, minCharge, maxCharge) => {
+            console.log(`Calculating charge: amount=${amount}, charge=${charge}, chargeType=${chargeType}, minCharge=${minCharge}, maxCharge=${maxCharge}`);
             let calculatedCharge = chargeType === 'PERCENTAGE' ? (amount * charge / 100) : charge;
-            return Math.max(minCharge, Math.min(calculatedCharge, maxCharge));
+            console.log(`Calculated charge before limits: ${calculatedCharge}`);
+            calculatedCharge = Math.max(minCharge, Math.min(calculatedCharge, maxCharge));
+            console.log(`Calculated charge after applying limits: ${calculatedCharge}`);
+            return calculatedCharge;
         };
 
         const safeAmount = amount || 0;
+        console.log(`Safe amount: ${safeAmount}`);
         let transactionCharge = 0;
 
         if (amounttype === "CREDIT") {
+            console.log('Amount type is CREDIT');
             transactionCharge = calculateCharge(safeAmount, creditCharge || 0, creditChargeType || 'AMOUNT', creditChargeMinimum || 0, creditChargeMaximum || 0);
         } else if (amounttype === "DEBIT") {
+            console.log('Amount type is DEBIT');
             transactionCharge = calculateCharge(safeAmount, debitCharge || 0, debitChargeType || 'AMOUNT', debitChargeMinimum || 0, debitChargeMaximum || 0);
         }
 
+        console.log(`Transaction charge: ${transactionCharge}`);
+
         // Adjust amount based on transaction charge
         const adjustedAmount = safeAmount - transactionCharge;
+        console.log(`Adjusted amount after transaction charge: ${adjustedAmount}`);
 
         // Construct account number
         const accountNumber = `${personalAccountPrefix}${phone}`;
