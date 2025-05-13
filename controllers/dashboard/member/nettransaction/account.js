@@ -6,7 +6,7 @@ const getAccountYearlyTransactions = async (req, res) => {
     
     if (req.query.userid) {
         const userQuery = {
-            text: `SELECT * FROM divine."User" WHERE id = $1`,
+            text: `SELECT * FROM divine."User" WHERE id = $1 AND status = 'ACTIVE'`,
             values: [req.query.userid]
         };
         const { rows: [userData] } = await pg.query(userQuery);
@@ -17,7 +17,7 @@ const getAccountYearlyTransactions = async (req, res) => {
                 message: "User not found",
                 statuscode: StatusCodes.NOT_FOUND,
                 data: null,
-                errors: ["User with the provided ID does not exist"]
+                errors: ["User with the provided ID does not exist or is not active"]
             });
         }
 
@@ -43,7 +43,7 @@ const getAccountYearlyTransactions = async (req, res) => {
             text: `
                 SELECT SUM(credit) - SUM(debit) as balance_brought_forward
                 FROM divine."transaction"
-                WHERE accountnumber = $1 AND EXTRACT(YEAR FROM transactiondate) < $2
+                WHERE accountnumber = $1 AND EXTRACT(YEAR FROM transactiondate) < $2 AND status = 'ACTIVE'
             `,
             values: [accountnumber, year]
         };
@@ -57,7 +57,7 @@ const getAccountYearlyTransactions = async (req, res) => {
                     SUM(credit) as total_credit,
                     SUM(debit) as total_debit
                 FROM divine."transaction"
-                WHERE accountnumber = $1 AND EXTRACT(YEAR FROM transactiondate) = $2
+                WHERE accountnumber = $1 AND EXTRACT(YEAR FROM transactiondate) = $2 AND status = 'ACTIVE'
                 GROUP BY month
                 ORDER BY month
             `,
@@ -71,7 +71,7 @@ const getAccountYearlyTransactions = async (req, res) => {
                 SELECT sp.productname
                 FROM divine."savings" s
                 JOIN divine."savingsproduct" sp ON s.savingsproductid = sp.id
-                WHERE s.accountnumber = $1
+                WHERE s.accountnumber = $1 AND s.status = 'ACTIVE'
             `,
             values: [accountnumber]
         };

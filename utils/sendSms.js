@@ -1,7 +1,9 @@
 const request = require('request');
+const pg = require('../db/pg');
+
 
 const sendSmsBulk = (number, message) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         if (!number || !message) {
             console.error("Number, message are required");
             return resolve(false);
@@ -18,26 +20,34 @@ const sendSmsBulk = (number, message) => {
 
         const options = {
             'method': 'POST',
-            'url': 'https://v3.api.termii.com/api/sms/send',
+            'url': 'https://v3.api.termii.com/api/sms/send/bulk',
             'headers': {
                 'Content-Type': ['application/json', 'application/json']
             },
             body: JSON.stringify(data)
         };
 
-        request(options, function (error, response) {
+        request(options, async function (error, response) {
             if (error) {
                 console.error(error);
                 return resolve(false);
             }
             console.log(response.body);
+
+            // Store SMS data in the database
+            const smsData = {
+                text: `INSERT INTO divine."smscharges" (phone, status, createdby) VALUES ($1, $2, $3)`,
+                values: [number, "SENT", 0]
+            };
+            await pg.query(smsData);
+
             return resolve(true);
         });
     });
 };
 
 const sendSms = (number, message) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         if (!number || !message) {
             console.error("Number, message are required");
             return resolve(false);
@@ -61,19 +71,27 @@ const sendSms = (number, message) => {
             body: JSON.stringify(data)
         };
 
-        request(options, function (error, response) {
+        request(options, async function (error, response) {
             if (error) {
                 console.error(error);
                 return resolve(false);
             }
             console.log(response.body);
+
+            // Store SMS data in the database
+            const smsData = {
+                text: `INSERT INTO divine."smscharges" (phone, status, createdby) VALUES ($1, $2, $3)`,
+                values: [number, "SENT", 0]
+            };
+            await pg.query(smsData);
+
             return resolve(true);
         });
     });
 };
 
 const sendSmsDnd = (number, message) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         if (!number || !message) {
             console.error("Number, message are required");
             return resolve(false);
@@ -97,12 +115,20 @@ const sendSmsDnd = (number, message) => {
             body: JSON.stringify(data)
         };
 
-        request(options, function (error, response) {
+        request(options, async function (error, response) {
             if (error) {
                 console.error(error);
                 return resolve(false);
             }
             console.log(response.body);
+
+            // Store SMS data in the database
+            const smsData = {
+                text: `INSERT INTO divine."smscharges" (phone, status, createdby) VALUES ($1, $2, $3)`,
+                values: [number, "SENT", 0]
+            };
+            await pg.query(smsData);
+
             return resolve(true);
         });
     });

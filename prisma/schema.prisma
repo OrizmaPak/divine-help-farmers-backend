@@ -1209,9 +1209,17 @@ model paystackreferences {
 model smscharges {
   id              Int    @id @default(autoincrement())
   phone           String
-  userid          Int @default(0)
-  amount          Float
   dateadded       DateTime @default(now())
   status          String @default("ACTIVE") 
   createdby       Int    @default(0)  
+}
+
+model messagehistory {
+  id              Int    @id @default(autoincrement())
+  message         String
+  channel         String
+  ids             String
+  dateadded       DateTime @default(now())
+  status          String @default("ACTIVE") 
+  createdby       Int    @default(0) 
 }

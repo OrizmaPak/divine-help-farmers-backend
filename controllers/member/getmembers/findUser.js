@@ -36,6 +36,21 @@
                     valueIndex++;
                 }
             });
+
+            // Add date range filter for dateadded if provided
+            if (req.query.startdate) {
+                whereClause += whereClause ? ` AND ` : ` WHERE `;
+                whereClause += `"dateadded" >= $${valueIndex}`;
+                query.values.push(req.query.startdate);
+                valueIndex++;
+            }
+
+            if (req.query.enddate) {
+                whereClause += whereClause ? ` AND ` : ` WHERE `;
+                whereClause += `"dateadded" <= $${valueIndex}`;
+                query.values.push(req.query.enddate);
+                valueIndex++;
+            }
     
             // Add search query if provided
             if (req.query.q) {
@@ -116,3 +131,4 @@
     };
     
     module.exports = { findUsers };
+ 
