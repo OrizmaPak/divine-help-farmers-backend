@@ -609,10 +609,34 @@ const handleCreditRedirectToPersonnalAccount = async (client, req, res, accountu
     const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req);
     if (!req.body.transactionref) req.body.transactionref = '';
     if (!req.body.cashref) req.body.cashref = '';
-    await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15, $16)`,
-        [req.body.personalaccountnumber, credit ? credit : req.body.credit, 0, newPersonalReference, req.body.description, req.body.ttype, status, `hcrCredit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '', req.body.branch]
-    );
+
+    const transactionParams = {
+        accountnumber: req.body.personalaccountnumber,
+        credit: credit ? credit : req.body.credit,
+        debit: 0,
+        reference: newPersonalReference,
+        description: req.body.description,
+        ttype: req.body.ttype,
+        status: status,
+        transactiondesc: `hcrCredit was to ${req.body.accountnumber}`,
+        whichaccount: req.body.whichaccount,
+        createdby: createdBy,
+        currency: req.body.currency,
+        userid: userid,
+        tfrom: req.body.tfrom,
+        transactionref: req.body.transactionref ?? '',
+        cashref: req.body.cashref ?? '',
+        branch: req.body.branch
+    };
+
+    if (status === 'ACTIVE') {
+        await saveTransaction(client, res, transactionParams, req);
+    } else {
+        await client.query(
+            `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15, $16)`,
+            [transactionParams.accountnumber, transactionParams.credit, transactionParams.debit, transactionParams.reference, transactionParams.description, transactionParams.ttype, transactionParams.status, transactionParams.transactiondesc, transactionParams.whichaccount, transactionParams.createdby, transactionParams.currency, transactionParams.userid, transactionParams.tfrom, transactionParams.transactionref, transactionParams.cashref, transactionParams.branch]
+        );
+    }
     
 };    
 
@@ -675,10 +699,34 @@ const handleRedirection = async (client, req, res, accountuser, reference, trans
     const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req);
     if (!req.body.transactionref) req.body.transactionref = '';
     if (!req.body.cashref) req.body.cashref = '';
-    await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15, $16)`,
-        [req.body.personalaccountnumber, credit ? credit : req.body.credit, debit ? debit : req.body.debit, newPersonalReference, `Transaction redirected from ${req.body.accountnumber}`, req.body.ttype, status, transactiondesc, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '', req.body.branch]
-    );
+
+    const transactionParams = {
+        accountnumber: req.body.personalaccountnumber,
+        credit: credit ? credit : req.body.credit,
+        debit: debit ? debit : req.body.debit,
+        reference: newPersonalReference,
+        description: `Transaction redirected from ${req.body.accountnumber}`,
+        ttype: req.body.ttype,
+        status: status,
+        transactiondesc: transactiondesc,
+        whichaccount: req.body.whichaccount,
+        createdby: createdBy,
+        currency: req.body.currency,
+        userid: userid,
+        tfrom: req.body.tfrom,
+        transactionref: req.body.transactionref ?? '',
+        cashref: req.body.cashref ?? '',
+        branch: req.body.branch
+    };
+
+    if (status === 'ACTIVE') {
+        await saveTransaction(client, res, transactionParams, req);
+    } else {
+        await client.query(
+            `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15, $16)`,
+            [transactionParams.accountnumber, transactionParams.credit, transactionParams.debit, transactionParams.reference, transactionParams.description, transactionParams.ttype, transactionParams.status, transactionParams.transactiondesc, transactionParams.whichaccount, transactionParams.createdby, transactionParams.currency, transactionParams.userid, transactionParams.tfrom, transactionParams.transactionref, transactionParams.cashref, transactionParams.branch]
+        );
+    }
 };
 
 // Example function to handle excess account logic for debit
@@ -764,11 +812,34 @@ const handleDebitRedirectToPersonnalAccount = async (client, req, res, accountus
     const newPersonalReference = await generateNewReference(client, req.body.personalaccountnumber, req);
     if (!req.body.transactionref) req.body.transactionref = '';
     if (!req.body.cashref) req.body.cashref = '';
-    await client.query(
-        `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15, $16)`,
-        [req.body.personalaccountnumber, 0, debit ? debit : req.body.debit, newPersonalReference, req.body.description, req.body.ttype, status, `Debit was to ${req.body.accountnumber}`, req.body.whichaccount, createdBy, req.body.currency, userid, req.body.tfrom, req.body.transactionref ?? '', req.body.cashref ?? '', req.body.branch]
-    );
-    
+
+    const transactionParams = {
+        accountnumber: req.body.personalaccountnumber,
+        credit: 0,
+        debit: debit ? debit : req.body.debit,
+        reference: newPersonalReference,
+        description: req.body.description,
+        ttype: req.body.ttype,
+        status: status,
+        transactiondesc: `Debit was to ${req.body.accountnumber}`,
+        whichaccount: req.body.whichaccount,
+        createdby: createdBy,
+        currency: req.body.currency,
+        userid: userid,
+        tfrom: req.body.tfrom,
+        transactionref: req.body.transactionref ?? '',
+        cashref: req.body.cashref ?? '',
+        branch: req.body.branch
+    };
+
+    if (status === 'ACTIVE') {
+        await saveTransaction(client, res, transactionParams, req);
+    } else {
+        await client.query(
+            `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondesc, whichaccount, dateadded, createdby, currency, userid, transactiondate, valuedate, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10, $11, $12, now(), now(), $13, $14, $15, $16)`,
+            [transactionParams.accountnumber, transactionParams.credit, transactionParams.debit, transactionParams.reference, transactionParams.description, transactionParams.ttype, transactionParams.status, transactionParams.transactiondesc, transactionParams.whichaccount, transactionParams.createdby, transactionParams.currency, transactionParams.userid, transactionParams.tfrom, transactionParams.transactionref, transactionParams.cashref, transactionParams.branch]
+        );
+    }
 };
 
 function calculateWithdrawalLimit(savingsProduct, currentBalance) {

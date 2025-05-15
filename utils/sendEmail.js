@@ -32,6 +32,48 @@ async function sendEmail(details) {
     }
 }
 
+async function sendBulkEmails(emailDetailsArray) {
+    const transport = Nodemailer.createTransport({
+        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: {
+            user: process.env.GMAIL_USER, // Your Gmail address
+            pass: process.env.GMAIL_PASS  // Your Gmail password or App Password
+        }
+    });
+
+    try {
+        if (emailDetailsArray.length === 0) {
+            console.log("No emails to send");
+            return false;
+        }
+
+        const primaryRecipient = emailDetailsArray[0].to;
+        const bccRecipients = emailDetailsArray.slice(1).map(details => details.to);
+
+        const { subject, text, html } = emailDetailsArray[0];
+        const msg = {
+            to: primaryRecipient, // Primary recipient
+            from: process.env.GMAIL_USER, // Your verified Gmail address
+            bcc: bccRecipients, // BCC the rest
+            subject,
+            text,
+            html
+        };
+
+        await transport.sendMail(msg);
+        console.log(`Email sent to ${primaryRecipient} and BCC'd to others`);
+        return true;
+    } catch (error) {
+        console.error('Error sending bulk emails:', error);
+        return false;
+    }
+}
+
+
+
 
 // async function sendEmail(details) {
 //     // sgMail.setApiKey(process.env.SENDGRID_KEY);
@@ -74,5 +116,5 @@ async function sendEmail(details) {
 //     }
 // }
 
-module.exports = {sendEmail};
+module.exports = {sendEmail, sendBulkEmails};
 

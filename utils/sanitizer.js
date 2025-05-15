@@ -58,10 +58,51 @@ function formatNumber(number, zero = "1", dec=2) {
     return formattedNumber.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 
+  function internationalizePhoneNumber(phoneNumber, country){
+    // Convert the country name to lowercase for comparison
+    const countryLower = country.toLowerCase();
+
+    // Map of country names to their respective country codes
+    const countryCodeMap = {
+        'nigeria': '+234',
+        'south africa': '+27',
+        'kenya': '+254',
+        'ghana': '+233',
+        'egypt': '+20',
+        'morocco': '+212',
+        'algeria': '+213',
+        'uganda': '+256',
+        'sudan': '+249',
+        'angola': '+244',
+        'ethiopia': '+251',
+        'tanzania': '+255',
+        'united states': '+1',
+        'china': '+86',
+        'india': '+91',
+        'brazil': '+55',
+        'russia': '+7',
+        'japan': '+81',
+        'germany': '+49',
+        'united kingdom': '+44',
+        'france': '+33',
+        'italy': '+39',
+        'canada': '+1'
+    };
+
+    const countryCode = countryCodeMap[countryLower];
+    if (!countryCode) {
+        throw new Error(`Unsupported country: ${country}`);
+    }
+
+    // Remove the leading '0' and prepend the country code
+    return phoneNumber.replace(/^0/, countryCode);
+};
+
 module.exports = {
     sanitizeRequest,
     sanitizeValue,
     maskValue,
-    formatNumber
+    formatNumber,
+    internationalizePhoneNumber
 };
 
