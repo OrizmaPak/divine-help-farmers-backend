@@ -331,13 +331,16 @@ const signup = async (req, res) => {
             errors: accountaction ? [] : ['Membership and account creation failed']
         };
 
-        // INSERT_YOUR_CODE
+        // INSERT_YOUR_REWRITE_HERE
         // Fetch all savings products where addmember is 'YES'
+        console.log('Fetching savings products with addmember set to YES');
         const savingsProductsQuery = `SELECT id, membership FROM divine."savingsproduct" WHERE addmember = 'YES'`;
         const { rows: savingsProducts } = await pg.query(savingsProductsQuery);
+        console.log('Fetched savings products:', savingsProducts);
 
         // Create accounts for each eligible savings product
         for (const product of savingsProducts) {
+            console.log('Processing savings product:', product);
             const savingsproductid = product.id;
             const membershipValue = product.membership;
 
@@ -345,10 +348,12 @@ const signup = async (req, res) => {
             const membershipIds = membershipValue.includes('|') 
                 ? membershipValue.split('|').filter(id => id.trim() !== '') 
                 : [membershipValue.trim()];
+            console.log('Parsed membership IDs:', membershipIds);
 
             // Create accounts for each membership ID
             for (const membershipId of membershipIds) {
                 if (membershipId) {
+                    console.log('Creating account for membership ID:', membershipId);
                     const reqBody = {
                         savingsproductid,
                         userid: userId,
@@ -361,14 +366,17 @@ const signup = async (req, res) => {
                         registrationdate: new Date(),
                         status: 'ACTIVE'
                     };
+                    console.log('Request body for account creation:', reqBody);
 
                     // Create a new request object for each account creation
                     const newReq = { ...req, body: reqBody };
+                    console.log('New request object for account creation:', newReq);
 
                     // Call the manageSavingsAccount function to create the account
                     let responses = await manageSavingsAccount(newReq, res, true);
+                    console.log('Response from manageSavingsAccount:', responses);
                     if (!responses.status) {
-                        console.log('something went wrong in the making of account', responses);
+                        console.log('Something went wrong in the making of account', responses);
                     }
                 }
             }

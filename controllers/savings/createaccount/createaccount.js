@@ -1,3 +1,4 @@
+ // Start of Selection
 const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
@@ -27,27 +28,13 @@ const manageSavingsAccount = async (req, res, state=false) => {
         if (bankaccountname2 !== undefined && bankaccountname2 !== '' && typeof bankaccountname2 !== 'string') typeErrors.push('bankaccountname2 must be a string.');
         if (bankaccountnumber2 !== undefined && bankaccountnumber2 !== '' && isNaN(parseInt(bankaccountnumber2))) typeErrors.push('bankaccountnumber2 must be a number.');
         if (accountofficer !== 0 && accountofficer !== undefined && accountofficer !== '' && typeof accountofficer !== 'string') typeErrors.push('accountofficer must be a string.');
-        // if (sms !== undefined && sms !== '') {
-        //     if (sms.toLowerCase() !== 'true' && sms.toLowerCase() !== 'false') {
-        //         typeErrors.push('sms must be a boolean.');
-        //     }
-        // }
-        // if (whatsapp !== undefined && whatsapp !== '') {
-        //     if (whatsapp.toLowerCase() !== 'true' && whatsapp.toLowerCase() !== 'false') {
-        //         typeErrors.push('whatsapp must be a boolean.');
-        //     }
-        // }
-        // if (email !== undefined && email !== '') {
-        //     if (email.toLowerCase() !== 'true' && email.toLowerCase() !== 'false') {
-        //         typeErrors.push('email must be a boolean.');
-        //     }
-        // }
         if (registrationdate !== undefined && registrationdate !== '' && isNaN(Date.parse(registrationdate))) typeErrors.push('registrationdate must be a valid date.');
 
         if (accountnumber !== undefined && accountnumber !== '' && isNaN(parseInt(accountnumber))) typeErrors.push('accountnumber must be a number.');
 
         // If any type errors are found, return an error response
         if (typeErrors.length > 0) {
+            console.log("Type Errors:", typeErrors);
             if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -70,10 +57,10 @@ const manageSavingsAccount = async (req, res, state=false) => {
             if (!branch) missingFields.push('branch');
             if (!member) missingFields.push('member');
             if (!registrationcharge) missingFields.push('registrationcharge');
-            // if (!createdby) missingFields.push('createdby');
             }
 
         if (missingFields.length > 0) {
+            console.log("Missing Fields:", missingFields);
             if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -89,6 +76,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
         const productResult = await pg.query(productQuery, [savingsproductid]);
 
         if (productResult.rowCount === 0 && !accountnumber) {
+            console.log("Savings product does not exist.");
             await activityMiddleware(req, createdby, 'Attempt to create a savings account with a non-existent product', 'ACCOUNT');
             if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
@@ -106,6 +94,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
             const officerResult = await pg.query(officerQuery, [accountofficer]);
 
             if (officerResult.rowCount === 0) {
+                console.log("Account officer does not exist.");
                 await activityMiddleware(req, createdby, 'Attempt to assign a non-existent user as account officer', 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -131,6 +120,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
         const userAccountLimit = productResult.rows[0].useraccount;
 
         if (accountCount >= userAccountLimit) {
+            console.log("User has reached the limit of accounts for this savings product.");
             await activityMiddleware(req, createdby, 'Attempt to create a savings account that exceeds the allowed limit', 'ACCOUNT');
             if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
@@ -158,6 +148,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
         const { rows: accountRows } = await pg.query(accountNumberQuery);
 
         if (accountRows.length === 0) {
+            console.log("User does not have an account in the specified savings product.");
             errors.push({
                 field: 'eligibilityproduct',
                 message: 'User does not have an account in the specified savings product'
@@ -190,6 +181,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
                 const accountAgeInMonths = Math.floor(accountAgeInDays / 30);
                 if (accountAgeInMonths < productResult.eligibilityaccountage) {
                     const ageDifference = productResult.eligibilityaccountage - accountAgeInMonths;
+                    console.log("User account age is less than the required eligibility account age.");
                     errors.push({
                         field: 'eligibilityaccountage',
                         message: accountAgeInMonths === 0 
@@ -201,6 +193,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
 
             // Validate minimum balance
             if (productResult.eligibilityminbalance > 0 && balance < productResult.eligibilityminbalance) {
+                console.log("User account balance is less than the required minimum balance.");
                 errors.push({
                     field: 'eligibilityminbalance',
                     message: `User account balance is ${balance}, which is less than the required minimum balance of ${productResult.eligibilityminbalance}`
@@ -221,6 +214,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
                     const totalCredit = creditRows[0].totalcredit || 0;
 
                     if (productResult.eligibilitymincredit > 0 && totalCredit < productResult.eligibilitymincredit) {
+                        console.log("User account total credit is less than the required minimum credit.");
                         errors.push({
                             field: 'eligibilitymincredit',
                             message: `User account total credit is ${totalCredit}, which is less than the required minimum credit of ${productResult.eligibilitymincredit}`
@@ -242,6 +236,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
                 const totalDebit = debitRows[0].totaldebit || 0;
 
                 if (productResult.eligibilitymindebit > 0 && totalDebit < productResult.eligibilitymindebit) {
+                    console.log("User account total debit is less than the required minimum debit.");
                     errors.push({
                         field: 'eligibilitymindebit',
                         message: `User account total debit is ${totalDebit}, which is less than the required minimum debit of ${productResult.eligibilitymindebit}`
@@ -261,6 +256,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
         const { rows: loanAccountRows } = await pg.query(loanAccountQuery);
 
         if (loanAccountRows.length === 0) {
+            console.log("User does not have an account in the specified loan product.");
             errors.push({
                 field: 'eligibilityproduct',
                 message: 'User does not have an account in the specified loan product'
@@ -287,26 +283,9 @@ const manageSavingsAccount = async (req, res, state=false) => {
                 closedAccountsCount = parseInt(rows[0].closedaccountscount, 10) || 0;
             }
 
-            // // Validate loan amount based on eligibility type
-            // if (productResult.eligibilitytype === 'AMOUNT') {
-            //     if (loanamount < productResult.minimumloan || loanamount > productResult.maximumloan) {
-            //         errors.push({
-            //             field: 'loanamount',
-            //             message: 'Loan amount must be within the range of minimum and maximum loan amounts'
-            //         });
-            //     }
-            // } else if (productResult.eligibilitytype === 'PERCENTAGE') {
-            //     const calculatedMaximumLoan = (totalClosedAmount * productResult.maximumloan) / 100;
-            //     if (loanamount < productResult.minimumloan || loanamount > calculatedMaximumLoan) {
-            //         errors.push({
-            //             field: 'loanamount',
-            //             message: 'Loan amount must be within the range of minimum loan and calculated maximum loan based on closed amount'
-            //         });
-            //     }
-            // }
-
             // Validate eligibility minimum loan
             if (productResult.eligibilityminimumloan > 0 && totalClosedAmount < productResult.eligibilityminimumloan) {
+                console.log("User total closed loan amount is less than the required eligibility minimum loan amount.");
                 errors.push({
                     field: 'eligibilityminimumloan',
                     message: 'User total closed loan amount is less than the required eligibility minimum loan amount'
@@ -315,6 +294,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
 
             // Validate eligibility minimum closed accounts
             if (productResult.eligibilityminimumclosedaccounts > 0 && closedAccountsCount < productResult.eligibilityminimumclosedaccounts) {
+                console.log("User closed loan accounts count is less than the required eligibility minimum closed accounts.");
                 errors.push({
                     field: 'eligibilityminimumclosedaccounts',
                     message: 'User closed loan accounts count is less than the required eligibility minimum closed accounts'
@@ -328,6 +308,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
         const orgSettingsResult = await pg.query(orgSettingsQuery);
 
         if (orgSettingsResult.rowCount === 0) {
+            console.log("Organisation settings not found.");
             await activityMiddleware(req, createdby, 'Organisation settings not found', 'ACCOUNT');
             if (state) return false;
             return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -343,6 +324,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
         const accountNumberPrefix = orgSettings.savings_account_prefix;
 
         if (!accountNumberPrefix) {
+            console.log("Savings account prefix not set in organisation settings.");
             await activityMiddleware(req, createdby, 'Account number prefix not found in organisation settings', 'ACCOUNT');
             if (state) return false;
             return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -368,6 +350,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
             if (newAccountNumberStr.startsWith(accountNumberPrefix)) {
                 generatedAccountNumber = newAccountNumberStr.padStart(10, '0');
             } else {
+                console.log(`More accounts cannot be opened with the prefix ${accountNumberPrefix}. Please update the prefix to start a new account run.`);
                 await activityMiddleware(req, createdby, `More accounts cannot be opened with the prefix ${accountNumberPrefix}. Please update the prefix to start a new account run.`, 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -386,6 +369,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
             const accountNumberExistsResult = await pg.query(accountNumberExistsQuery, [accountnumber]);
 
             if (accountNumberExistsResult.rowCount === 0) {
+                console.log("Account number does not exist.");
                 await activityMiddleware(req, createdby, 'Attempt to update a savings account with a non-existent account number', 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -403,6 +387,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
                 const branchExistsResult = await pg.query(branchExistsQuery, [branch]);
 
                 if (branchExistsResult.rowCount === 0) {
+                    console.log("Branch does not exist.");
                     await activityMiddleware(req, createdby, 'Attempt to update a savings account with a non-existent branch', 'ACCOUNT');
                     if (state) return false;
                     return res.status(StatusCodes.BAD_REQUEST).json({
@@ -465,6 +450,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
             const userExistsResult = await pg.query(userExistsQuery, [userid]);
 
             if (userExistsResult.rowCount === 0) {
+                console.log("User does not exist.");
                 await activityMiddleware(req, createdby, 'Attempt to create a savings account for a non-existent user', 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -481,6 +467,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
             const branchExistsResult = await pg.query(branchExistsQuery, [branch]);
 
             if (branchExistsResult.rowCount === 0) {
+                console.log("Branch does not exist.");
                 await activityMiddleware(req, createdby, 'Attempt to create a savings account with a non-existent branch', 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
@@ -519,6 +506,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
         }
     } catch (error) {
         console.error(error);
+        console.log("An unexpected error occurred while creating or updating the savings account.");
         await activityMiddleware(req, createdby, 'An unexpected error occurred while creating or updating the savings account', 'ACCOUNT');
         if (state) return false;
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
