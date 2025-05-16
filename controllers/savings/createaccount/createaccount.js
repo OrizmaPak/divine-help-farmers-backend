@@ -27,12 +27,27 @@ const manageSavingsAccount = async (req, res, state=false) => {
         if (bankaccountname2 !== undefined && bankaccountname2 !== '' && typeof bankaccountname2 !== 'string') typeErrors.push('bankaccountname2 must be a string.');
         if (bankaccountnumber2 !== undefined && bankaccountnumber2 !== '' && isNaN(parseInt(bankaccountnumber2))) typeErrors.push('bankaccountnumber2 must be a number.');
         if (accountofficer !== 0 && accountofficer !== undefined && accountofficer !== '' && typeof accountofficer !== 'string') typeErrors.push('accountofficer must be a string.');
+        // if (sms !== undefined && sms !== '') {
+        //     if (sms.toLowerCase() !== 'true' && sms.toLowerCase() !== 'false') {
+        //         typeErrors.push('sms must be a boolean.');
+        //     }
+        // }
+        // if (whatsapp !== undefined && whatsapp !== '') {
+        //     if (whatsapp.toLowerCase() !== 'true' && whatsapp.toLowerCase() !== 'false') {
+        //         typeErrors.push('whatsapp must be a boolean.');
+        //     }
+        // }
+        // if (email !== undefined && email !== '') {
+        //     if (email.toLowerCase() !== 'true' && email.toLowerCase() !== 'false') {
+        //         typeErrors.push('email must be a boolean.');
+        //     }
+        // }
         if (registrationdate !== undefined && registrationdate !== '' && isNaN(Date.parse(registrationdate))) typeErrors.push('registrationdate must be a valid date.');
+
         if (accountnumber !== undefined && accountnumber !== '' && isNaN(parseInt(accountnumber))) typeErrors.push('accountnumber must be a number.');
 
-        // If any type errors are found, log them and return an error response
+        // If any type errors are found, return an error response
         if (typeErrors.length > 0) {
-            console.error("Type Errors:", typeErrors);
             if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -55,10 +70,10 @@ const manageSavingsAccount = async (req, res, state=false) => {
             if (!branch) missingFields.push('branch');
             if (!member) missingFields.push('member');
             if (!registrationcharge) missingFields.push('registrationcharge');
-        }
+            // if (!createdby) missingFields.push('createdby');
+            }
 
         if (missingFields.length > 0) {
-            console.error("Missing Fields:", missingFields);
             if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
@@ -74,16 +89,14 @@ const manageSavingsAccount = async (req, res, state=false) => {
         const productResult = await pg.query(productQuery, [savingsproductid]);
 
         if (productResult.rowCount === 0 && !accountnumber) {
-            const errorMsg = "Savings product does not exist.";
-            console.error(errorMsg);
             await activityMiddleware(req, createdby, 'Attempt to create a savings account with a non-existent product', 'ACCOUNT');
             if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
-                message: errorMsg,
+                message: "Savings product does not exist.",
                 statuscode: StatusCodes.BAD_REQUEST,
                 data: null,
-                errors: [errorMsg]
+                errors: ["Savings product does not exist."]
             });
         }
 
@@ -93,116 +106,109 @@ const manageSavingsAccount = async (req, res, state=false) => {
             const officerResult = await pg.query(officerQuery, [accountofficer]);
 
             if (officerResult.rowCount === 0) {
-                const errorMsg = "Account officer does not exist.";
-                console.error(errorMsg);
                 await activityMiddleware(req, createdby, 'Attempt to assign a non-existent user as account officer', 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: errorMsg,
+                    message: "Account officer does not exist.",
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
-                    errors: [errorMsg]
+                    errors: ["Account officer does not exist."]
                 });
             }
+        } else {
+            // Use productofficer if accountofficer is not found or invalid
+            accountofficer = 1;
         }
 
         // Check if the user already has the savings product
-        if (!accountnumber) {
-            const existingAccountQuery = `SELECT COUNT(*) FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2 AND member = $3 AND status = 'ACTIVE'`;
-            const existingAccountResult = await pg.query(existingAccountQuery, [userid, savingsproductid, member]);
-            const accountCount = parseInt(existingAccountResult.rows[0].count);
+    if (!accountnumber) {
+        const existingAccountQuery = `SELECT COUNT(*) FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2 AND member = $3 AND status = 'ACTIVE'`;
+        const existingAccountResult = await pg.query(existingAccountQuery, [userid, savingsproductid, member]);
+        const accountCount = parseInt(existingAccountResult.rows[0].count);
 
-            // Fetch the savings product details to get the useraccount limit
-            const userAccountLimit = productResult.rows[0].useraccount;
+        // Fetch the savings product details to get the useraccount limit
+        const userAccountLimit = productResult.rows[0].useraccount;
 
-            if (accountCount >= userAccountLimit) {
-                const errorMsg = "User has reached the limit of accounts for this savings product.";
-                console.error(errorMsg);
-                await activityMiddleware(req, createdby, 'Attempt to create a savings account that exceeds the allowed limit', 'ACCOUNT');
-                if (state) return false;
-                return res.status(StatusCodes.BAD_REQUEST).json({
-                    status: false,
-                    message: errorMsg,
-                    statuscode: StatusCodes.BAD_REQUEST,
-                    data: null,
-                    errors: [errorMsg]
-                });
-            }
+        if (accountCount >= userAccountLimit) {
+            await activityMiddleware(req, createdby, 'Attempt to create a savings account that exceeds the allowed limit', 'ACCOUNT');
+            if (state) return false;
+            return res.status(StatusCodes.BAD_REQUEST).json({
+                status: false,
+                message: "User has reached the limit of accounts for this savings product.",
+                statuscode: StatusCodes.BAD_REQUEST,
+                data: null,
+                errors: ["User has reached the limit of accounts for this savings product."]
+            });
         }
+    }
 
-        // Validate eligibility product category
-        if (productResult.eligibilityproductcategory === 'SAVINGS') {
-            // Fetch savings account number
-            const accountNumberQuery = {
+    // Validate eligibility product category
+    if (productResult.eligibilityproductcategory === 'SAVINGS') {
+        // Fetch savings account number
+        const accountNumberQuery = {
+            text: `
+                    SELECT accountnumber, dateadded 
+                    FROM divine."savings" 
+                    WHERE userid = $1 AND savingsproductid = $2 AND status = 'ACTIVE'
+                    ORDER BY id DESC
+            `,
+            values: [user.id, productResult.eligibilityproduct]
+        };
+        const { rows: accountRows } = await pg.query(accountNumberQuery);
+
+        if (accountRows.length === 0) {
+            errors.push({
+                field: 'eligibilityproduct',
+                message: 'User does not have an account in the specified savings product'
+            });
+        } else {
+            let oldestAccount = accountRows[0];
+                    for (const account of accountRows) {
+                        if (new Date(account.dateadded) < new Date(oldestAccount.dateadded) && account.status === 'ACTIVE') {
+                            oldestAccount = account;
+                        }
+                    }
+                    const { accountnumber, dateadded } = oldestAccount;
+
+            // Fetch account balance
+            const balanceQuery = {
                 text: `
-                        SELECT accountnumber, dateadded 
-                        FROM divine."savings" 
-                        WHERE userid = $1 AND savingsproductid = $2 AND status = 'ACTIVE'
-                        ORDER BY id DESC
+                    SELECT SUM(credit) - SUM(debit) AS balance 
+                    FROM divine."transaction" 
+                    WHERE accountnumber = $1 AND status = 'ACTIVE'
                 `,
-                values: [user.id, productResult.eligibilityproduct]
+                values: [accountnumber]
             };
-            const { rows: accountRows } = await pg.query(accountNumberQuery);
+            const { rows: balanceRows } = await pg.query(balanceQuery);
+            const balance = balanceRows[0].balance || 0;
 
-            if (accountRows.length === 0) {
-                const errorMsg = 'User does not have an account in the specified savings product';
-                console.error(errorMsg);
-                errors.push({
-                    field: 'eligibilityproduct',
-                    message: errorMsg
-                });
-            } else {
-                let oldestAccount = accountRows[0];
-                for (const account of accountRows) {
-                    if (new Date(account.dateadded) < new Date(oldestAccount.dateadded) && account.status === 'ACTIVE') {
-                        oldestAccount = account;
-                    }
-                }
-                const { accountnumber, dateadded } = oldestAccount;
-
-                // Fetch account balance
-                const balanceQuery = {
-                    text: `
-                        SELECT SUM(credit) - SUM(debit) AS balance 
-                        FROM divine."transaction" 
-                        WHERE accountnumber = $1 AND status = 'ACTIVE'
-                    `,
-                    values: [accountnumber]
-                };
-                const { rows: balanceRows } = await pg.query(balanceQuery);
-                const balance = balanceRows[0].balance || 0;
-
-                // Validate account age
-                if (productResult.eligibilityaccountage > 0) {
-                    const accountAgeInDays = Math.floor((Date.now() - new Date(dateadded).getTime()) / (1000 * 60 * 60 * 24));
-                    console.log(`Account is ${accountAgeInDays} days old.`);
-                    const accountAgeInMonths = Math.floor(accountAgeInDays / 30);
-                    if (accountAgeInMonths < productResult.eligibilityaccountage) {
-                        const ageDifference = productResult.eligibilityaccountage - accountAgeInMonths;
-                        const errorMsg = accountAgeInMonths === 0 
-                            ? `User account age is ${accountAgeInDays} days, which is less than the required eligibility account age by ${productResult.eligibilityaccountage * 30 - accountAgeInDays} days`
-                            : `User account age is ${accountAgeInMonths} months, which is less than the required eligibility account age by ${ageDifference} months`;
-                        console.error(errorMsg);
-                        errors.push({
-                            field: 'eligibilityaccountage',
-                            message: errorMsg
-                        });
-                    }
-                }
-
-                // Validate minimum balance
-                if (productResult.eligibilityminbalance > 0 && balance < productResult.eligibilityminbalance) {
-                    const errorMsg = `User account balance is ${balance}, which is less than the required minimum balance of ${productResult.eligibilityminbalance}`;
-                    console.error(errorMsg);
+            // Validate account age
+            if (productResult.eligibilityaccountage > 0) {
+                const accountAgeInDays = Math.floor((Date.now() - new Date(dateadded).getTime()) / (1000 * 60 * 60 * 24));
+                console.log(`Account is ${accountAgeInDays} days old.`);
+                const accountAgeInMonths = Math.floor(accountAgeInDays / 30);
+                if (accountAgeInMonths < productResult.eligibilityaccountage) {
+                    const ageDifference = productResult.eligibilityaccountage - accountAgeInMonths;
                     errors.push({
-                        field: 'eligibilityminbalance',
-                        message: errorMsg
+                        field: 'eligibilityaccountage',
+                        message: accountAgeInMonths === 0 
+                            ? `User account age is ${accountAgeInDays} days, which is less than the required eligibility account age by ${productResult.eligibilityaccountage * 30 - accountAgeInDays} days`
+                            : `User account age is ${accountAgeInMonths} months, which is less than the required eligibility account age by ${ageDifference} months`
                     });
                 }
+            }
 
-                if(productResult.eligibilitymincredit > 0){
-                    // Validate minimum credit
+            // Validate minimum balance
+            if (productResult.eligibilityminbalance > 0 && balance < productResult.eligibilityminbalance) {
+                errors.push({
+                    field: 'eligibilityminbalance',
+                    message: `User account balance is ${balance}, which is less than the required minimum balance of ${productResult.eligibilityminbalance}`
+                });
+            }
+
+            if(productResult.eligibilitymincredit > 0){
+                        // Validate minimum credit
                     const creditQuery = {
                         text: `
                             SELECT SUM(credit) AS totalCredit 
@@ -215,114 +221,121 @@ const manageSavingsAccount = async (req, res, state=false) => {
                     const totalCredit = creditRows[0].totalcredit || 0;
 
                     if (productResult.eligibilitymincredit > 0 && totalCredit < productResult.eligibilitymincredit) {
-                        const errorMsg = `User account total credit is ${totalCredit}, which is less than the required minimum credit of ${productResult.eligibilitymincredit}`;
-                        console.error(errorMsg);
                         errors.push({
                             field: 'eligibilitymincredit',
-                            message: errorMsg
+                            message: `User account total credit is ${totalCredit}, which is less than the required minimum credit of ${productResult.eligibilitymincredit}`
                         });
                     }
                 }
 
-                if(productResult.eligibilitymindebit > 0){
-                    // Validate minimum debit
-                    const debitQuery = {
-                        text: `
-                            SELECT SUM(debit) AS totalDebit 
-                            FROM divine."transaction" 
-                            WHERE accountnumber = $1 AND status = 'ACTIVE'
-                        `,
-                        values: [accountnumber]
-                    };
-                    const { rows: debitRows } = await pg.query(debitQuery);
-                    const totalDebit = debitRows[0].totaldebit || 0;
+            if(productResult.eligibilitymindebit > 0){
+                // Validate minimum debit
+                const debitQuery = {
+                    text: `
+                        SELECT SUM(debit) AS totalDebit 
+                        FROM divine."transaction" 
+                        WHERE accountnumber = $1 AND status = 'ACTIVE'
+                    `,
+                    values: [accountnumber]
+                };
+                const { rows: debitRows } = await pg.query(debitQuery);
+                const totalDebit = debitRows[0].totaldebit || 0;
 
-                    if (productResult.eligibilitymindebit > 0 && totalDebit < productResult.eligibilitymindebit) {
-                        const errorMsg = `User account total debit is ${totalDebit}, which is less than the required minimum debit of ${productResult.eligibilitymindebit}`;
-                        console.error(errorMsg);
-                        errors.push({
-                            field: 'eligibilitymindebit',
-                            message: errorMsg
-                        });
-                    }
+                if (productResult.eligibilitymindebit > 0 && totalDebit < productResult.eligibilitymindebit) {
+                    errors.push({
+                        field: 'eligibilitymindebit',
+                        message: `User account total debit is ${totalDebit}, which is less than the required minimum debit of ${productResult.eligibilitymindebit}`
+                    });
                 }
             }
+
         }
+    }
 
-        if (productResult.eligibilityproductcategory === 'LOAN') {
-            // Fetch loan account details
-            const loanAccountQuery = {
-                text: `SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2 AND status = 'ACTIVE' ORDER BY id DESC`,
-                values: [userid, productResult.eligibilityproduct]
-            };
-            const { rows: loanAccountRows } = await pg.query(loanAccountQuery);
+    if (productResult.eligibilityproductcategory === 'LOAN') {
+        // Fetch loan account details
+        const loanAccountQuery = {
+            text: `SELECT * FROM divine."loanaccounts" WHERE userid = $1 AND loanproduct = $2 AND status = 'ACTIVE' ORDER BY id DESC`,
+            values: [userid, productResult.eligibilityproduct]
+        };
+        const { rows: loanAccountRows } = await pg.query(loanAccountQuery);
 
-            if (loanAccountRows.length === 0) {
-                const errorMsg = 'User does not have an account in the specified loan product';
-                console.error(errorMsg);
+        if (loanAccountRows.length === 0) {
+            errors.push({
+                field: 'eligibilityproduct',
+                message: 'User does not have an account in the specified loan product'
+            });
+        } else {
+            const loanAccount = loanAccountRows[0];
+            let totalClosedAmount = 0;
+            let closedAccountsCount = 0;
+
+            // Fetch totalClosedAmount and closedAccountsCount if needed
+            if (productResult.eligibilitytype === 'PERCENTAGE' || productResult.eligibilityminimumloan > 0 || productResult.eligibilityminimumclosedaccounts > 0) {
+                const aggregateQuery = {
+                    text: `
+                        SELECT 
+                            COALESCE(SUM(closeamount), 0) AS totalClosedAmount,
+                            COUNT(*) FILTER (WHERE closeamount > 0) AS closedAccountsCount
+                        FROM divine."loanaccounts"
+                        WHERE userid = $1 AND loanproduct = $2 AND status = 'ACTIVE'
+                    `,
+                    values: [user.id, productResult.eligibilityproduct]
+                };
+                const { rows } = await pg.query(aggregateQuery);
+                totalClosedAmount = parseFloat(rows[0].totalclosedamount) || 0;
+                closedAccountsCount = parseInt(rows[0].closedaccountscount, 10) || 0;
+            }
+
+            // // Validate loan amount based on eligibility type
+            // if (productResult.eligibilitytype === 'AMOUNT') {
+            //     if (loanamount < productResult.minimumloan || loanamount > productResult.maximumloan) {
+            //         errors.push({
+            //             field: 'loanamount',
+            //             message: 'Loan amount must be within the range of minimum and maximum loan amounts'
+            //         });
+            //     }
+            // } else if (productResult.eligibilitytype === 'PERCENTAGE') {
+            //     const calculatedMaximumLoan = (totalClosedAmount * productResult.maximumloan) / 100;
+            //     if (loanamount < productResult.minimumloan || loanamount > calculatedMaximumLoan) {
+            //         errors.push({
+            //             field: 'loanamount',
+            //             message: 'Loan amount must be within the range of minimum loan and calculated maximum loan based on closed amount'
+            //         });
+            //     }
+            // }
+
+            // Validate eligibility minimum loan
+            if (productResult.eligibilityminimumloan > 0 && totalClosedAmount < productResult.eligibilityminimumloan) {
                 errors.push({
-                    field: 'eligibilityproduct',
-                    message: errorMsg
+                    field: 'eligibilityminimumloan',
+                    message: 'User total closed loan amount is less than the required eligibility minimum loan amount'
                 });
-            } else {
-                const loanAccount = loanAccountRows[0];
-                let totalClosedAmount = 0;
-                let closedAccountsCount = 0;
+            }
 
-                // Fetch totalClosedAmount and closedAccountsCount if needed
-                if (productResult.eligibilitytype === 'PERCENTAGE' || productResult.eligibilityminimumloan > 0 || productResult.eligibilityminimumclosedaccounts > 0) {
-                    const aggregateQuery = {
-                        text: `
-                            SELECT 
-                                COALESCE(SUM(closeamount), 0) AS totalClosedAmount,
-                                COUNT(*) FILTER (WHERE closeamount > 0) AS closedAccountsCount
-                            FROM divine."loanaccounts"
-                            WHERE userid = $1 AND loanproduct = $2 AND status = 'ACTIVE'
-                        `,
-                        values: [user.id, productResult.eligibilityproduct]
-                    };
-                    const { rows } = await pg.query(aggregateQuery);
-                    totalClosedAmount = parseFloat(rows[0].totalclosedamount) || 0;
-                    closedAccountsCount = parseInt(rows[0].closedaccountscount, 10) || 0;
-                }
-
-                // Validate eligibility minimum loan
-                if (productResult.eligibilityminimumloan > 0 && totalClosedAmount < productResult.eligibilityminimumloan) {
-                    const errorMsg = 'User total closed loan amount is less than the required eligibility minimum loan amount';
-                    console.error(errorMsg);
-                    errors.push({
-                        field: 'eligibilityminimumloan',
-                        message: errorMsg
-                    });
-                }
-
-                // Validate eligibility minimum closed accounts
-                if (productResult.eligibilityminimumclosedaccounts > 0 && closedAccountsCount < productResult.eligibilityminimumclosedaccounts) {
-                    const errorMsg = 'User closed loan accounts count is less than the required eligibility minimum closed accounts';
-                    console.error(errorMsg);
-                    errors.push({
-                        field: 'eligibilityminimumclosedaccounts',
-                        message: errorMsg
-                    });
-                }
+            // Validate eligibility minimum closed accounts
+            if (productResult.eligibilityminimumclosedaccounts > 0 && closedAccountsCount < productResult.eligibilityminimumclosedaccounts) {
+                errors.push({
+                    field: 'eligibilityminimumclosedaccounts',
+                    message: 'User closed loan accounts count is less than the required eligibility minimum closed accounts'
+                });
             }
         }
+    }
 
         // Fetch the organisation settings
         const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" WHERE status = 'ACTIVE' LIMIT 1`;
         const orgSettingsResult = await pg.query(orgSettingsQuery);
 
         if (orgSettingsResult.rowCount === 0) {
-            const errorMsg = "Organisation settings not found.";
-            console.error(errorMsg);
             await activityMiddleware(req, createdby, 'Organisation settings not found', 'ACCOUNT');
             if (state) return false;
             return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                 status: false,
-                message: errorMsg,
+                message: "Organisation settings not found.",
                 statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
                 data: null,
-                errors: [errorMsg]
+                errors: ["Organisation settings not found."]
             });
         }
 
@@ -330,16 +343,14 @@ const manageSavingsAccount = async (req, res, state=false) => {
         const accountNumberPrefix = orgSettings.savings_account_prefix;
 
         if (!accountNumberPrefix) {
-            const errorMsg = "Savings account prefix not set in organisation settings.";
-            console.error(errorMsg);
             await activityMiddleware(req, createdby, 'Account number prefix not found in organisation settings', 'ACCOUNT');
             if (state) return false;
             return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                 status: false,
-                message: errorMsg,
+                message: "Savings account prefix not set in organisation settings.",
                 statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
                 data: null,
-                errors: [errorMsg]
+                errors: ["Savings account prefix not set in organisation settings."]
             });
         }
 
@@ -357,13 +368,11 @@ const manageSavingsAccount = async (req, res, state=false) => {
             if (newAccountNumberStr.startsWith(accountNumberPrefix)) {
                 generatedAccountNumber = newAccountNumberStr.padStart(10, '0');
             } else {
-                const errorMsg = `More accounts cannot be opened with the prefix ${accountNumberPrefix}. Please update the prefix to start a new account run.`;
-                console.error(errorMsg);
-                await activityMiddleware(req, createdby, errorMsg, 'ACCOUNT');
+                await activityMiddleware(req, createdby, `More accounts cannot be opened with the prefix ${accountNumberPrefix}. Please update the prefix to start a new account run.`, 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: errorMsg,
+                    message: `More accounts cannot be opened with the prefix ${accountNumberPrefix}. Please update the prefix to start a new account run.`,
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
                     errors: []
@@ -377,35 +386,31 @@ const manageSavingsAccount = async (req, res, state=false) => {
             const accountNumberExistsResult = await pg.query(accountNumberExistsQuery, [accountnumber]);
 
             if (accountNumberExistsResult.rowCount === 0) {
-                const errorMsg = "Account number does not exist.";
-                console.error(errorMsg);
                 await activityMiddleware(req, createdby, 'Attempt to update a savings account with a non-existent account number', 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: errorMsg,
+                    message: "Account number does not exist.",
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
-                    errors: [errorMsg]
+                    errors: ["Account number does not exist."]
                 });
             }
 
             // Check if the branch exists in the branch table if branch is sent
             if (branch) {
-                const branchExistsQuery = `SELECT * FROM divine."Branch" WHERE id = $1 AND status = 'ACTIVE'`;
+                 const branchExistsQuery = `SELECT * FROM divine."Branch" WHERE id = $1 AND status = 'ACTIVE'`;
                 const branchExistsResult = await pg.query(branchExistsQuery, [branch]);
 
                 if (branchExistsResult.rowCount === 0) {
-                    const errorMsg = "Branch does not exist.";
-                    console.error(errorMsg);
                     await activityMiddleware(req, createdby, 'Attempt to update a savings account with a non-existent branch', 'ACCOUNT');
                     if (state) return false;
                     return res.status(StatusCodes.BAD_REQUEST).json({
                         status: false,
-                        message: errorMsg,
+                        message: "Branch does not exist.",
                         statuscode: StatusCodes.BAD_REQUEST,
                         data: null,
-                        errors: [errorMsg]
+                        errors: ["Branch does not exist."]
                     });
                 }
             }
@@ -460,16 +465,14 @@ const manageSavingsAccount = async (req, res, state=false) => {
             const userExistsResult = await pg.query(userExistsQuery, [userid]);
 
             if (userExistsResult.rowCount === 0) {
-                const errorMsg = "User does not exist.";
-                console.error(errorMsg);
                 await activityMiddleware(req, createdby, 'Attempt to create a savings account for a non-existent user', 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: errorMsg,
+                    message: "User does not exist.",
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
-                    errors: [errorMsg]
+                    errors: ["User does not exist."]
                 });
             }
 
@@ -478,16 +481,14 @@ const manageSavingsAccount = async (req, res, state=false) => {
             const branchExistsResult = await pg.query(branchExistsQuery, [branch]);
 
             if (branchExistsResult.rowCount === 0) {
-                const errorMsg = "Branch does not exist.";
-                console.error(errorMsg);
                 await activityMiddleware(req, createdby, 'Attempt to create a savings account with a non-existent branch', 'ACCOUNT');
                 if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
-                    message: errorMsg,
+                    message: "Branch does not exist.",
                     statuscode: StatusCodes.BAD_REQUEST,
                     data: null,
-                    errors: [errorMsg]
+                    errors: ["Branch does not exist."]
                 });
             }
             // Save the new savings account
@@ -517,7 +518,7 @@ const manageSavingsAccount = async (req, res, state=false) => {
             });
         }
     } catch (error) {
-        console.error("Unexpected Error:", error);
+        console.error(error);
         await activityMiddleware(req, createdby, 'An unexpected error occurred while creating or updating the savings account', 'ACCOUNT');
         if (state) return false;
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({

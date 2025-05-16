@@ -331,54 +331,46 @@ const signup = async (req, res) => {
             errors: accountaction ? [] : ['Membership and account creation failed']
         };
 
-        // INSERT_YOUR_REWRITE_HERE
-        console.log('Fetching all savings products where addmember is "YES"');
-        const savingsProductsQuery = `SELECT id FROM divine."savingsproduct" WHERE addmember = 'YES'`;
+        // INSERT_YOUR_CODE
+        // Fetch all savings products where addmember is 'YES'
+        const savingsProductsQuery = `SELECT id, member FROM divine."savingsproduct" WHERE addmember = 'YES'`;
         const { rows: savingsProducts } = await pg.query(savingsProductsQuery);
-        console.log('Savings products fetched:', savingsProducts);
 
         // Create accounts for each eligible savings product
         for (const product of savingsProducts) {
-            console.log('Processing savings product:', product);
             const savingsproductid = product.id;
-            const reqBody = {
-                savingsproductid,
-                userid: userId,
-                amount: 0,
-                branch: branch,
-                registrationpoint: user.registrationpoint ?? 0,
-                registrationcharge: 0,
-                registrationdesc: '',
-                bankname1: null,
-                bankaccountname1: null,
-                bankaccountnumber1: null,
-                bankname2: null,
-                bankaccountname2: null,
-                bankaccountnumber2: null,
-                accountofficer: null,
-                sms: false,
-                whatsapp: false,
-                email: false,
-                createdby: userId,
-                accountnumber: null,
-                member: 0,
-                registrationdate: new Date(),
-                reason: '',
-                status: 'ACTIVE'
-            };
+            const memberValue = product.member;
 
-            console.log('Request body for account creation:', reqBody);
+            // Check if the member field is a concatenated string
+            const memberIds = memberValue.includes('|') 
+                ? memberValue.split('|').filter(id => id.trim() !== '') 
+                : [memberValue.trim()];
 
-            // Create a new request object for each account creation
-            const newReq = { ...req, body: reqBody };
-            console.log('New request object created for account creation');
+            // Create accounts for each member ID
+            for (const memberId of memberIds) {
+                if (memberId) {
+                    const reqBody = {
+                        savingsproductid,
+                        userid: userId,
+                        amount: 0,
+                        branch: branch,
+                        registrationpoint: user.registrationpoint ?? 0,
+                        registrationcharge: 0,
+                        createdby: userId,
+                        member: memberId,
+                        registrationdate: new Date(),
+                        status: 'ACTIVE'
+                    };
 
-            // Call the manageSavingsAccount function to create the account
-            let responses = await manageSavingsAccount(newReq, res, true);
-            console.log('Response from manageSavingsAccount:', responses);
+                    // Create a new request object for each account creation
+                    const newReq = { ...req, body: reqBody };
 
-            if (!responses.status) {
-                console.error('Something went wrong in the making of account', responses);
+                    // Call the manageSavingsAccount function to create the account
+                    let responses = await manageSavingsAccount(newReq, res, true);
+                    if (!responses.status) {
+                        console.log('something went wrong in the making of account', responses);
+                    }
+                }
             }
         }
 
