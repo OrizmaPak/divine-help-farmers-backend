@@ -331,20 +331,22 @@ const signup = async (req, res) => {
             errors: accountaction ? [] : ['Membership and account creation failed']
         };
 
-        // INSERT_YOUR_CODE
-        // Fetch all savings products where addmember is 'YES'
+        // INSERT_YOUR_REWRITE_HERE
+        console.log('Fetching all savings products where addmember is "YES"');
         const savingsProductsQuery = `SELECT id FROM divine."savingsproduct" WHERE addmember = 'YES'`;
         const { rows: savingsProducts } = await pg.query(savingsProductsQuery);
+        console.log('Savings products fetched:', savingsProducts);
 
         // Create accounts for each eligible savings product
         for (const product of savingsProducts) {
+            console.log('Processing savings product:', product);
             const savingsproductid = product.id;
             const reqBody = {
                 savingsproductid,
                 userid: userId,
                 amount: 0,
                 branch: branch,
-                registrationpoint: user.registrationpoint??0,
+                registrationpoint: user.registrationpoint ?? 0,
                 registrationcharge: 0,
                 registrationdesc: '',
                 bankname1: null,
@@ -365,13 +367,18 @@ const signup = async (req, res) => {
                 status: 'ACTIVE'
             };
 
+            console.log('Request body for account creation:', reqBody);
+
             // Create a new request object for each account creation
             const newReq = { ...req, body: reqBody };
+            console.log('New request object created for account creation');
 
             // Call the manageSavingsAccount function to create the account
             let responses = await manageSavingsAccount(newReq, res, true);
-            if(!responses.status){
-                console.log('something when wrong in the making of account', responses)
+            console.log('Response from manageSavingsAccount:', responses);
+
+            if (!responses.status) {
+                console.error('Something went wrong in the making of account', responses);
             }
         }
 
