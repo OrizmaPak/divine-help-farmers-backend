@@ -369,7 +369,10 @@ const signup = async (req, res) => {
             const newReq = { ...req, body: reqBody };
 
             // Call the manageSavingsAccount function to create the account
-            await manageSavingsAccount(newReq, res, true);
+            let responses = await manageSavingsAccount(newReq, res, true);
+            if(!responses.status){
+                console.log('something when wrong in the making of account', responses)
+            }
         }
 
         // Send the response back to the client
