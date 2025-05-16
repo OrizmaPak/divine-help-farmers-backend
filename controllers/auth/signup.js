@@ -10,6 +10,7 @@ const { activityMiddleware } = require("../../middleware/activity");
 const { uploadToGoogleDrive } = require("../../utils/uploadToGoogleDrive");
 const { autoAddMembershipAndAccounts } = require("../../middleware/autoaddmembershipandaccounts");
 const https = require('https');
+const { manageSavingsAccount } = require("../savings/createaccount/createaccount");
 
 const signup = async (req, res) => {
     // Destructure and extract user details from the request body
@@ -329,6 +330,47 @@ const signup = async (req, res) => {
             } : null,
             errors: accountaction ? [] : ['Membership and account creation failed']
         };
+
+        // INSERT_YOUR_CODE
+        // Fetch all savings products where addmember is 'YES'
+        const savingsProductsQuery = `SELECT id FROM divine."savingsproduct" WHERE addmember = 'YES'`;
+        const { rows: savingsProducts } = await pg.query(savingsProductsQuery);
+
+        // Create accounts for each eligible savings product
+        for (const product of savingsProducts) {
+            const savingsproductid = product.id;
+            const reqBody = {
+                savingsproductid,
+                userid: userId,
+                amount: 0,
+                branch: user.branch,
+                registrationpoint: user.registrationpoint,
+                registrationcharge: 0,
+                registrationdesc: '',
+                bankname1: null,
+                bankaccountname1: null,
+                bankaccountnumber1: null,
+                bankname2: null,
+                bankaccountname2: null,
+                bankaccountnumber2: null,
+                accountofficer: null,
+                sms: false,
+                whatsapp: false,
+                email: false,
+                createdby: userId,
+                accountnumber: null,
+                member: 0,
+                registrationdate: new Date(),
+                reason: '',
+                status: 'ACTIVE'
+            };
+
+            // Create a new request object for each account creation
+            const newReq = { ...req, body: reqBody };
+
+            // Call the manageSavingsAccount function to create the account
+            await manageSavingsAccount(newReq, res, true);
+        }
 
         // Send the response back to the client
         return res.status(StatusCodes.OK).json(responseData);

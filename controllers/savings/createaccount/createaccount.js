@@ -2,7 +2,7 @@ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
-const manageSavingsAccount = async (req, res) => {
+const manageSavingsAccount = async (req, res, state=false) => {
     const user = req.user;
     let { savingsproductid, userid=user.id, amount = 0, branch=user.branch, registrationpoint=user.registrationpoint, registrationcharge=0, registrationdesc='', bankname1, bankaccountname1, bankaccountnumber1, bankname2, bankaccountname2, bankaccountnumber2, accountofficer=0, sms, whatsapp, email, createdby, accountnumber, member, registrationdate, reason, status} = req.body;
 
@@ -48,6 +48,7 @@ const manageSavingsAccount = async (req, res) => {
 
         // If any type errors are found, return an error response
         if (typeErrors.length > 0) {
+            if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "Invalid data types.",
@@ -73,6 +74,7 @@ const manageSavingsAccount = async (req, res) => {
             }
 
         if (missingFields.length > 0) {
+            if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "Missing required fields.",
@@ -88,6 +90,7 @@ const manageSavingsAccount = async (req, res) => {
 
         if (productResult.rowCount === 0 && !accountnumber) {
             await activityMiddleware(req, createdby, 'Attempt to create a savings account with a non-existent product', 'ACCOUNT');
+            if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "Savings product does not exist.",
@@ -104,6 +107,7 @@ const manageSavingsAccount = async (req, res) => {
 
             if (officerResult.rowCount === 0) {
                 await activityMiddleware(req, createdby, 'Attempt to assign a non-existent user as account officer', 'ACCOUNT');
+                if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
                     message: "Account officer does not exist.",
@@ -125,6 +129,7 @@ const manageSavingsAccount = async (req, res) => {
 
         if (accountCount >= userAccountLimit) {
             await activityMiddleware(req, createdby, 'Attempt to create a savings account that exceeds the allowed limit', 'ACCOUNT');
+            if (state) return false;
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "User has reached the limit of accounts for this savings product.",
@@ -321,6 +326,7 @@ const manageSavingsAccount = async (req, res) => {
 
         if (orgSettingsResult.rowCount === 0) {
             await activityMiddleware(req, createdby, 'Organisation settings not found', 'ACCOUNT');
+            if (state) return false;
             return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                 status: false,
                 message: "Organisation settings not found.",
@@ -335,6 +341,7 @@ const manageSavingsAccount = async (req, res) => {
 
         if (!accountNumberPrefix) {
             await activityMiddleware(req, createdby, 'Account number prefix not found in organisation settings', 'ACCOUNT');
+            if (state) return false;
             return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                 status: false,
                 message: "Savings account prefix not set in organisation settings.",
@@ -359,6 +366,7 @@ const manageSavingsAccount = async (req, res) => {
                 generatedAccountNumber = newAccountNumberStr.padStart(10, '0');
             } else {
                 await activityMiddleware(req, createdby, `More accounts cannot be opened with the prefix ${accountNumberPrefix}. Please update the prefix to start a new account run.`, 'ACCOUNT');
+                if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
                     message: `More accounts cannot be opened with the prefix ${accountNumberPrefix}. Please update the prefix to start a new account run.`,
@@ -376,6 +384,7 @@ const manageSavingsAccount = async (req, res) => {
 
             if (accountNumberExistsResult.rowCount === 0) {
                 await activityMiddleware(req, createdby, 'Attempt to update a savings account with a non-existent account number', 'ACCOUNT');
+                if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
                     message: "Account number does not exist.",
@@ -392,6 +401,7 @@ const manageSavingsAccount = async (req, res) => {
 
                 if (branchExistsResult.rowCount === 0) {
                     await activityMiddleware(req, createdby, 'Attempt to update a savings account with a non-existent branch', 'ACCOUNT');
+                    if (state) return false;
                     return res.status(StatusCodes.BAD_REQUEST).json({
                         status: false,
                         message: "Branch does not exist.",
@@ -438,6 +448,7 @@ const manageSavingsAccount = async (req, res) => {
             // Record the activity
             await activityMiddleware(req, createdby, `Savings account updated with ID: ${updatedAccountId}`, 'ACCOUNT');
 
+            if (state) return true;
             return res.status(StatusCodes.OK).json({
                 status: true,
                 message: "Savings account updated successfully.",
@@ -452,6 +463,7 @@ const manageSavingsAccount = async (req, res) => {
 
             if (userExistsResult.rowCount === 0) {
                 await activityMiddleware(req, createdby, 'Attempt to create a savings account for a non-existent user', 'ACCOUNT');
+                if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
                     message: "User does not exist.",
@@ -467,6 +479,7 @@ const manageSavingsAccount = async (req, res) => {
 
             if (branchExistsResult.rowCount === 0) {
                 await activityMiddleware(req, createdby, 'Attempt to create a savings account with a non-existent branch', 'ACCOUNT');
+                if (state) return false;
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     status: false,
                     message: "Branch does not exist.",
@@ -492,6 +505,7 @@ const manageSavingsAccount = async (req, res) => {
             // Record the activity
             await activityMiddleware(req, createdby, `Savings account created with ID: ${newAccountId}`, 'ACCOUNT');
 
+            if (state) return true;
             return res.status(StatusCodes.CREATED).json({
                 status: true,
                 message: "Savings account created successfully.",
@@ -503,6 +517,7 @@ const manageSavingsAccount = async (req, res) => {
     } catch (error) {
         console.error(error);
         await activityMiddleware(req, createdby, 'An unexpected error occurred while creating or updating the savings account', 'ACCOUNT');
+        if (state) return false;
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
             message: "Internal Server Error",
