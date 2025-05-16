@@ -333,22 +333,22 @@ const signup = async (req, res) => {
 
         // INSERT_YOUR_CODE
         // Fetch all savings products where addmember is 'YES'
-        const savingsProductsQuery = `SELECT id, member FROM divine."savingsproduct" WHERE addmember = 'YES'`;
+        const savingsProductsQuery = `SELECT id, membership FROM divine."savingsproduct" WHERE addmember = 'YES'`;
         const { rows: savingsProducts } = await pg.query(savingsProductsQuery);
 
         // Create accounts for each eligible savings product
         for (const product of savingsProducts) {
             const savingsproductid = product.id;
-            const memberValue = product.member;
+            const membershipValue = product.membership;
 
-            // Check if the member field is a concatenated string
-            const memberIds = memberValue.includes('|') 
-                ? memberValue.split('|').filter(id => id.trim() !== '') 
-                : [memberValue.trim()];
+            // Check if the membership field is a concatenated string
+            const membershipIds = membershipValue.includes('|') 
+                ? membershipValue.split('|').filter(id => id.trim() !== '') 
+                : [membershipValue.trim()];
 
-            // Create accounts for each member ID
-            for (const memberId of memberIds) {
-                if (memberId) {
+            // Create accounts for each membership ID
+            for (const membershipId of membershipIds) {
+                if (membershipId) {
                     const reqBody = {
                         savingsproductid,
                         userid: userId,
@@ -357,7 +357,7 @@ const signup = async (req, res) => {
                         registrationpoint: user.registrationpoint ?? 0,
                         registrationcharge: 0,
                         createdby: userId,
-                        member: memberId,
+                        member: membershipId,
                         registrationdate: new Date(),
                         status: 'ACTIVE'
                     };
