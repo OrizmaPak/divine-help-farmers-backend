@@ -505,7 +505,7 @@ const signup = async (req, res) => {
                     let actualProductName = productName;
                     try {
                         const { rows: [productRow] } = await pg.query(
-                            `SELECT productname FROM divine."product" WHERE id = $1 LIMIT 1`,
+                            `SELECT productname FROM divine."savingsproduct" WHERE id = $1 LIMIT 1`,
                             [savingsproductid]
                         );
                         if (productRow && productRow.productname) {
