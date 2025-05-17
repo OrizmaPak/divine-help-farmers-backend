@@ -112,10 +112,13 @@ const signup = async (req, res) => {
         // Hash the user's password for security
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Insert the new user into the database
-        const { rows: [saveuser] } = await pg.query(`INSERT INTO divine."User" 
-        (firstname, lastname, othernames, email, password, permissions, country, state, phone, dateadded) 
-        VALUES ($1, $2, $3, $4, $5, 'NEWUSER', $6, $7, $8, $9) RETURNING id`, [firstname, lastname, othernames, email, hashedPassword, country, state, phone, new Date()]);
+        // Insert the new user into the database (fixed to include 'branch')
+        const { rows: [saveuser] } = await pg.query(`INSERT INTO divine."User"
+            (firstname, lastname, othernames, email, password, permissions, country, state, phone, branch, dateadded) 
+            VALUES ($1, $2, $3, $4, $5, 'NEWUSER', $6, $7, $8, $9, $10)
+            RETURNING id`,
+            [firstname, lastname, othernames, email, hashedPassword, country, state, phone, branch, new Date()]
+        );
         
         const userId = saveuser.id;
         console.log(saveuser)
@@ -498,11 +501,25 @@ const signup = async (req, res) => {
                     }
 
                     // Save the new savings account directly, and set the account name as the product name
+                    // Fetch the product name using the savingsproductid
+                    let actualProductName = productName;
+                    try {
+                        const { rows: [productRow] } = await pg.query(
+                            `SELECT productname FROM divine."product" WHERE id = $1 LIMIT 1`,
+                            [savingsproductid]
+                        );
+                        if (productRow && productRow.productname) {
+                            actualProductName = productRow.productname;
+                        }
+                    } catch (err) {
+                        console.log('Error fetching product name for savingsproductid:', savingsproductid, err.message);
+                    }
+
                     const insertAccountQuery = `
                         INSERT INTO divine."savings" 
-                        (savingsproductid, accountnumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdate, createdby, member, status, dateadded, accountname)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-                        RETURNING id, accountnumber, accountname
+                        (savingsproductid, accountnumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdate, createdby, member, status, dateadded)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                        RETURNING id, accountnumber
                     `;
                     try {
                         const { rows: [accountRow] } = await pg.query(insertAccountQuery, [
@@ -518,12 +535,11 @@ const signup = async (req, res) => {
                             membershipId,
                             'ACTIVE',
                             new Date(),
-                            productName // Set accountname to product name
                         ]);
                         // Collect for SMS
                         createdAccounts.push({
                             accountnumber: accountRow.accountnumber,
-                            accountname: productName
+                            accountname: actualProductName
                         });
                     } catch (err) {
                         console.log('Error creating savings account for user:', userId, 'product:', savingsproductid, 'membership:', membershipId, err.message);
@@ -598,4 +614,4 @@ const signup = async (req, res) => {
 
 module.exports = {
     signup
-}; 
+};
