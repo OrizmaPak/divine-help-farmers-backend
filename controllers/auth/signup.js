@@ -447,7 +447,7 @@ const signup = async (req, res) => {
         };
 
         // Fetch all savings products where addmember is 'YES', and get their names for SMS
-        const savingsProductsQuery = `SELECT id, membership, name FROM divine."savingsproduct" WHERE addmember = 'YES'`;
+        const savingsProductsQuery = `SELECT id, membership, firstname Aa name FROM divine."savingsproduct" WHERE addmember = 'YES'`;
         const { rows: savingsProducts } = await pg.query(savingsProductsQuery);
 
         // Fetch organisation settings for account number prefix
