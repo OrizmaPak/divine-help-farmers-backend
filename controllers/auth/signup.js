@@ -331,52 +331,78 @@ const signup = async (req, res) => {
             errors: accountaction ? [] : ['Membership and account creation failed']
         };
 
-        // INSERT_YOUR_REWRITE_HERE
+        // INSERT_YOUR_CODE
         // Fetch all savings products where addmember is 'YES'
-        console.log('Fetching savings products with addmember set to YES');
         const savingsProductsQuery = `SELECT id, membership FROM divine."savingsproduct" WHERE addmember = 'YES'`;
         const { rows: savingsProducts } = await pg.query(savingsProductsQuery);
-        console.log('Fetched savings products:', savingsProducts);
 
-        // Create accounts for each eligible savings product
+        // Fetch organisation settings for account number prefix
+        const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" WHERE status = 'ACTIVE' LIMIT 1`;
+        const orgSettingsResult = await pg.query(orgSettingsQuery);
+        if (orgSettingsResult.rowCount === 0) {
+            throw new Error("Organisation settings not found.");
+        }
+        const orgSettings = orgSettingsResult.rows[0];
+        const accountNumberPrefix = orgSettings.savings_account_prefix;
+        if (!accountNumberPrefix) {
+            throw new Error("Savings account prefix not set in organisation settings.");
+        }
+
         for (const product of savingsProducts) {
-            console.log('Processing savings product:', product);
             const savingsproductid = product.id;
             const membershipValue = product.membership;
 
             // Check if the membership field is a concatenated string
-            const membershipIds = membershipValue.includes('|') 
+            const membershipIds = membershipValue && membershipValue.includes('|') 
                 ? membershipValue.split('|').filter(id => id.trim() !== '') 
-                : [membershipValue.trim()];
-            console.log('Parsed membership IDs:', membershipIds);
+                : (membershipValue ? [membershipValue.trim()] : []);
 
-            // Create accounts for each membership ID
             for (const membershipId of membershipIds) {
                 if (membershipId) {
-                    console.log('Creating account for membership ID:', membershipId);
-                    const reqBody = {
-                        savingsproductid,
-                        userid: userId,
-                        amount: 0,
-                        branch: branch,
-                        registrationpoint: user.registrationpoint ?? 0,
-                        registrationcharge: 0,
-                        createdby: userId,
-                        member: membershipId,
-                        registrationdate: new Date(),
-                        status: 'ACTIVE'
-                    };
-                    console.log('Request body for account creation:', reqBody);
+                    // Generate account number
+                    const accountRowsQuery = `SELECT accountnumber FROM divine."savings" WHERE accountnumber::text LIKE $1 AND status = 'ACTIVE' ORDER BY accountnumber DESC LIMIT 1`;
+                    const { rows: accountRows } = await pg.query(accountRowsQuery, [`${accountNumberPrefix}%`]);
 
-                    // Create a new request object for each account creation
-                    const newReq = { ...req, body: reqBody };
-                    console.log('New request object for account creation:', newReq);
+                    let generatedAccountNumber;
+                    if (accountRows.length === 0) {
+                        generatedAccountNumber = `${accountNumberPrefix}${'0'.repeat(10 - accountNumberPrefix.toString().length - 1)}1`;
+                    } else {
+                        const highestAccountNumber = accountRows[0].accountnumber;
+                        const newAccountNumber = parseInt(highestAccountNumber) + 1;
+                        const newAccountNumberStr = newAccountNumber.toString();
+                        if (newAccountNumberStr.startsWith(accountNumberPrefix)) {
+                            generatedAccountNumber = newAccountNumberStr.padStart(10, '0');
+                        } else {
+                            // If prefix run out, skip account creation for this product
+                            console.log(`More accounts cannot be opened with the prefix ${accountNumberPrefix}. Please update the prefix to start a new account run.`);
+                            continue;
+                        }
+                    }
 
-                    // Call the manageSavingsAccount function to create the account
-                    let responses = await manageSavingsAccount(newReq, res, true);
-                    console.log('Response from manageSavingsAccount:', responses);
-                    if (!responses.status) {
-                        console.log('Something went wrong in the making of account', responses);
+                    // Save the new savings account directly
+                    const insertAccountQuery = `
+                        INSERT INTO divine."savings" 
+                        (savingsproductid, accountnumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdate, createdby, member, status, dateadded)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                        RETURNING id, accountnumber
+                    `;
+                    try {
+                        await pg.query(insertAccountQuery, [
+                            savingsproductid,
+                            generatedAccountNumber,
+                            userId,
+                            0,
+                            branch,
+                            user.registrationpoint ?? 0,
+                            0,
+                            new Date(),
+                            userId,
+                            membershipId,
+                            'ACTIVE',
+                            new Date()
+                        ]);
+                    } catch (err) {
+                        console.log('Error creating savings account for user:', userId, 'product:', savingsproductid, 'membership:', membershipId, err.message);
                     }
                 }
             }
