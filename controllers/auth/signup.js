@@ -12,6 +12,7 @@ const { autoAddMembershipAndAccounts } = require("../../middleware/autoaddmember
 const https = require('https');
 const { manageSavingsAccount } = require("../savings/createaccount/createaccount");
 
+
 const signup = async (req, res) => {
     // Destructure and extract user details from the request body
     const { firstname, lastname, branch, email, password, phone, othernames = '', verify = false, device = '', country = '', state = '' } = req.body;
@@ -165,6 +166,12 @@ const signup = async (req, res) => {
         });
 
         // Check if the user already exists in Paystack
+        let paystackCustomerCode = null;
+        let paystackCustomerId = null;
+        let paystackDirectAccount = null;
+        let paystackDirectBank = null;
+        let paystackDirectAccountName = null;
+
         const checkUserOptions = {
             hostname: 'api.paystack.co',
             port: 443,
@@ -176,58 +183,166 @@ const signup = async (req, res) => {
             }
         };
 
-        const checkUserReq = https.request(checkUserOptions, checkUserRes => {
-            let data = '';
+        // We'll use a promise to handle the async Paystack logic
+        const paystackPromise = new Promise((resolve, reject) => {
+            const checkUserReq = https.request(checkUserOptions, checkUserRes => {
+                let data = '';
 
-            checkUserRes.on('data', (chunk) => {
-                data += chunk;
+                checkUserRes.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                checkUserRes.on('end', () => {
+                    let paystackResponse;
+                    try {
+                        paystackResponse = JSON.parse(data);
+                    } catch (e) {
+                        return resolve();
+                    }
+                    if (!paystackResponse.status) {
+                        // If the user does not exist in Paystack, create the user
+                        const createUserParams = JSON.stringify({
+                            "email": email,
+                            "first_name": firstname,
+                            "last_name": lastname,
+                            "phone": phone
+                        });
+
+                        const createUserOptions = {
+                            hostname: 'api.paystack.co',
+                            port: 443,
+                            path: '/customer',
+                            method: 'POST',
+                            headers: {
+                                Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
+                                'Content-Type': 'application/json'
+                            }
+                        };
+
+                        const createUserReq = https.request(createUserOptions, createUserRes => {
+                            let createUserData = '';
+
+                            createUserRes.on('data', (chunk) => {
+                                createUserData += chunk;
+                            });
+
+                            createUserRes.on('end', () => {
+                                try {
+                                    const created = JSON.parse(createUserData);
+                                    if (created.status && created.data) {
+                                        paystackCustomerCode = created.data.customer_code;
+                                        paystackCustomerId = created.data.id;
+                                    }
+                                } catch (e) {}
+                                resolve();
+                            });
+                        }).on('error', error => {
+                            console.error(error);
+                            resolve();
+                        });
+
+                        createUserReq.write(createUserParams);
+                        createUserReq.end();
+                    } else {
+                        // User exists, get customer code and id
+                        if (paystackResponse.data) {
+                            paystackCustomerCode = paystackResponse.data.customer_code;
+                            paystackCustomerId = paystackResponse.data.id;
+                        }
+                        resolve();
+                    }
+                });
+            }).on('error', error => {
+                console.error(error);
+                resolve();
             });
 
-            checkUserRes.on('end', () => {
-                const paystackResponse = JSON.parse(data);
-                if (!paystackResponse.status) {
-                    // If the user does not exist in Paystack, create the user
-                    const createUserParams = JSON.stringify({
-                        "email": email,
-                        "first_name": firstname,
-                        "last_name": lastname,
-                        "phone": phone
-                    });
+            checkUserReq.end();
+        });
 
-                    const createUserOptions = {
+        await paystackPromise;
+
+        // Now, try to create a dedicated paystack account (Direct Account) for the user
+        // This is optional and depends on your Paystack setup
+        if (paystackCustomerCode) {
+            try {
+                // Check if a dedicated account already exists for this customer
+                const dedicatedAccountOptions = {
+                    hostname: 'api.paystack.co',
+                    port: 443,
+                    path: `/dedicated_account?customer=${paystackCustomerCode}`,
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                const dedicatedAccountPromise = new Promise((resolve, reject) => {
+                    const req2 = https.request(dedicatedAccountOptions, res2 => {
+                        let data2 = '';
+                        res2.on('data', chunk => { data2 += chunk; });
+                        res2.on('end', () => {
+                            try {
+                                const result = JSON.parse(data2);
+                                if (result.status && result.data && result.data.length > 0) {
+                                    // Use the first dedicated account
+                                    paystackDirectAccount = result.data[0].account_number;
+                                    paystackDirectBank = result.data[0].bank.name;
+                                    paystackDirectAccountName = result.data[0].account_name;
+                                }
+                            } catch (e) {}
+                            resolve();
+                        });
+                    });
+                    req2.on('error', err => { resolve(); });
+                    req2.end();
+                });
+
+                await dedicatedAccountPromise;
+
+                // If not found, create a new dedicated account
+                if (!paystackDirectAccount && paystackCustomerCode) {
+                    const createDedicatedParams = JSON.stringify({
+                        customer: paystackCustomerCode,
+                        preferred_bank: "wema-bank"
+                    });
+                    const createDedicatedOptions = {
                         hostname: 'api.paystack.co',
                         port: 443,
-                        path: '/customer',
+                        path: '/dedicated_account',
                         method: 'POST',
                         headers: {
                             Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
                             'Content-Type': 'application/json'
                         }
                     };
-
-                    const createUserReq = https.request(createUserOptions, createUserRes => {
-                        let createUserData = '';
-
-                        createUserRes.on('data', (chunk) => {
-                            createUserData += chunk;
+                    const createDedicatedPromise = new Promise((resolve, reject) => {
+                        const req3 = https.request(createDedicatedOptions, res3 => {
+                            let data3 = '';
+                            res3.on('data', chunk => { data3 += chunk; });
+                            res3.on('end', () => {
+                                try {
+                                    const result = JSON.parse(data3);
+                                    if (result.status && result.data) {
+                                        paystackDirectAccount = result.data.account_number;
+                                        paystackDirectBank = result.data.bank.name;
+                                        paystackDirectAccountName = result.data.account_name;
+                                    }
+                                } catch (e) {}
+                                resolve();
+                            });
                         });
-
-                        createUserRes.on('end', () => {
-                            console.log(JSON.parse(createUserData));
-                        });
-                    }).on('error', error => {
-                        console.error(error);
+                        req3.on('error', err => { resolve(); });
+                        req3.write(createDedicatedParams);
+                        req3.end();
                     });
-
-                    createUserReq.write(createUserParams);
-                    createUserReq.end();
+                    await createDedicatedPromise;
                 }
-            });
-        }).on('error', error => {
-            console.error(error);
-        });
-
-        checkUserReq.end();
+            } catch (e) {
+                // Ignore errors, just don't include direct account if not available
+            }
+        }
 
         // Automatically sign the user in by generating a JWT token
         const token = jwt.sign({ user: userId }, process.env.JWT_SECRET, {
@@ -331,9 +446,8 @@ const signup = async (req, res) => {
             errors: accountaction ? [] : ['Membership and account creation failed']
         };
 
-        // INSERT_YOUR_CODE
-        // Fetch all savings products where addmember is 'YES'
-        const savingsProductsQuery = `SELECT id, membership FROM divine."savingsproduct" WHERE addmember = 'YES'`;
+        // Fetch all savings products where addmember is 'YES', and get their names for SMS
+        const savingsProductsQuery = `SELECT id, membership, name FROM divine."savingsproduct" WHERE addmember = 'YES'`;
         const { rows: savingsProducts } = await pg.query(savingsProductsQuery);
 
         // Fetch organisation settings for account number prefix
@@ -348,9 +462,13 @@ const signup = async (req, res) => {
             throw new Error("Savings account prefix not set in organisation settings.");
         }
 
+        // We'll collect all created accounts for SMS notification
+        let createdAccounts = [];
+
         for (const product of savingsProducts) {
             const savingsproductid = product.id;
             const membershipValue = product.membership;
+            const productName = product.name; // Name the account by the product
 
             // Check if the membership field is a concatenated string
             const membershipIds = membershipValue && membershipValue.includes('|') 
@@ -379,15 +497,15 @@ const signup = async (req, res) => {
                         }
                     }
 
-                    // Save the new savings account directly
+                    // Save the new savings account directly, and set the account name as the product name
                     const insertAccountQuery = `
                         INSERT INTO divine."savings" 
-                        (savingsproductid, accountnumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdate, createdby, member, status, dateadded)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                        RETURNING id, accountnumber
+                        (savingsproductid, accountnumber, userid, amount, branch, registrationpoint, registrationcharge, registrationdate, createdby, member, status, dateadded, accountname)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                        RETURNING id, accountnumber, accountname
                     `;
                     try {
-                        await pg.query(insertAccountQuery, [
+                        const { rows: [accountRow] } = await pg.query(insertAccountQuery, [
                             savingsproductid,
                             generatedAccountNumber,
                             userId,
@@ -399,13 +517,69 @@ const signup = async (req, res) => {
                             userId,
                             membershipId,
                             'ACTIVE',
-                            new Date()
+                            new Date(),
+                            productName // Set accountname to product name
                         ]);
+                        // Collect for SMS
+                        createdAccounts.push({
+                            accountnumber: accountRow.accountnumber,
+                            accountname: productName
+                        });
                     } catch (err) {
                         console.log('Error creating savings account for user:', userId, 'product:', savingsproductid, 'membership:', membershipId, err.message);
                     }
                 }
             }
+        }
+
+        // Fetch the user's personal accountnumber (if any)
+        let personalAccountNumber = null;
+        let personalAccountName = null;
+        try {
+            const { rows: personalAccounts } = await pg.query(
+                `SELECT accountnumber, accountname FROM divine."savings" WHERE userid = $1 ORDER BY id ASC LIMIT 1`,
+                [userId]
+            );
+            if (personalAccounts.length > 0) {
+                personalAccountNumber = personalAccounts[0].accountnumber;
+                personalAccountName = personalAccounts[0].accountname;
+            }
+        } catch (e) {}
+
+        // After all accounts are created, send a welcome SMS with account numbers, including personal and direct paystack
+        try {
+            let smsMessage = `Welcome to Divine Help Farmers, ${firstname}! Your accounts have been created:\n`;
+
+            // Add personal account if available
+            if (personalAccountNumber) {
+                smsMessage += `1. ${personalAccountName || "Personal Account"}: ${personalAccountNumber}\n`;
+            }
+
+            // Add direct paystack account if available
+            if (paystackDirectAccount && paystackDirectBank) {
+                smsMessage += `2. Direct Paystack Account: ${paystackDirectAccount} (${paystackDirectBank})\n`;
+            }
+
+            // Add other created accounts (skip personal if already included)
+            let idx = 3;
+            for (const acc of createdAccounts) {
+                // Avoid duplicate if personal account is already listed
+                if (personalAccountNumber && acc.accountnumber === personalAccountNumber) continue;
+                smsMessage += `${idx}. ${acc.accountname}: ${acc.accountnumber}\n`;
+                idx++;
+            }
+
+            smsMessage += `You can now start saving and transacting. Thank you for joining us!`;
+
+            console.log('smsMessage', smsMessage);
+
+            // Send SMS (make sure sendSMS is implemented and works)
+            // await sendSms({
+            //     to: phone,
+            //     message: smsMessage
+            // });
+        } catch (smsErr) {
+            console.log('Error sending welcome SMS:', smsErr.message);
         }
 
         // Send the response back to the client
