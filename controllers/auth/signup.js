@@ -598,10 +598,7 @@ const signup = async (req, res) => {
             console.log('smsMessage', smsMessage);
 
             // Send SMS (uncomment and ensure sendSms is properly implemented)
-            await sendSms({
-                to: phone,
-                message: smsMessage
-            });
+            await sendSms(phone, smsMessage);
             console.log('SMS sent', smsMessage);
         } catch (err) {
             console.log('Error retrieving personal account data or sending welcome SMS:', err.message);
