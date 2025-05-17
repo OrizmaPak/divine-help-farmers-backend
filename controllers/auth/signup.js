@@ -447,7 +447,7 @@ const signup = async (req, res) => {
         };
 
         // Fetch all savings products where addmember is 'YES', and get their names for SMS
-        const savingsProductsQuery = `SELECT id, membership, firstname Aa name FROM divine."savingsproduct" WHERE addmember = 'YES'`;
+        const savingsProductsQuery = `SELECT id, membership, firstname As name FROM divine."savingsproduct" WHERE addmember = 'YES'`;
         const { rows: savingsProducts } = await pg.query(savingsProductsQuery);
 
         // Fetch organisation settings for account number prefix
@@ -468,7 +468,7 @@ const signup = async (req, res) => {
         for (const product of savingsProducts) {
             const savingsproductid = product.id;
             const membershipValue = product.membership;
-            const productName = product.name; // Name the account by the product
+            const productName = product.productname; // Name the account by the product
 
             // Check if the membership field is a concatenated string
             const membershipIds = membershipValue && membershipValue.includes('|') 
