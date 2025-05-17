@@ -533,9 +533,11 @@ const signup = async (req, res) => {
         }
 
         // Fetch the user's personal accountnumber (if any)
-        let personalAccountNumber = null;
-        let personalAccountName = null;
         try {
+            let personalAccountNumber = null;
+            let personalAccountName = null;
+
+            // Retrieve the user's personal account details
             const { rows: personalAccounts } = await pg.query(
                 `SELECT accountnumber, accountname FROM divine."savings" WHERE userid = $1 ORDER BY id ASC LIMIT 1`,
                 [userId]
@@ -544,10 +546,8 @@ const signup = async (req, res) => {
                 personalAccountNumber = personalAccounts[0].accountnumber;
                 personalAccountName = personalAccounts[0].accountname;
             }
-        } catch (e) {}
 
-        // After all accounts are created, send a welcome SMS with account numbers, including personal and direct paystack
-        try {
+            // After all accounts are created, send a welcome SMS with account numbers, including personal and direct paystack
             let smsMessage = `Welcome to Divine Help Farmers, ${firstname}! Your accounts have been created:\n`;
 
             // Add personal account if available
@@ -563,7 +563,6 @@ const signup = async (req, res) => {
             // Add other created accounts (skip personal if already included)
             let idx = 3;
             for (const acc of createdAccounts) {
-                // Avoid duplicate if personal account is already listed
                 if (personalAccountNumber && acc.accountnumber === personalAccountNumber) continue;
                 smsMessage += `${idx}. ${acc.accountname}: ${acc.accountnumber}\n`;
                 idx++;
@@ -573,13 +572,13 @@ const signup = async (req, res) => {
 
             console.log('smsMessage', smsMessage);
 
-            // Send SMS (make sure sendSMS is implemented and works)
+            // Send SMS (uncomment and ensure sendSms is properly implemented)
             // await sendSms({
             //     to: phone,
             //     message: smsMessage
             // });
-        } catch (smsErr) {
-            console.log('Error sending welcome SMS:', smsErr.message);
+        } catch (err) {
+            console.log('Error retrieving personal account data or sending welcome SMS:', err.message);
         }
 
         // Send the response back to the client
