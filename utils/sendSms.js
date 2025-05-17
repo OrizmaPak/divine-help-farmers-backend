@@ -53,6 +53,22 @@ const sendSms = (number, message) => {
             return resolve(false);
         }
 
+        // Check if the number is internationally formatted (starts with '+')
+        // If not, format it as +234XXXXXXXXXX (assuming Nigerian numbers)
+        let formattedNumber = number;
+        if (typeof formattedNumber === "string") {
+            formattedNumber = formattedNumber.trim();
+            if (!formattedNumber.startsWith("+") && formattedNumber.startsWith("0")) {
+                // Remove leading zero if present
+                if (formattedNumber.startsWith("0")) {
+                    formattedNumber = formattedNumber.substring(1);
+                }
+                // Prepend +234
+                formattedNumber = "+234" + formattedNumber;
+            }
+        }
+        number = formattedNumber;
+
         const data = {
             "to": number,
             "from": "DHF INC",
