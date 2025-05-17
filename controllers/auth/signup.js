@@ -550,25 +550,33 @@ const signup = async (req, res) => {
 
         // Fetch the user's personal accountnumber (if any)
         try {
-            let personalAccountNumber = null;
+            // The personal account number is the user's phone number
+            let personalAccountNumber = phone;
             let personalAccountName = null;
 
-            // Retrieve the user's personal account details
-            const { rows: personalAccounts } = await pg.query(
-                `SELECT accountnumber, accountname FROM divine."savings" WHERE userid = $1 ORDER BY id ASC LIMIT 1`,
-                [userId]
-            );
-            if (personalAccounts.length > 0) {
-                personalAccountNumber = personalAccounts[0].accountnumber;
-                personalAccountName = personalAccounts[0].accountname;
+            // Fetch the personal account prefix from the organisationsettings table
+            let personalAccountPrefix = "";
+            try {
+                const { rows: orgSettingsRows } = await pg.query(
+                    `SELECT value FROM divine."organisationsettings" WHERE key = 'personal_account_prefix' LIMIT 1`
+                );
+                if (orgSettingsRows.length > 0 && orgSettingsRows[0].value) {
+                    personalAccountPrefix = orgSettingsRows[0].value;
+                }
+            } catch (err) {
+                console.log('Error fetching personal account prefix from organisationsettings:', err.message);
             }
 
             // After all accounts are created, send a welcome SMS with account numbers, including personal and direct paystack
             let smsMessage = `Welcome to Divine Help Farmers, ${firstname}! Your accounts have been created:\n`;
 
-            // Add personal account if available
+            // Add personal account, prefixing the account number if prefix exists
             if (personalAccountNumber) {
-                smsMessage += `1. ${personalAccountName || "Personal Account"}: ${personalAccountNumber}\n`;
+                let displayName = personalAccountName || (personalAccountPrefix ? `${personalAccountPrefix} Account` : "Personal Account");
+                let displayAccountNumber = personalAccountPrefix
+                    ? `${personalAccountPrefix}${personalAccountNumber}`
+                    : personalAccountNumber;
+                smsMessage += `1. ${displayName}: ${displayAccountNumber}\n`;
             }
 
             // Add direct paystack account if available
