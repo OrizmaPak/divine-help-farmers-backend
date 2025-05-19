@@ -557,16 +557,21 @@ const signup = async (req, res) => {
 
             // Fetch the personal account prefix from the organisationsettings table
             let personalAccountPrefix = "";
-            try {
-                const { rows: orgSettingsRows } = await pg.query(
-                    `SELECT value FROM divine."organisationsettings" WHERE key = 'personal_account_prefix' LIMIT 1`
-                );
-                if (orgSettingsRows.length > 0 && orgSettingsRows[0].value) {
-                    personalAccountPrefix = orgSettingsRows[0].value;
+            const fetchPersonalAccountPrefix = async () => {
+                const query = `SELECT value FROM divine."organisationsettings" WHERE key = $1 LIMIT 1`;
+                const values = ['personal_account_prefix'];
+
+                try {
+                    const { rows } = await pg.query(query, values);
+                    console.log('personal_account_prefix:', rows.length > 0 ? rows[0].value : "");
+                    return rows.length > 0 ? rows[0].value : "";
+                } catch (err) {
+                    console.error('Error fetching personal account prefix from organisationsettings:', err.message);
+                    return "";
                 }
-            } catch (err) {
-                console.log('Error fetching personal account prefix from organisationsettings:', err.message);
-            }
+            };
+
+            personalAccountPrefix = await fetchPersonalAccountPrefix();
 
             // After all accounts are created, send a welcome SMS with account numbers, including personal and direct paystack
             let smsMessage = `Welcome to Divine Help Farmers, ${firstname}! Your accounts have been created:\n`;
