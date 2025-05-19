@@ -573,32 +573,32 @@ const signup = async (req, res) => {
 
             personalAccountPrefix = await fetchPersonalAccountPrefix();
 
-            // After all accounts are created, send a welcome SMS with account numbers, including personal and direct paystack
-            let smsMessage = `Welcome to Divine Help Farmers, ${firstname}! Your accounts have been created:`;
+            // After all accounts are created, send a clear and friendly welcome SMS summarizing the user's account details.
+            let smsMessage = ` Welcome to Divine Help Farmers, ${firstname}. Your accounts have been successfully created. `;
 
-            // Add personal account, prefixing the account number if prefix exists
             if (personalAccountNumber) {
-                let displayName = personalAccountName || (personalAccountPrefix ? `${personalAccountPrefix} Account` : "Personal Account");
-                let displayAccountNumber = personalAccountPrefix
+                const displayName = personalAccountName || (personalAccountPrefix ? `${personalAccountPrefix} Account` : "Personal Account");
+                const displayAccountNumber = personalAccountPrefix
                     ? `${personalAccountPrefix}${personalAccountNumber}`
                     : personalAccountNumber;
-                smsMessage += `1. ${displayName}: ${displayAccountNumber}`;
+                smsMessage += ` Your ${displayName} number is ${displayAccountNumber}. `;
             }
 
-            // Add direct paystack account if available
             if (paystackDirectAccount && paystackDirectBank) {
-                smsMessage += `2. Direct Paystack Account: ${paystackDirectAccount} (${paystackDirectBank})`;
+                smsMessage += ` You also have a Direct Paystack Account (${paystackDirectBank}) with account number ${paystackDirectAccount}. `;
             }
 
-            // Add other created accounts (skip personal if already included)
-            let idx = 3;
-            for (const acc of createdAccounts) {
-                if (personalAccountNumber && acc.accountnumber === personalAccountNumber) continue;
-                smsMessage += `${idx}. ${acc.accountname}: ${acc.accountnumber}`;
-                idx++;
+            if (createdAccounts.length > 0) {
+                const additionalAccounts = createdAccounts
+                    .filter(acc => !(personalAccountNumber && acc.accountnumber === personalAccountNumber))
+                    .map(acc => `${acc.accountname} (Account Number: ${acc.accountnumber})`)
+                    .join("; ");
+                if (additionalAccounts) {
+                    smsMessage += ` Additionally, we have set up the following accounts for you: ${additionalAccounts}. `;
+                }
             }
 
-            smsMessage += `You can now start saving and transacting. Thank you for joining us!`;
+            smsMessage += ` You can now begin saving and transacting with ease. Thank you for joining Divine Help Farmers `;
 
             console.log('smsMessage', smsMessage);
 
