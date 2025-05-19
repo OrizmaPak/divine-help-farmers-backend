@@ -574,7 +574,7 @@ const signup = async (req, res) => {
             personalAccountPrefix = await fetchPersonalAccountPrefix();
 
             // After all accounts are created, send a welcome SMS with account numbers, including personal and direct paystack
-            let smsMessage = `Welcome to Divine Help Farmers, ${firstname}! Your accounts have been created:\n`;
+            let smsMessage = `Welcome to Divine Help Farmers, ${firstname}! Your accounts have been created:`;
 
             // Add personal account, prefixing the account number if prefix exists
             if (personalAccountNumber) {
@@ -582,19 +582,19 @@ const signup = async (req, res) => {
                 let displayAccountNumber = personalAccountPrefix
                     ? `${personalAccountPrefix}${personalAccountNumber}`
                     : personalAccountNumber;
-                smsMessage += `1. ${displayName}: ${displayAccountNumber}\n`;
+                smsMessage += `1. ${displayName}: ${displayAccountNumber}`;
             }
 
             // Add direct paystack account if available
             if (paystackDirectAccount && paystackDirectBank) {
-                smsMessage += `2. Direct Paystack Account: ${paystackDirectAccount} (${paystackDirectBank})\n`;
+                smsMessage += `2. Direct Paystack Account: ${paystackDirectAccount} (${paystackDirectBank})`;
             }
 
             // Add other created accounts (skip personal if already included)
             let idx = 3;
             for (const acc of createdAccounts) {
                 if (personalAccountNumber && acc.accountnumber === personalAccountNumber) continue;
-                smsMessage += `${idx}. ${acc.accountname}: ${acc.accountnumber}\n`;
+                smsMessage += `${idx}. ${acc.accountname}: ${acc.accountnumber}`;
                 idx++;
             }
 
