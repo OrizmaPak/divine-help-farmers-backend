@@ -47,7 +47,7 @@ const sendSmsBulk = (number, message) => {
     });
 };
 
-const sendSms = (number, message) => {
+const   sendSms = (number, message) => {
     return new Promise(async (resolve, reject) => {
         if (!number || !message) {
             console.error("Number, message are required");
@@ -78,6 +78,8 @@ const sendSms = (number, message) => {
             "api_key": process.env.TERMII_API_KEY,
             "channel": "generic",
         };
+
+        console.log('data', data);
 
         const options = {
             'method': 'POST',
