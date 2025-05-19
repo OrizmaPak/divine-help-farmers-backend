@@ -558,13 +558,13 @@ const signup = async (req, res) => {
             // Fetch the personal account prefix from the organisationsettings table
             let personalAccountPrefix = "";
             const fetchPersonalAccountPrefix = async () => {
-                const query = `SELECT value FROM divine."organisationsettings" WHERE key = $1 LIMIT 1`;
-                const values = ['personal_account_prefix'];
+                const query = `SELECT personal_account_prefix FROM divine."Organisationsettings" LIMIT 1`;
 
                 try {
-                    const { rows } = await pg.query(query, values);
-                    console.log('personal_account_prefix:', rows.length > 0 ? rows[0].value : "");
-                    return rows.length > 0 ? rows[0].value : "";
+                    const { rows } = await pg.query(query);
+                    const prefix = rows.length > 0 ? rows[0].personal_account_prefix : "";
+                    console.log('personal_account_prefix:', prefix);
+                    return prefix;
                 } catch (err) {
                     console.error('Error fetching personal account prefix from organisationsettings:', err.message);
                     return "";
