@@ -59,13 +59,13 @@ const   sendSms = (number, message) => {
         let formattedNumber = number;
         if (typeof formattedNumber === "string") {
             formattedNumber = formattedNumber.trim();
-            if (!formattedNumber.startsWith("+") && formattedNumber.startsWith("0")) {
+            if (formattedNumber.startsWith("0")) {
                 // Remove leading zero if present
                 if (formattedNumber.startsWith("0")) {
                     formattedNumber = formattedNumber.substring(1);
                 }
                 // Prepend +234
-                formattedNumber = "+234" + formattedNumber;
+                formattedNumber = "234" + formattedNumber;
             }
         }
         number = formattedNumber;
@@ -79,7 +79,7 @@ const   sendSms = (number, message) => {
             "channel": "generic",
         };
 
-        console.log('data', data);
+        console.log('data222', data);
 
         const options = {
             'method': 'POST',
