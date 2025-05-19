@@ -573,32 +573,32 @@ const signup = async (req, res) => {
 
             personalAccountPrefix = await fetchPersonalAccountPrefix();
 
-            // After all accounts are created, send a clear and friendly welcome SMS summarizing the user's account details.
-            let smsMessage = ` Welcome to Divine Help Farmers, ${firstname}. Your accounts have been successfully created. `;
+            // After all accounts are created, send a concise welcome SMS summarizing the user's account details.
+            let smsMessage = `Welcome to Divine Help Farmers, ${firstname}!`;
 
             if (personalAccountNumber) {
                 const displayName = personalAccountName || (personalAccountPrefix ? `${personalAccountPrefix} Account` : "Personal Account");
                 const displayAccountNumber = personalAccountPrefix
                     ? `${personalAccountPrefix}${personalAccountNumber}`
                     : personalAccountNumber;
-                smsMessage += ` Your ${displayName} number is ${displayAccountNumber}. `;
+                smsMessage += ` ${displayName}: ${displayAccountNumber}.`;
             }
 
             if (paystackDirectAccount && paystackDirectBank) {
-                smsMessage += ` You also have a Direct Paystack Account (${paystackDirectBank}) with account number ${paystackDirectAccount}. `;
+                smsMessage += ` Paystack (${paystackDirectBank}): ${paystackDirectAccount}.`;
             }
 
             if (createdAccounts.length > 0) {
                 const additionalAccounts = createdAccounts
                     .filter(acc => !(personalAccountNumber && acc.accountnumber === personalAccountNumber))
-                    .map(acc => `${acc.accountname} (Account Number: ${acc.accountnumber})`)
+                    .map(acc => `${acc.accountname}: ${acc.accountnumber}`)
                     .join("; ");
                 if (additionalAccounts) {
-                    smsMessage += ` Additionally, we have set up the following accounts for you: ${additionalAccounts}. `;
+                    smsMessage += ` Other accounts: ${additionalAccounts}.`;
                 }
             }
 
-            smsMessage += ` You can now begin saving and transacting with ease. Thank you for joining Divine Help Farmers `;
+            smsMessage += ` Start saving today. Thank you!`;
 
             console.log('smsMessage', smsMessage);
 
