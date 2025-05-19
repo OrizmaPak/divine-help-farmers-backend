@@ -1223,3 +1223,18 @@ model messagehistory {
   status          String @default("ACTIVE") 
   createdby       Int    @default(0) 
 }
+
+model events {
+  id              Int    @id @default(autoincrement())
+  event           String
+  description     String?
+  users           String?
+  branch          String?
+  banner1         String?
+  banner2         String?
+  startdatetime   DateTime
+  enddatetime     DateTime
+  dateadded       DateTime @default(now())
+  status          String @default("ACTIVE") 
+  createdby       Int    @default(0) 
+}

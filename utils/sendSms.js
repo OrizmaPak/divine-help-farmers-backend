@@ -1,6 +1,7 @@
 const request = require('request');
 const pg = require('../db/pg');
 
+    
 
 const sendSmsBulk = (number, message) => {
     return new Promise(async (resolve, reject) => {
@@ -11,7 +12,7 @@ const sendSmsBulk = (number, message) => {
 
         const data = {
             "to": number,
-            "from": "DHF INC",
+            "from": "DHF",
             "sms": `${message}`,
             "type": "plain",
             "api_key": process.env.TERMII_API_KEY,
@@ -71,7 +72,7 @@ const sendSms = (number, message) => {
 
         const data = {
             "to": number,
-            "from": "DHF INC",
+            "from": "DHF",
             "sms": `${message}`,
             "type": "plain",
             "api_key": process.env.TERMII_API_KEY,
