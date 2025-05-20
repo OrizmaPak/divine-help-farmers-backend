@@ -309,7 +309,7 @@ const signup = async (req, res) => {
                 if (!paystackDirectAccount && paystackCustomerCode) {
                     const createDedicatedParams = JSON.stringify({
                         customer: paystackCustomerCode,
-                        preferred_bank: "wema-bank"
+                        preferred_bank: "titan-paystack"
                     });
                     const createDedicatedOptions = {
                         hostname: 'api.paystack.co',
