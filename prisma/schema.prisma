@@ -64,7 +64,7 @@ model User {
   state                   String?
   emailverified           DateTime?
   address                 String?
-  role                    String    @default("STAFF")
+  role                    String    @default("MEMBER")
   permissions             String?
   userpermissions         String?   @default("")
   password                String
@@ -1209,6 +1209,8 @@ model paystackreferences {
 model smscharges {
   id              Int    @id @default(autoincrement())
   phone           String
+  message         String? @default("")
+  page            Int? @default(1)
   dateadded       DateTime @default(now())
   status          String @default("ACTIVE") 
   createdby       Int    @default(0)  
@@ -1237,4 +1239,20 @@ model events {
   dateadded       DateTime @default(now())
   status          String @default("ACTIVE") 
   createdby       Int    @default(0) 
+}
+
+model tempsms {
+  id              Int    @id @default(autoincrement())
+  phone           String
+  message         String
+  dateadded       DateTime @default(now())
+  status          String @default("ACTIVE") 
+}
+
+model tempemail {
+  id              Int    @id @default(autoincrement())
+  email           String
+  message         String
+  dateadded       DateTime @default(now())
+  status          String @default("ACTIVE") 
 }

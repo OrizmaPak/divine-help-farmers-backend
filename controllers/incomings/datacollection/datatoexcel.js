@@ -1,5 +1,7 @@
     const { google } = require('googleapis');
     const { StatusCodes } = require('http-status-codes');
+const pg = require("../../../db/pg");
+const { signup2 } = require("../../auth/signup2");
     
     const codecheck = [
                 { "code": "CANADA", "name": "Wisdom Dev" },
@@ -652,4 +654,108 @@ async function updateBalances(req, res) {
   }
 
 
-module.exports = { saveDataToGoogleSheet, getDataByPhoneNumber, getAllDataFromGoogleSheet, updateBalances, getMatchingPhoneNumbers };
+const processExcelData = async (req, res) => {
+  try {
+    const auth = new google.auth.GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    const authClient = await auth.getClient();
+    const sheets = google.sheets({ version: 'v4', auth: authClient });
+
+    const spreadsheetId = '1UGZ9x-2_xii2M18L0-3mbIxHJ6nI6oORdjiS07FKB2k'; // Replace with your actual Spreadsheet ID
+    const range = 'Data Collection!A3:I'; // Start from row 3
+
+    const getResult = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+
+    const rows = getResult.data.values;
+    if (!rows || rows.length === 0) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: false,
+        message: 'No data found in the spreadsheet.',
+        statuscode: StatusCodes.NOT_FOUND,
+        data: null,
+        errors: [],
+      });
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const phone = row[0];
+      const firstname = row[1];
+      const lastname = row[2];
+      const othernames = row[3] || '';
+      const email = `${phone}@gmail.com`;
+      const password = phone;
+      const membershipIds = '1';
+
+      // Get branch ID using the unit from column I
+      const unit = row[8];
+      const branchQuery = `SELECT id FROM divine."Branch" WHERE unitno = $1 LIMIT 1`;
+      const { rows: branchRows } = await pg.query(branchQuery, [unit]);
+      if (branchRows.length === 0) {
+        console.error(`Branch not found for unit: ${unit}`);
+        continue;
+      }
+      const branch = branchRows[0].id;
+
+      // Prepare request body for signup2
+      const signupReq = {
+        body: {
+          firstname,
+          lastname,
+          othernames,
+          email,
+          password,
+          phone,
+          branch,
+          membershipIds,
+          verify: false,
+          device: '',
+          country: '',
+          state: '',
+        },
+      };
+
+      // Call signup2 function
+      const signupSuccess = await signup2(signupReq, res);
+      if (signupSuccess) {
+        // Update the email in column E if signup is successful
+        const emailRange = `Data Collection!E${i + 3}`;
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: emailRange,
+          valueInputOption: 'USER_ENTERED',
+          resource: {
+            values: [[email]],
+          },
+        });
+      }
+    }
+
+    return res.status(StatusCodes.OK).json({
+      status: true,
+      message: 'Processed Excel data successfully.',
+      statuscode: StatusCodes.OK,
+      data: null,
+      errors: [],
+    });
+  } catch (error) {
+    console.error('Processing Error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: false,
+      message: 'Failed to process Excel data.',
+      statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+      data: null,
+      errors: [{ message: error.message }],
+    });
+  }
+};
+
+
+
+
+module.exports = { saveDataToGoogleSheet, getDataByPhoneNumber, getAllDataFromGoogleSheet, updateBalances, getMatchingPhoneNumbers, processExcelData };

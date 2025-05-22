@@ -14,7 +14,7 @@ const { manageSavingsAccount } = require("../savings/createaccount/createaccount
 const { sendSms } = require("../../utils/sendSms");
 
 
-const signup = async (req, res) => {
+const signup2 = async (req, res) => {
     // Destructure and extract user details from the request body
     const { firstname, lastname, branch, email, password, phone, othernames = '', verify = false, device = '', country = '', state = '' } = req.body;
     console.log({ firstname, lastname, email, password, othernames, ema: isValidEmail(email) });
@@ -45,14 +45,8 @@ const signup = async (req, res) => {
             errors.push({ field: 'Password', message: 'Password not found' });
         }
 
-        // Return a response with the list of errors if validation fails
-        return res.status(StatusCodes.BAD_REQUEST).json({
-            status: false,
-            message: "Missing Fields",
-            statuscode: StatusCodes.BAD_REQUEST,
-            data: null,
-            errors: errors
-        });
+        // Return false if validation fails
+        return false;
     }
 
     try {
@@ -60,15 +54,9 @@ const signup = async (req, res) => {
         const branchExistsQuery = `SELECT * FROM divine."Branch" WHERE id = $1`;
         const { rows: branchExistsResult } = await pg.query(branchExistsQuery, [branch]);
 
-        // If the branch does not exist, return an error response
+        // If the branch does not exist, return false
         if (branchExistsResult.length === 0) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "Branch does not exist.",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: ["Branch does not exist."]
-            });
+            return false;
         }
 
         // Query to check if the email already exists in the database
@@ -79,35 +67,17 @@ const signup = async (req, res) => {
 
         // Check if the user exists but is not active
         if (theuser.length > 0 && theuser[0].status != 'ACTIVE') {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: `Your account has been ${theuser[0].status}`,
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });
+            return false;
         }
 
-        // If the email is already in use, return an error response
+        // If the email is already in use, return false
         if (theuser.length > 0) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "Email already in use",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });
+            return false;
         }
 
-        // If the phone number is already in use, return an error response
+        // If the phone number is already in use, return false
         if (phoneUser.length > 0) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                status: false,
-                message: "Phone number already in use",
-                statuscode: StatusCodes.BAD_REQUEST,
-                data: null,
-                errors: []
-            });
+            return false;
         }
 
         // Hash the user's password for security
@@ -609,21 +579,15 @@ const signup = async (req, res) => {
             console.log('Error retrieving personal account data or sending welcome SMS:', err.message);
         }
 
-        // Send the response back to the client
-        return res.status(StatusCodes.OK).json(responseData);
+        // Return true if everything is successful
+        return true;
     } catch (err) {
         // Log and handle any unexpected errors
         console.error('Unexpected Error:', err);
-        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            status: false,
-            message: "An unexpected error occurred",
-            statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
-            data: null,
-            errors: []
-        });
+        return false;
     }
 }
 
 module.exports = {
-    signup
+    signup2
 };

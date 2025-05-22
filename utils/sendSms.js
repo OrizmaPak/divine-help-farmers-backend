@@ -47,65 +47,101 @@ const sendSmsBulk = (number, message) => {
     });
 };
 
-const   sendSms = (number, message) => {
+// const  sendSms = (number, message) => {
+//     return new Promise(async (resolve, reject) => {
+//         if (!number || !message) {
+//             console.error("Number, message are required");
+//             return resolve(false);
+//         }
+
+//         // Check if the number is internationally formatted (starts with '+')
+//         // If not, format it as +234XXXXXXXXXX (assuming Nigerian numbers)
+//         let formattedNumber = number;
+//         if (typeof formattedNumber === "string") {
+//             formattedNumber = formattedNumber.trim();
+//             if (formattedNumber.startsWith("0")) {
+//                 // Remove leading zero if present
+//                 if (formattedNumber.startsWith("0")) {
+//                     formattedNumber = formattedNumber.substring(1);
+//                 }
+//                 // Prepend +234
+//                 formattedNumber = "234" + formattedNumber;
+//             }
+//         }
+//         number = formattedNumber;
+
+//         const data = {
+//             "to": number,
+//             "from": "DHF",
+//             "sms": `${message}`,
+//             "type": "plain",
+//             "api_key": process.env.TERMII_API_KEY,
+//             "channel": "generic",
+//         };
+
+//         console.log('data222', data);
+
+//         const options = {
+//             'method': 'POST',
+//             'url': 'https://v3.api.termii.com/api/sms/send',
+//             'headers': {
+//                 'Content-Type': ['application/json', 'application/json']
+//             },
+//             body: JSON.stringify(data)
+//         };
+
+//         request(options, async function (error, response) {
+//             if (error) {
+//                 console.error(error);
+//                 return resolve(false);
+//             }
+//             console.log(response.body);
+
+//             // Store SMS data in the database
+//             const smsData = {
+//                 text: `INSERT INTO divine."smscharges" (phone, status, createdby) VALUES ($1, $2, $3)`,
+//                 values: [number, "SENT", 0]
+//             };
+//             await pg.query(smsData);
+
+//             return resolve(true);
+//         });
+//     });
+// };
+
+const sendSms = (number, message) => {
     return new Promise(async (resolve, reject) => {
         if (!number || !message) {
-            console.error("Number, message are required");
+            console.error("Number and message are required");
             return resolve(false);
         }
 
-        // Check if the number is internationally formatted (starts with '+')
-        // If not, format it as +234XXXXXXXXXX (assuming Nigerian numbers)
-        let formattedNumber = number;
-        if (typeof formattedNumber === "string") {
-            formattedNumber = formattedNumber.trim();
-            if (formattedNumber.startsWith("0")) {
-                // Remove leading zero if present
-                if (formattedNumber.startsWith("0")) {
-                    formattedNumber = formattedNumber.substring(1);
-                }
-                // Prepend +234
-                formattedNumber = "234" + formattedNumber;
-            }
+        // Format number to international format (234XXXXXXXXXX), removing leading '+' if present
+        let formattedNumber = number.trim();
+        if (formattedNumber.startsWith("+")) {
+            formattedNumber = formattedNumber.substring(1);
+        } else if (formattedNumber.startsWith("0")) {
+            formattedNumber = "234" + formattedNumber.substring(1);
         }
+
         number = formattedNumber;
 
-        const data = {
-            "to": number,
-            "from": "DHF",
-            "sms": `${message}`,
-            "type": "plain",
-            "api_key": process.env.TERMII_API_KEY,
-            "channel": "generic",
-        };
-
-        console.log('data222', data);
-
-        const options = {
-            'method': 'POST',
-            'url': 'https://v3.api.termii.com/api/sms/send',
-            'headers': {
-                'Content-Type': ['application/json', 'application/json']
-            },
-            body: JSON.stringify(data)
-        };
-
-        request(options, async function (error, response) {
-            if (error) {
-                console.error(error);
-                return resolve(false);
-            }
-            console.log(response.body);
-
-            // Store SMS data in the database
-            const smsData = {
-                text: `INSERT INTO divine."smscharges" (phone, status, createdby) VALUES ($1, $2, $3)`,
-                values: [number, "SENT", 0]
+        try {
+            // Save SMS details to tempsms table
+            const tempSmsQuery = {
+                text: `INSERT INTO divine."tempsms" (phone, message, status) VALUES ($1, $2, $3)`,
+                values: [number, message, "ACTIVE"]
             };
-            await pg.query(smsData);
+            await pg.query(tempSmsQuery);
 
+            console.log('SMS details saved to tempsms:', { number, message });
+
+            // Do not send the SMS, only save to tempsms
             return resolve(true);
-        });
+        } catch (err) {
+            console.error('Database error:', err);
+            return resolve(false);
+        }
     });
 };
 
