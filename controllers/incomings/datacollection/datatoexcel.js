@@ -683,56 +683,61 @@ const processExcelData = async (req, res) => {
     }
 
     for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const phone = row[0];
-      const firstname = row[1];
-      const lastname = row[2];
-      const othernames = row[3] || '';
-      const email = `${phone}@gmail.com`;
-      const password = phone;
-      const membershipIds = '1';
+      try {
+        const row = rows[i];
+        const phone = row[0];
+        const firstname = row[1];
+        const lastname = row[2];
+        const othernames = row[3] || '';
+        const email = `${phone}@gmail.com`;
+        const password = phone;
+        const membershipIds = '1';
 
-      // Get branch ID using the unit from column I
-      const unit = row[8];
-      const branchQuery = `SELECT id FROM divine."Branch" WHERE unitno = $1 LIMIT 1`;
-      const { rows: branchRows } = await pg.query(branchQuery, [unit]);
-      if (branchRows.length === 0) {
-        console.error(`Branch not found for unit: ${unit}`);
-        continue;
-      }
-      const branch = branchRows[0].id;
+        // Get branch ID using the unit from column I
+        const unit = row[8];
+        const branchQuery = `SELECT id FROM divine."Branch" WHERE unitno = $1 LIMIT 1`;
+        const { rows: branchRows } = await pg.query(branchQuery, [unit]);
+        if (branchRows.length === 0) {
+          console.error(`Branch not found for unit: ${unit}`);
+          continue;
+        }
+        const branch = branchRows[0].id;
 
-      // Prepare request body for signup2
-      const signupReq = {
-        body: {
-          firstname,
-          lastname,
-          othernames,
-          email,
-          password,
-          phone,
-          branch,
-          membershipIds,
-          verify: false,
-          device: '',
-          country: '',
-          state: '',
-        },
-      };
-
-      // Call signup2 function
-      const signupSuccess = await signup2(signupReq, res);
-      if (signupSuccess) {
-        // Update the email in column E if signup is successful
-        const emailRange = `Data Collection!E${i + 3}`;
-        await sheets.spreadsheets.values.update({
-          spreadsheetId,
-          range: emailRange,
-          valueInputOption: 'USER_ENTERED',
-          resource: {
-            values: [[email]],
+        // Prepare request body for signup2
+        const signupReq = {
+          body: {
+            firstname,
+            lastname,
+            othernames,
+            email,
+            password,
+            phone,
+            branch,
+            membershipIds,
+            verify: false,
+            device: '',
+            country: '',
+            state: '',
           },
-        });
+        };
+
+        // Call signup2 function
+        const signupSuccess = await signup2(signupReq, res);
+        if (signupSuccess) {
+          // Update the email in column E if signup is successful
+          const emailRange = `Data Collection!E${i + 3}`;
+          await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: emailRange,
+            valueInputOption: 'USER_ENTERED',
+            resource: {
+              values: [[email]],
+            },
+          });
+        }
+      } catch (innerError) {
+        console.error(`Error processing row ${i + 3}:`, innerError);
+        continue;
       }
     }
 
