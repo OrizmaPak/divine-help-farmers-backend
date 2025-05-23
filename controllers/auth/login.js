@@ -100,6 +100,8 @@ async function login(req, res) {
                     }
                 };
 
+                console.log('paystackCheckOptions', paystackCheckOptions);
+
                 const paystackCheckReq = https.request(paystackCheckOptions, paystackRes => {
                     let data = '';
 
