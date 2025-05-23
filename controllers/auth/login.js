@@ -107,6 +107,7 @@ async function login(req, res) {
 
                     paystackRes.on('end', async () => {
                         const paystackResponse = JSON.parse(data);
+                        console.log('paystackResponse', paystackResponse);  
                         let dedicatedAccountInfo = {};
 
                         if (paystackResponse.status === false) {
@@ -114,7 +115,7 @@ async function login(req, res) {
                             const paystackCreateOptions = {
                                 hostname: 'api.paystack.co',
                                 port: 443,
-                                path: '/customer',
+                                path: '/customer', 
                                 method: 'POST',
                                 headers: {
                                     Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
