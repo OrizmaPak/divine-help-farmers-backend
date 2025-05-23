@@ -85,6 +85,8 @@ async function login(req, res) {
             VALUES ($1, $2, $3, $4) 
             `, [token, existingUser.id, calculateExpiryDate(process.env.SESSION_EXPIRATION_HOUR), device]);
 
+            console.log('existingUser', existingUser);
+
             // Check if account details are missing
             if (!existingUser.account_number || !existingUser.account_name || !existingUser.bank_name) {
                 // Check if the user is already on Paystack
