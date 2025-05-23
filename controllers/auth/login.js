@@ -11,7 +11,7 @@ const https = require('https');
 async function login(req, res) {
     const { login, password, verify = '', device = '' } = req.body;
 
-    // Basic validation
+    // Basic validation for login and password fields
     if (!login || !password) {
         let errors = [];
         if (!login) { 
@@ -38,6 +38,7 @@ async function login(req, res) {
 
     try {
         let query, queryValue;
+        // Determine if login is an email or phone number
         if (isValidEmail(login)) {
             query = `SELECT * FROM divine."User" WHERE email = $1`;
             queryValue = login;
@@ -46,7 +47,7 @@ async function login(req, res) {
             queryValue = login;
         }
 
-        // Check if user exists using raw query
+        // Check if user exists in the database
         const { rows: [existingUser] } = await pg.query(query, [queryValue]);
 
         if (!existingUser) {
@@ -68,16 +69,17 @@ async function login(req, res) {
             });
         }
 
-        // Verify password
+        // Verify the provided password against the stored hash
         const isPasswordValid = await bcrypt.compare(password, existingUser.password);
 
         if (isPasswordValid) {
             const { permissions, userpermissions, ...userWithoutPermissions } = existingUser;
+            // Generate a JWT token for the session
             const token = jwt.sign({ user: userWithoutPermissions }, process.env.JWT_SECRET, {
                 expiresIn: process.env.SESSION_EXPIRATION_HOUR + 'h',
             });
 
-            // STORE THE SESSION
+            // Store the session in the database
             await pg.query(`INSERT INTO divine."Session" 
             (sessiontoken, userid, expires, device) 
             VALUES ($1, $2, $3, $4) 
@@ -137,46 +139,43 @@ async function login(req, res) {
                                 paystackCreateRes.on('end', async () => {
                                     const createdUser = JSON.parse(createData); 
 
-                                    // Check if the user has a dedicated account  
-                                    if (!createdUser.data.dedicated_account) {
-                                        // Create a dedicated account for the user
-                                        const dedicatedAccountOptions = {
-                                            hostname: 'api.paystack.co',
-                                            port: 443,
-                                            path: '/dedicated_account',
-                                            method: 'POST',
-                                            headers: {
-                                                Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
-                                                'Content-Type': 'application/json'
-                                            }
-                                        };
+                                    // Create a dedicated account for the user
+                                    const dedicatedAccountOptions = {
+                                        hostname: 'api.paystack.co',
+                                        port: 443,
+                                        path: '/dedicated_account',
+                                        method: 'POST',
+                                        headers: {
+                                            Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
+                                            'Content-Type': 'application/json'
+                                        }
+                                    };
 
-                                        const dedicatedAccountParams = JSON.stringify({
-                                            customer: createdUser.data.id,
-                                            preferred_bank: "titan-paystack"
+                                    const dedicatedAccountParams = JSON.stringify({
+                                        customer: createdUser.data.id,
+                                        preferred_bank: "titan-paystack"
+                                    });
+
+                                    const dedicatedAccountReq = https.request(dedicatedAccountOptions, dedicatedAccountRes => {
+                                        let dedicatedAccountData = '';
+
+                                        dedicatedAccountRes.on('data', (chunk) => {
+                                            dedicatedAccountData += chunk;
                                         });
 
-                                        const dedicatedAccountReq = https.request(dedicatedAccountOptions, dedicatedAccountRes => {
-                                            let dedicatedAccountData = '';
+                                        dedicatedAccountRes.on('end', async () => {
+                                            const accountData = JSON.parse(dedicatedAccountData);
 
-                                            dedicatedAccountRes.on('data', (chunk) => {
-                                                dedicatedAccountData += chunk;
-                                            });
-
-                                            dedicatedAccountRes.on('end', async () => {
-                                                const accountData = JSON.parse(dedicatedAccountData);
-
-                                                // Update user profile with account details
-                                                await pg.query(`UPDATE divine."User" SET account_number = $1, account_name = $2, bank_name = $3 WHERE id = $4`, 
-                                                [accountData.data.account_number, accountData.data.account_name, accountData.data.bank.name, existingUser.id]);
-                                            });
-                                        }).on('error', error => {
-                                            console.error('Error creating dedicated account:', error);
+                                            // Update user profile with account details
+                                            await pg.query(`UPDATE divine."User" SET account_number = $1, account_name = $2, bank_name = $3 WHERE id = $4`, 
+                                            [accountData.data.account_number, accountData.data.account_name, accountData.data.bank.name, existingUser.id]);
                                         });
+                                    }).on('error', error => {
+                                        console.error('Error creating dedicated account:', error);
+                                    });
 
-                                        dedicatedAccountReq.write(dedicatedAccountParams);
-                                        dedicatedAccountReq.end();
-                                    }
+                                    dedicatedAccountReq.write(dedicatedAccountParams);
+                                    dedicatedAccountReq.end();
                                 });
                             }).on('error', error => {
                                 console.error('Error creating user on Paystack:', error);
@@ -184,31 +183,72 @@ async function login(req, res) {
 
                             paystackCreateReq.write(params);
                             paystackCreateReq.end();
-                        } else if (paystackResponse.data.dedicated_account) {
-                            // If the user has a dedicated account, extract the details
-                            const { account_name, account_number, bank } = paystackResponse.data.dedicated_account;
-                            dedicatedAccountInfo = {
-                                account_name,
-                                account_number,
-                                bank_name: bank.name
-                            };
+                        } else {
+                            // User exists on Paystack
+                            if (!paystackResponse.data.dedicated_account) {
+                                // User exists but has no dedicated account, create one
+                                const dedicatedAccountOptions = {
+                                    hostname: 'api.paystack.co',
+                                    port: 443,
+                                    path: '/dedicated_account',
+                                    method: 'POST',
+                                    headers: {
+                                        Authorization: `Bearer ${process.env.PAYSTACK_PRODUCTION_SECRET_KEY}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                };
 
-                            // Update user profile with account details
-                            await pg.query(`UPDATE divine."User" SET account_number = $1, account_name = $2, bank_name = $3 WHERE id = $4`, 
-                            [account_number, account_name, bank.name, existingUser.id]);
+                                const dedicatedAccountParams = JSON.stringify({
+                                    customer: paystackResponse.data.id,
+                                    preferred_bank: "titan-paystack"
+                                });
+
+                                const dedicatedAccountReq = https.request(dedicatedAccountOptions, dedicatedAccountRes => {
+                                    let dedicatedAccountData = '';
+
+                                    dedicatedAccountRes.on('data', (chunk) => {
+                                        dedicatedAccountData += chunk;
+                                    });
+
+                                    dedicatedAccountRes.on('end', async () => {
+                                        const accountData = JSON.parse(dedicatedAccountData);
+
+                                        // Update user profile with account details
+                                        await pg.query(`UPDATE divine."User" SET account_number = $1, account_name = $2, bank_name = $3 WHERE id = $4`, 
+                                        [accountData.data.account_number, accountData.data.account_name, accountData.data.bank.name, existingUser.id]);
+                                    });
+                                }).on('error', error => {
+                                    console.error('Error creating dedicated account:', error);
+                                });
+
+                                dedicatedAccountReq.write(dedicatedAccountParams);
+                                dedicatedAccountReq.end();
+                            } else {
+                                // If the user has a dedicated account, extract the details
+                                const { account_name, account_number, bank } = paystackResponse.data.dedicated_account;
+                                dedicatedAccountInfo = {
+                                    account_name,
+                                    account_number,
+                                    bank_name: bank.name
+                                };
+
+                                // Update user profile with account details
+                                await pg.query(`UPDATE divine."User" SET account_number = $1, account_name = $2, bank_name = $3 WHERE id = $4`, 
+                                [account_number, account_name, bank.name, existingUser.id]);
+                            }
                         }
 
                         let messagestatus;
-                        // CHECK IF THE USER HAS VALIDATED HIS EMAIL
+                        // Check if the user has verified their email
                         if (!existingUser.emailverified && verify) {
-                            // create verification token
+                            // Create a verification token
                             const vtoken = jwt.sign({ email: existingUser.email }, process.env.JWT_SECRET, { expiresIn: process.env.VERIFICATION_EXPIRATION_HOUR + 'h' });
-                            // create a verification link and code
+                            // Insert verification token into the database
                             await pg.query(`INSERT INTO divine."VerificationToken" 
                                             (identifier, token, expires) 
                                             VALUES ($1, $2, $3)`, [existingUser.id, vtoken, calculateExpiryDate(process.env.VERIFICATION_EXPIRATION_HOUR)]);
 
-                            // send confirmation email
+                            // Send confirmation email
                             await sendEmail({
                                 to: existingUser.email,
                                 subject: 'Confirm Your Email to Begin Your Journey with divine Help Farmers Cooperative 🎉',
@@ -243,16 +283,16 @@ async function login(req, res) {
                                     `
                             });
 
-                            //  TRACK THE ACTIVITY
+                            // Track the activity of sending a verification email
                             await activityMiddleware(req, existingUser.id, 'Verification Email Sent', 'AUTH');
                             messagestatus = true;
                         }
 
-                        // CHECK IF THIS IS THE FIRST TIME THE USER IS LOGINING
+                        // Check if this is the first time the user is logging in
                         if (existingUser.permissions == 'NEWUSER') {
                             await pg.query(`UPDATE divine."User" SET permissions = null WHERE id = $1`, [existingUser.id]);
                         }
-                        //  TRACK THE ACTIVITY
+                        // Track the login activity
                         await activityMiddleware(req, existingUser.id, `Logged in Successfully ${existingUser.permissions == 'NEWUSER' ? 'and its the first login after registering' : ''} on a ${device} device`, 'AUTH');
                       
 
@@ -278,7 +318,7 @@ async function login(req, res) {
 
                 paystackCheckReq.end();
             } else {
-                // TRACK THE ACTIVITY
+                // Track the activity for successful login
                 await activityMiddleware(req, existingUser.id, 'Logged in Successfully', 'AUTH');
 
                 const { password, ...userWithoutPassword } = existingUser;
@@ -296,7 +336,7 @@ async function login(req, res) {
                 return res.status(StatusCodes.OK).json(responseData); 
             } 
         } else {
-            // TRACK THE ACTIVITY
+            // Track the activity for failed login due to incorrect password
             await activityMiddleware(req, existingUser.id, 'Login Attempt Failed due to incorrect password', 'AUTH');
             
             return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -312,7 +352,7 @@ async function login(req, res) {
         }
     } catch (err) {
         console.error('Unexpected Error:', err);
-        //  TRACK THE ACTIVITY
+        // Track the activity for failed login due to an unexpected error
         await activityMiddleware(req, existingUser.id, 'Login Attempt Failed due to an unexpected error', 'AUTH');
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             status: false,
