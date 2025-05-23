@@ -88,8 +88,9 @@ async function login(req, res) {
             console.log('existingUser', existingUser);
 
             // Check if account details are missing
+            console.log('Checking if account details are missing for user:', existingUser.id);
             if (!existingUser.account_number || !existingUser.account_name || !existingUser.bank_name) {
-                // Check if the user is already on Paystack
+                console.log('Account details are missing, proceeding to check user on Paystack');
                 const paystackCheckOptions = {
                     hostname: 'api.paystack.co',
                     port: 443,
@@ -100,22 +101,24 @@ async function login(req, res) {
                     }
                 };
 
-                console.log('paystackCheckOptions', paystackCheckOptions);
+                console.log('Paystack check options:', paystackCheckOptions);
 
                 const paystackCheckReq = https.request(paystackCheckOptions, paystackRes => {
                     let data = '';
 
                     paystackRes.on('data', (chunk) => {
+                        console.log('Receiving data chunk from Paystack:', chunk);
                         data += chunk;
                     });
 
                     paystackRes.on('end', async () => {
+                        console.log('Finished receiving data from Paystack');
                         const paystackResponse = JSON.parse(data);
-                        console.log('paystackResponse', paystackResponse);  
+                        console.log('Parsed Paystack response:', paystackResponse);  
                         let dedicatedAccountInfo = {};
 
                         if (paystackResponse.status === false) {
-                            // User not found on Paystack, create the user
+                            console.log('User not found on Paystack, creating user');
                             const paystackCreateOptions = {
                                 hostname: 'api.paystack.co',
                                 port: 443,
@@ -134,17 +137,23 @@ async function login(req, res) {
                                 phone: existingUser.phone
                             });
 
+                            console.log('Paystack create options:', paystackCreateOptions);
+                            console.log('Paystack create params:', params);
+
                             const paystackCreateReq = https.request(paystackCreateOptions, paystackCreateRes => {
                                 let createData = '';
 
                                 paystackCreateRes.on('data', (chunk) => { 
+                                    console.log('Receiving data chunk from Paystack create:', chunk);
                                     createData += chunk;
                                 }); 
   
                                 paystackCreateRes.on('end', async () => {
+                                    console.log('Finished receiving data from Paystack create');
                                     const createdUser = JSON.parse(createData); 
+                                    console.log('Parsed created user data:', createdUser);
 
-                                    // Create a dedicated account for the user
+                                    console.log('Creating dedicated account for user');
                                     const dedicatedAccountOptions = {
                                         hostname: 'api.paystack.co',
                                         port: 443,
@@ -161,17 +170,23 @@ async function login(req, res) {
                                         preferred_bank: "titan-paystack"
                                     });
 
+                                    console.log('Dedicated account options:', dedicatedAccountOptions);
+                                    console.log('Dedicated account params:', dedicatedAccountParams);
+
                                     const dedicatedAccountReq = https.request(dedicatedAccountOptions, dedicatedAccountRes => {
                                         let dedicatedAccountData = '';
 
                                         dedicatedAccountRes.on('data', (chunk) => {
+                                            console.log('Receiving data chunk from dedicated account creation:', chunk);
                                             dedicatedAccountData += chunk;
                                         });
 
                                         dedicatedAccountRes.on('end', async () => {
+                                            console.log('Finished receiving data from dedicated account creation');
                                             const accountData = JSON.parse(dedicatedAccountData);
+                                            console.log('Parsed dedicated account data:', accountData);
 
-                                            // Update user profile with account details
+                                            console.log('Updating user profile with account details');
                                             await pg.query(`UPDATE divine."User" SET account_number = $1, account_name = $2, bank_name = $3 WHERE id = $4`, 
                                             [accountData.data.account_number, accountData.data.account_name, accountData.data.bank.name, existingUser.id]);
                                         });
@@ -189,9 +204,9 @@ async function login(req, res) {
                             paystackCreateReq.write(params);
                             paystackCreateReq.end();
                         } else {
-                            // User exists on Paystack
+                            console.log('User exists on Paystack');
                             if (!paystackResponse.data.dedicated_account) {
-                                // User exists but has no dedicated account, create one
+                                console.log('User exists but has no dedicated account, creating one');
                                 const dedicatedAccountOptions = {
                                     hostname: 'api.paystack.co',
                                     port: 443,
@@ -208,17 +223,23 @@ async function login(req, res) {
                                     preferred_bank: "titan-paystack"
                                 });
 
+                                console.log('Dedicated account options:', dedicatedAccountOptions);
+                                console.log('Dedicated account params:', dedicatedAccountParams);
+
                                 const dedicatedAccountReq = https.request(dedicatedAccountOptions, dedicatedAccountRes => {
                                     let dedicatedAccountData = '';
 
                                     dedicatedAccountRes.on('data', (chunk) => {
+                                        console.log('Receiving data chunk from dedicated account creation:', chunk);
                                         dedicatedAccountData += chunk;
                                     });
 
                                     dedicatedAccountRes.on('end', async () => {
+                                        console.log('Finished receiving data from dedicated account creation');
                                         const accountData = JSON.parse(dedicatedAccountData);
+                                        console.log('Parsed dedicated account data:', accountData);
 
-                                        // Update user profile with account details
+                                        console.log('Updating user profile with account details');
                                         await pg.query(`UPDATE divine."User" SET account_number = $1, account_name = $2, bank_name = $3 WHERE id = $4`, 
                                         [accountData.data.account_number, accountData.data.account_name, accountData.data.bank.name, existingUser.id]);
                                     });
@@ -229,7 +250,7 @@ async function login(req, res) {
                                 dedicatedAccountReq.write(dedicatedAccountParams);
                                 dedicatedAccountReq.end();
                             } else {
-                                // If the user has a dedicated account, extract the details
+                                console.log('User has a dedicated account, extracting details');
                                 const { account_name, account_number, bank } = paystackResponse.data.dedicated_account;
                                 dedicatedAccountInfo = {
                                     account_name,
@@ -237,23 +258,25 @@ async function login(req, res) {
                                     bank_name: bank.name
                                 };
 
-                                // Update user profile with account details
+                                console.log('Updating user profile with account details');
                                 await pg.query(`UPDATE divine."User" SET account_number = $1, account_name = $2, bank_name = $3 WHERE id = $4`, 
                                 [account_number, account_name, bank.name, existingUser.id]);
                             }
                         }
 
                         let messagestatus;
-                        // Check if the user has verified their email
+                        console.log('Checking if user has verified their email');
                         if (!existingUser.emailverified && verify) {
-                            // Create a verification token
+                            console.log('User has not verified email, creating verification token');
                             const vtoken = jwt.sign({ email: existingUser.email }, process.env.JWT_SECRET, { expiresIn: process.env.VERIFICATION_EXPIRATION_HOUR + 'h' });
-                            // Insert verification token into the database
+                            console.log('Verification token created:', vtoken);
+
+                            console.log('Inserting verification token into database');
                             await pg.query(`INSERT INTO divine."VerificationToken" 
                                             (identifier, token, expires) 
                                             VALUES ($1, $2, $3)`, [existingUser.id, vtoken, calculateExpiryDate(process.env.VERIFICATION_EXPIRATION_HOUR)]);
 
-                            // Send confirmation email
+                            console.log('Sending confirmation email');
                             await sendEmail({
                                 to: existingUser.email,
                                 subject: 'Confirm Your Email to Begin Your Journey with divine Help Farmers Cooperative 🎉',
@@ -288,19 +311,20 @@ async function login(req, res) {
                                     `
                             });
 
-                            // Track the activity of sending a verification email
+                            console.log('Tracking activity of sending verification email');
                             await activityMiddleware(req, existingUser.id, 'Verification Email Sent', 'AUTH');
                             messagestatus = true;
                         }
 
-                        // Check if this is the first time the user is logging in
+                        console.log('Checking if this is the first time the user is logging in');
                         if (existingUser.permissions == 'NEWUSER') {
+                            console.log('First login detected, updating permissions');
                             await pg.query(`UPDATE divine."User" SET permissions = null WHERE id = $1`, [existingUser.id]);
                         }
-                        // Track the login activity
+                        console.log('Tracking login activity');
                         await activityMiddleware(req, existingUser.id, `Logged in Successfully ${existingUser.permissions == 'NEWUSER' ? 'and its the first login after registering' : ''} on a ${device} device`, 'AUTH');
                       
-
+                        console.log('Preparing response data');
                         const { password, ...userWithoutPassword } = existingUser;
                         const userWithAccountInfo = { ...userWithoutPassword, ...dedicatedAccountInfo };
                         const responseData = {
@@ -315,17 +339,20 @@ async function login(req, res) {
                             },
                             errors: []
                         };
+                        console.log('Sending response data:', responseData);
                         return res.status(StatusCodes.OK).json(responseData);
                     });
                 }).on('error', error => {
                     console.error('Error checking user on Paystack:', error);
                 });
 
+                console.log('Ending Paystack check request');
                 paystackCheckReq.end();
             } else {
-                // Track the activity for successful login
+                console.log('Account details are present, tracking successful login activity');
                 await activityMiddleware(req, existingUser.id, 'Logged in Successfully', 'AUTH');
 
+                console.log('Preparing response data for successful login');
                 const { password, ...userWithoutPassword } = existingUser;
                 const responseData = {
                     status: true,
@@ -338,6 +365,7 @@ async function login(req, res) {
                     },
                     errors: []
                 };
+                console.log('Sending response data for successful login:', responseData);
                 return res.status(StatusCodes.OK).json(responseData); 
             } 
         } else {
