@@ -11,14 +11,14 @@ const sendLaunchSms = async (req, res) => {
     try {
         // Fetch all rows from the tempsms table
         const { rows: tempSmsRows } = await pg.query({
-            text: `SELECT id, phone, message, sendstatus FROM divine."tempsms" WHERE sendstatus IS NULL`
+            text: `SELECT id, phone, message, sendstatus FROM divine."tempsms" WHERE sendstatus = ''`
         });
 
         console.log(`Total SMS to process: ${tempSmsRows.length}`);
 
         let success = true;
         let sentCount = 0;
-        const failedIds = [];
+        const failedIds = []; 
 
         // Send SMS for each row using sendSms function
         for (const row of tempSmsRows) {
@@ -29,7 +29,8 @@ const sendLaunchSms = async (req, res) => {
                 if (!response) {
                     success = false;
                     failedIds.push(id);
-                    await activityMiddleware(req, user.id, `Failed to send SMS to ${phoneNumber}`, 'SMS_SEND_ERROR');
+                    await activityMiddleware(req, user.id, `Failed to send SMS to ${phoneNumber}`, 'SMS_SEND_ERROR');    
+                    console.log(`Failed to send SMS to ${phoneNumber}. Total sent: ${sentCount}`);
                 } else {
                     sentCount++;
                     console.log(`SMS sent successfully to ${phoneNumber}. Total sent: ${sentCount}`);

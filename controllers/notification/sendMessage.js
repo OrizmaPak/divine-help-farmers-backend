@@ -12,7 +12,7 @@ const sendMessage = async (req, res) => {
     console.log('message router entered');
 
     try {
-        if (!ids || !message || !channel) {
+        if (!ids || !message || !channel) { 
             return res.status(StatusCodes.BAD_REQUEST).json({
                 status: false,
                 message: "User IDs, message, and channel are required",
@@ -30,7 +30,7 @@ const sendMessage = async (req, res) => {
             values: [userIds.map(id => parseInt(id, 10))]
         });
 
-        let success = true;
+        let success = true; 
         let sentCount = 0;
 
         if (channel === 'SMS') {
