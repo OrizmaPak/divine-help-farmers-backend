@@ -42,7 +42,7 @@ const sendLaunchSms = async (req, res) => {
         // Update sendstatus in the database
         if (failedIds.length > 0) {
             await pg.query({
-                text: `UPDATE tempsms SET sendstatus = 'FAILED' WHERE id = ANY($1::int[])`,
+                text: `UPDATE divine."tempsms" SET sendstatus = 'FAILED' WHERE id = ANY($1::int[])`,
                 values: [failedIds]
             });
             console.log(`Failed to send SMS to ${failedIds.length} numbers`);
@@ -50,7 +50,7 @@ const sendLaunchSms = async (req, res) => {
         const successfulIds = tempSmsRows.filter(row => !failedIds.includes(row.id)).map(row => row.id);
         if (successfulIds.length > 0) {
             await pg.query({
-                text: `UPDATE tempsms SET sendstatus = 'SENT' WHERE id = ANY($1::int[])`,
+                text: `UPDATE divine."tempsms" SET sendstatus = 'SENT' WHERE id = ANY($1::int[])`,
                 values: [successfulIds]
             });
             console.log(`Successfully sent SMS to ${successfulIds.length} numbers`);
