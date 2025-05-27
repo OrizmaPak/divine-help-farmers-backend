@@ -36,9 +36,10 @@ const sendOtp = async (req, res) => {
 
         if (method === 'phone' || method === 'both') {
             if (user.phone) {
-                await sendSmsDnd(user.phone, `Your DHF Verification Pin is ${otp}. Valid for 10 minutes, one-time use only. Divine Help Farmers`);
+                const formattedPhone = formatPhoneNumber(user.phone, user.country || 'nigeria');
+                await sendSmsDnd(formattedPhone, `Your DHF Verification Pin is ${otp}. Valid for 10 minutes, one-time use only. Divine Help Farmers`);
             }
-        }
+        }  
 
         // Delete all OTPs associated with the user.id
         const deleteOtpQuery = {
