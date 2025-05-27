@@ -2,7 +2,7 @@ const { StatusCodes } = require("http-status-codes");
 const speakeasy = require('speakeasy');
 const pg = require("../../db/pg");
 const { sendEmail } = require("../../utils/sendEmail");
-const { sendSmsDnd } = require("../../utils/sendSms");
+const { sendSmsDnd, formatPhoneNumber } = require("../../utils/sendSms");
 
 const sendOtp = async (req, res) => {
     const user = req.user;
