@@ -147,6 +147,8 @@ const  sendSms = (number, message) => {
 
 const sendSmsDnd = (number, message) => {
     return new Promise(async (resolve, reject) => {
+        console.log("sendSmsDnd called with:", { number, message });
+
         if (!number || !message) {
             console.error("Number, message are required");
             return resolve(false);
@@ -161,6 +163,8 @@ const sendSmsDnd = (number, message) => {
             "channel": "dnd",
         };
 
+        console.log("Data prepared for request:", data);
+
         const options = {
             'method': 'POST',
             'url': 'https://v3.api.termii.com/api/sms/send',
@@ -170,19 +174,26 @@ const sendSmsDnd = (number, message) => {
             body: JSON.stringify(data)
         };
 
+        console.log("Request options:", options);
+
         request(options, async function (error, response) {
             if (error) {
-                console.error(error);
+                console.error("Request error:", error);
                 return resolve(false);
             }
-            console.log(response.body);
+            console.log("Response received:", response.body);
 
             // Store SMS data in the database
             const smsData = {
                 text: `INSERT INTO divine."smscharges" (phone, status, createdby) VALUES ($1, $2, $3)`,
                 values: [number, "SENT", 0]
             };
+
+            console.log("Inserting SMS data into database:", smsData);
+
             await pg.query(smsData);
+
+            console.log("SMS data inserted successfully");
 
             return resolve(true);
         });
