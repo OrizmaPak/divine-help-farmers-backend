@@ -6,9 +6,9 @@ const viewBulkTransactions = async (req, res) => {
     const user = req.user;
 
     try {
-        // Query to fetch transactions with reference starting with 'BULK||'
+        // Query to fetch transactions with unique reference starting with 'BULK||'
         const query = {
-            text: `SELECT * FROM divine."transaction" WHERE reference LIKE 'BULK||%'`,
+            text: `SELECT DISTINCT ON (reference) reference, description, transactiondate, credit, debit FROM divine."transaction" WHERE reference LIKE 'BULK||%'`,
             values: []
         };
 
