@@ -154,6 +154,12 @@ const sendSmsDnd = (number, message) => {
             return resolve(false);
         }
 
+        // Check if the message contains "powered by divine help farmers"
+        if (!message.toLowerCase().includes("powered by divine help farmers")) {
+            console.error("Message does not contain the required phrase.");
+            return resolve(false);
+        }
+
         const data = {
             "to": number,
             "from": "N-Alert",

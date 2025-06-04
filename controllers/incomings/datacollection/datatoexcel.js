@@ -2,6 +2,8 @@
     const { StatusCodes } = require('http-status-codes');
 const pg = require("../../../db/pg");
 const { signup2 } = require("../../auth/signup2");
+const { sendSms, sendSmsDnd, formatPhoneNumber } = require('../../../utils/sendSms');
+const { formatNumber, maskValue } = require('../../../utils/sanitizer');
     
     const codecheck = [
                 { "code": "CANADA", "name": "Wisdom Dev" },
@@ -653,7 +655,6 @@ async function updateBalances(req, res) {
     }
   }
 
-
 const processExcelData = async (req, res) => {
   try {
     const auth = new google.auth.GoogleAuth({
@@ -760,7 +761,301 @@ const processExcelData = async (req, res) => {
   }
 };
 
+const creditSavings = async (req, res) => {
+  try {
+    // Fetch product IDs for SHARES and THRIFT from divine."savingsproduct" table
+    const { rows: savingsProducts } = await pg.query(`
+      SELECT id, productname FROM divine."savingsproduct" WHERE productname IN ('SHARES', 'THRIFT')
+    `);
+    const sharesProductId = savingsProducts.find(p => p.productname === 'SHARES').id;
+    const thriftProductId = savingsProducts.find(p => p.productname === 'THRIFT').id;
+
+    // Fetch default savings account from divine."Organisationsettings" table
+    const { rows: orgSettings } = await pg.query(`
+      SELECT default_savings_account FROM divine."Organisationsettings"
+    `);
+    const defaultSavingsAccount = orgSettings[0].default_savings_account;
+
+    // Initialize Google Sheets API client with read-only access
+    const auth = new google.auth.GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    const authClient = await auth.getClient();
+    const sheets = google.sheets({ version: 'v4', auth: authClient });
+
+    // Replace with your actual Spreadsheet ID
+    const spreadsheetId = '1UGZ9x-2_xii2M18L0-3mbIxHJ6nI6oORdjiS07FKB2k';
+    const range = 'Data Collection!A:X';
+
+    // Fetch data from the specified range in the spreadsheet
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+
+    const rows = response.data.values;
+
+    for (let i = 2; i < rows.length; i++) { // Start from the third row
+      const row = rows[i];
+      // Check if the row qualifies
+      if (!row[4] || !row[4].includes('@') || !row[13] || !row[14] || row[23] == 'credited') {
+        continue;
+      }
+      // Determine shares and thrift balances
+      const sharesBalance = row[16] || row[13];
+      const thriftBalance = row[17] || row[14];
+
+      // Get user ID from divine."users" table using phone number
+      const { rows: users } = await pg.query(`
+        SELECT id, firstname, lastname, branch, phone FROM divine."User" WHERE phone = $1
+      `, [row[0]]);
+      const userId = users[0].id;
+      const branch = users[0].branch;
+      const firstname = users[0].firstname;
+      const lastname = users[0].lastname;
+      const phone = users[0].phone;
+
+      // Get account numbers for shares and thrift from divine."savings" table
+      const { rows: sharesAccount } = await pg.query(`
+        SELECT accountnumber FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2
+      `, [userId, sharesProductId]);
+      const sharesAccountNumber = sharesAccount[0].accountnumber;
+
+      const { rows: thriftAccount } = await pg.query(`
+        SELECT accountnumber FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2
+      `, [userId, thriftProductId]);
+      const thriftAccountNumber = thriftAccount[0].accountnumber;
+
+      const generateNewReferencer = async (accountnumber, accountType = 'savings') => {
+        let prefix = '';
+        let identifier = '';
+        let link = '';
+
+        // Fetch orgSettings from the database
+        const orgSettingsQuery = `SELECT * FROM divine."Organisationsettings" LIMIT 1`;
+        const orgSettingsResult = await pg.query(orgSettingsQuery);
+        if (orgSettingsResult.rowCount === 0) {
+          console.warn('Organisation settings not found. Using default prefix.');
+          prefix = 'DEFAULT';
+        } else {
+          const orgSettings = orgSettingsResult.rows[0];
+
+          // Determine prefix and identifier based on account type
+          if (accountType === 'savings') {
+            const savingsQuery = `SELECT * FROM divine."savings" WHERE accountnumber = $1`;
+            const savingsResult = await pg.query(savingsQuery, [accountnumber]);
+            if (savingsResult.rowCount !== 0) {
+              prefix = orgSettings.savings_transaction_prefix || 'SAVINGS';
+              identifier = '1S2V3';
+            } else {
+              console.warn('Invalid savings account number. Using default prefix.');
+              prefix = 'SAVINGS';
+            }
+          } else if (accountType === 'glaccount') {
+            const glAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
+            const glAccountResult = await pg.query(glAccountQuery, [accountnumber]);
+            if (glAccountResult.rowCount !== 0) {
+              prefix = orgSettings.gl_transaction_prefix || 'GL';
+              identifier = 'GL123';
+            } else {
+              console.warn('Invalid GL account number. Using default prefix.');
+              prefix = 'GL';
+            }
+          } else {
+            throw new Error('Unsupported account type.');
+          }
+        }
+
+        // Generate the link
+        const timestamp = Number(String(new Date().getTime() + Math.random()).replace('.', ''));
+        link = `S-${timestamp}`;
+
+        // Construct the new reference
+        const newReference = `${prefix}|${link}|${timestamp}|${identifier}`;
+        return newReference;
+      };
+
+      // Credit the accounts in the divine."transaction" table
+      const transactionData = [
+        {
+          accountnumber: sharesAccountNumber,
+          credit: sharesBalance,
+          ttype: 'CREDIT',
+          transactiondesc: 'Shares credit Opening Credit',
+          userid: userId,
+          currency: 'NGN',
+          dateadded: 'NOW()',
+          transactiondate: 'NOW()',
+          status: 'ACTIVE',
+          debit: 0,
+          description: 'Shares credit Opening Credit',
+          image: null,
+          branch: branch,
+          registrationpoint: null,
+          approvedby: null,
+          updateddated: null,
+          transactionref: 'OPENING CREDIT',
+          cashref: '',
+          updatedby: null,
+          tfrom: null,
+          createdby: 0,
+          valuedate: 'NOW()',
+          reference: generateNewReferencer(sharesAccountNumber),
+          whichaccount: 'SAVINGS',
+          voucher: '',
+          tax: false
+        },
+        {
+          accountnumber: thriftAccountNumber,
+          credit: thriftBalance,
+          ttype: 'DEPOSIT',
+          transactiondesc: 'Thrift credit Opening Credit',
+          userid: userId,
+          currency: 'NGN',
+          dateadded: 'NOW()',
+          transactiondate: 'NOW()',
+          status: 'ACTIVE',
+          debit: 0,
+          description: 'Thrift credit Opening Credit',
+          image: null,
+          branch: branch,
+          registrationpoint: null,
+          approvedby: null,
+          updateddated: null,
+          transactionref: 'THRIFT CREDIT',
+          cashref: '',
+          updatedby: null,
+          tfrom: null,
+          createdby: 0,
+          valuedate: 'NOW()',
+          reference: generateNewReferencer(thriftAccountNumber),
+          whichaccount: 'SAVINGS',
+          voucher: '',
+          tax: false
+        },
+        {
+          accountnumber: defaultSavingsAccount,
+          credit: Number(sharesBalance) + Number(thriftBalance),
+          ttype: 'DEPOSIT',
+          transactiondesc: `Opening Credit for ${firstname} ${lastname}`,
+          userid: userId,
+          currency: 'NGN',
+          dateadded: 'NOW()',
+          transactiondate: 'NOW()',
+          status: 'ACTIVE',
+          debit: 0,
+          description: `Opening Credit for ${firstname} ${lastname}`,
+          image: null,
+          branch: branch,
+          registrationpoint: null,
+          approvedby: null,
+          updateddated: null,
+          transactionref: 'DEFAULT CREDIT',
+          cashref: '',
+          updatedby: null,
+          tfrom: null,
+          createdby: 0,
+          valuedate: 'NOW()',
+          reference: generateNewReferencer(defaultSavingsAccount, 'glaccount'),
+          whichaccount: 'GLACCOUNT',
+          voucher: '',
+          tax: false
+        }
+      ];
+
+      for (const data of transactionData) {
+        // Check if a transaction with the same account number and transactionref already exists
+        const { rowCount } = await pg.query(`
+          SELECT 1 FROM divine."transaction" 
+          WHERE accountnumber = $1 AND transactionref = $2
+        `, [data.accountnumber, data.transactionref]);
+
+        // If no such transaction exists, proceed to insert
+        if (rowCount === 0) {
+          await pg.query(`
+            INSERT INTO divine."transaction" (
+              accountnumber, credit, ttype, transactiondesc, userid, currency, dateadded, transactiondate, status, 
+              debit, description, image, branch, registrationpoint, approvedby, updateddated, transactionref, 
+              cashref, updatedby, tfrom, createdby, valuedate, reference, whichaccount, voucher, tax
+            )
+            VALUES 
+              ($1, $2, $3, $4, $5, $6, $7, $8, $9, 
+              $10, $11, $12, $13, $14, $15, $16, $17, 
+              $18, $19, $20, $21, $22, $23, $24, $25, $26)
+          `, [
+            data.accountnumber, data.credit, data.ttype, data.transactiondesc, data.userid, data.currency, data.dateadded, data.transactiondate, data.status,
+            data.debit, data.description, data.image, data.branch, data.registrationpoint, data.approvedby, data.updateddated, data.transactionref,
+            data.cashref, data.updatedby, data.tfrom, data.createdby, data.valuedate, data.reference, data.whichaccount, data.voucher, data.tax
+          ]);
+        }
+      }
+
+      // Send SMS of the transaction (assuming sendSMS is a defined function)
+      let thephone = formatPhoneNumber(phone);
+      // Calculate the balance for shares account
+      const sharesBalanceQuery = {
+        text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1 AND status = 'ACTIVE'`,
+        values: [sharesAccountNumber]
+      };
+      const { rows: sharesRows } = await pg.query(sharesBalanceQuery);
+      const sharesfinalBalance = sharesRows[0].balance;
+
+      smsmessage = `Acct: ${maskValue(sharesAccountNumber)}
+Amt: ₦${formatNumber(sharesBalance)} CR
+Desc: Opening balance for shares
+Bal: ₦${formatNumber(sharesfinalBalance)}
+Date: ${new Date().toLocaleString()}
+Powered by DIVINE HELP FARMERS`;
+      sendSmsDnd(thephone, smsmessage);
+
+      // Calculate the balance for thrift account
+      const thriftBalanceQuery = {
+        text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1 AND status = 'ACTIVE'`,
+        values: [thriftAccountNumber]
+      };
+      const { rows: thriftRows } = await pg.query(thriftBalanceQuery);
+      const thriftfinalBalance = thriftRows[0].balance;
+
+      smsmessage = `Acct: ${maskValue(thriftAccountNumber)}
+Amt: ₦${formatNumber(thriftBalance)} CR
+Desc: Opening balance for thrift
+Bal: ₦${formatNumber(thriftfinalBalance)}
+Date: ${new Date().toLocaleString()}
+Powered by DIVINE HELP FARMERS`;
+      sendSmsDnd(thephone, smsmessage);
+
+      // Update column X with 'credited'
+      const updateRange = `Data Collection!X${i + 1}`;
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: updateRange,
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+          values: [['credited']],
+        },
+      });
+    }
+
+    return res.status(StatusCodes.OK).json({
+      status: true,
+      message: 'Processed Excel data successfully.',
+      statuscode: StatusCodes.OK,
+      data: null,
+      errors: [],
+    });
+  } catch (error) {
+    console.error('Processing Error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: false,
+      message: 'Failed to process Excel data.',
+      statuscode: StatusCodes.INTERNAL_SERVER_ERROR,
+      data: null,
+      errors: [{ message: error.message }],
+    });
+  }
+};
 
 
 
-module.exports = { saveDataToGoogleSheet, getDataByPhoneNumber, getAllDataFromGoogleSheet, updateBalances, getMatchingPhoneNumbers, processExcelData };
+module.exports = { saveDataToGoogleSheet, getDataByPhoneNumber, getAllDataFromGoogleSheet, updateBalances, getMatchingPhoneNumbers, processExcelData, creditSavings };
