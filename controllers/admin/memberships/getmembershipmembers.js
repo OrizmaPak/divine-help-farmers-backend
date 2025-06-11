@@ -29,7 +29,7 @@ const getMembershipMembers = async (req, res) => {
         let whereClause = '';
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
-            if (key !== 'q' && key !== 'startdate' && key !== 'enddate' && req.query[key] !== '') { // Exclude startdate and enddate
+            if (key !== 'q' && key !== 'startdate' && key !== 'enddate' && key !== 'branch' && req.query[key] !== '') { // Exclude startdate, enddate, and branch
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
