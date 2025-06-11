@@ -6,7 +6,6 @@ const { divideAndRoundUp } = require("../../../utils/pageCalculator");
 const getMembershipMembers = async (req, res) => {
     const user = req.user;
 
-
     try {
         let query = {
             text: `SELECT m.*, 
@@ -30,7 +29,7 @@ const getMembershipMembers = async (req, res) => {
         let whereClause = '';
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
-            if (key !== 'q' && key !== 'startdate' && key !== 'enddate' && key !== 'branch' && req.query[key] !== '') { // Exclude startdate, enddate, and branch
+            if (key !== 'q' && key !== 'startdate' && key !== 'enddate' && req.query[key] !== '') { // Exclude startdate and enddate
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
@@ -41,6 +40,18 @@ const getMembershipMembers = async (req, res) => {
                 valueIndex++;
             }
         });
+
+        // Add branch filter if provided
+        if (req.query.branch) {
+            if (whereClause) {
+                whereClause += ` AND `;
+            } else {
+                whereClause += ` WHERE `;
+            }
+            whereClause += `u.branch = $${valueIndex}`;
+            query.values.push(req.query.branch);
+            valueIndex++;
+        }
 
         // Add date range filter if startdate and enddate are provided
         if (req.query.startdate || req.query.enddate) {
@@ -98,12 +109,7 @@ const getMembershipMembers = async (req, res) => {
         query.values.push(limit, offset);
 
         const result = await pg.query(query);
-        let memberships;
-        const undefinedBranches = result.rows.filter(row => row.user?.branch === undefined).slice(0, 3);
-        console.log('First three rows with undefined branches:', undefinedBranches);
-        console.log('req.query.branch', req.query.branch);
-        if(req.query.branch)memberships = result.rows.filter(data =>data.user?.branch == req.query.branch)
-            else memberships = result.rows;
+        const memberships = result.rows;
 
         // Get total count for pagination
         const countQuery = {
