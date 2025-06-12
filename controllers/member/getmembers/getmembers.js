@@ -6,7 +6,7 @@
     
     const getUsers = async (req, res) => {
         const user = req.user;
-    
+        console.log('we entered the user registration get')
         try {
             let query = {
                 text: `SELECT u.*, b.branch AS branchname, rp.registrationpoint AS registrationpointname
@@ -48,11 +48,16 @@
     
                 const cols = columns.map(row => row.column_name);
     
-                // Generate the dynamic SQL query
-                const searchConditions = cols.map(col => `u.${col}::text ILIKE $${valueIndex}`).join(' OR ');
-                whereClause += whereClause ? ` AND (${searchConditions})` : ` WHERE (${searchConditions})`;
-                query.values.push(`%${req.query.q}%`);
-                valueIndex++;
+                // Split the search query into individual terms
+                const searchTerms = req.query.q.split(' ');
+
+                // Generate the dynamic SQL query for each search term
+                searchTerms.forEach(term => {
+                    const searchConditions = cols.map(col => `u.${col}::text ILIKE $${valueIndex}`).join(' OR ');
+                    whereClause += whereClause ? ` AND (${searchConditions})` : ` WHERE (${searchConditions})`;
+                    query.values.push(`%${term}%`);
+                    valueIndex++;
+                });
             }
     
             query.text += whereClause;
@@ -60,7 +65,15 @@
             // Add pagination
             const searchParams = new URLSearchParams(req.query);
             const page = parseInt(searchParams.get('page') || '1', 10);
-            const limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10);
+            let limit = parseInt(searchParams.get('limit') || process.env.DEFAULT_LIMIT, 10);
+
+            // If in development environment, set maximum limit to 100
+            if (process.env.NODE_ENV === 'development' && limit > 100) {
+                limit = 50;
+            }else{
+                limit = 200;
+            }
+ 
             const offset = (page - 1) * limit;
     
             query.text += ` LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;

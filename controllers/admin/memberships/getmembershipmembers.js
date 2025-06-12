@@ -99,7 +99,7 @@ const getMembershipMembers = async (req, res) => {
 
         const result = await pg.query(query);
         let memberships;
-        console.log('Branches:', result.rows.map(row => row.user?.branch));
+        console.log('Branches:', result.rows.map(row => ({ branch: row.user?.branch, id: row.user?.id, name: row.user?.firstname })));
         console.log('req.query.branch', req.query.branch);
         if(req.query.branch)memberships = result.rows.filter(data =>data.user?.branch == req.query.branch)
             else memberships = result.rows;
