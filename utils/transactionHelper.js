@@ -365,7 +365,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             const date = new Date().toLocaleString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: ${productName} ${shortDesc}, Bal: ₦${balance}, ${totalAssetMessage}Date: ${date}`;
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: ${productName} ${shortDesc}, Bal: ₦${balance}, ${totalAssetMessage}Date: ${date}\nPowered by DIVINE HELP FARMERS`;
 
         } else if (req.body.whichaccount == 'LOAN') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_loan_income_account : req.orgSettings.default_loan_account;
@@ -375,7 +375,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             const date = new Date().toLocaleString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: LOAN ${shortDesc}, Bal: ₦${balance}, Date: ${date}`;
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: LOAN ${shortDesc}, Bal: ₦${balance}, Date: ${date}\nPowered by DIVINE HELP FARMERS`;
 
         } else if (req.body.whichaccount == 'PROPERTY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_property_income_account : req.orgSettings.default_property_account;
@@ -385,7 +385,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             const date = new Date().toLocaleString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: PROT ${shortDesc}, Bal: ₦${balance}, Date: ${date}`;
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: PROT ${shortDesc}, Bal: ₦${balance}, Date: ${date}\nPowered by DIVINE HELP FARMERS`;
 
         } else if (req.body.whichaccount == 'ROTARY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_rotary_income_account : req.orgSettings.default_rotary_account;
@@ -395,7 +395,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             const date = new Date().toLocaleString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: ROTY ${shortDesc}, Bal: ₦${balance}, Date: ${date}`;
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: ROTY ${shortDesc}, Bal: ₦${balance}, Date: ${date}\nPowered by DIVINE HELP FARMERS`;
 
         } else if (req.body.whichaccount == 'PERSONAL') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_personal_income_account : req.orgSettings.default_personal_account;
@@ -405,7 +405,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             const date = new Date().toLocaleString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: PERL ${shortDesc}, Bal: ₦${balance}, Date: ${date}`;
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: PERL ${shortDesc}, Bal: ₦${balance}, Date: ${date}\nPowered by DIVINE HELP FARMERS`;
         }
 
             if(status == 'ACTIVE')sendSmsDnd(phoneNumber, smsmessage);
