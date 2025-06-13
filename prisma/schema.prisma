@@ -457,6 +457,7 @@ model savingsproduct {
   compulsorydepositpenaltytype      String?   // "AMOUNT" or "PERCENTAGE"
   compulsorydepositspillover        Boolean
   compulsorydeposittype             String?   // "FIXED" or "MINIMUM"
+  compulsorydepositcontinue         String?   @default("NO") // "YES" or "NO"
   currency                          String   // "NGN" or "USD"
   dateadded                         DateTime @default(now())
   deductions                        Deduction[]

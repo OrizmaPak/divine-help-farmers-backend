@@ -283,6 +283,8 @@ const saveTransaction = async (client, res, transactionData, req) => {
 
         // Determine the appropriate account based on whichaccount and ttype
         let incomeAccountNumber;
+        const shortDesc = description.length > 21 ? description.slice(0, 10) + '...' : description;
+
         if (req.body.whichaccount == 'SAVINGS') {
 
             // Fetch the IDs for the product names 'THRIFT' and 'SHARES'
@@ -358,7 +360,6 @@ const saveTransaction = async (client, res, transactionData, req) => {
 
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_savings_income_account : req.orgSettings.default_savings_account;
 
-            const shortDesc = description.length > 21 ? description.slice(0, 10) + '...' : description;
             const amount = formatNumber(Number(credit) > 0 ? credit : debit);
             const balance = formatNumber(thebalance);
             const date = new Date().toLocaleString();

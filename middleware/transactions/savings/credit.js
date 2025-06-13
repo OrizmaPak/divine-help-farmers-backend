@@ -1,18 +1,3 @@
-/**
- * Please note: The following rewrite incorporates the requested period checks:
- *  1. If there is no transaction at all, post to the current period; if remainder is enough and allowFuture is true, also post to future; otherwise redirect leftover.
- *  2. If last transaction is in a past period:
- *     - if allowBackDated == false, then start posting from the current period only, then if remainder remains and allowFuture is true, post to future; else redirect.
- *     - if allowBackDated == true, it proceeds with normal distribution as needed (past, current, future) aligning with compulsorydeposittype logic.
- *  3. If the last transaction is in the current period:
- *     - if allowFuture is true, post future chunks as needed; otherwise redirect leftover.
- *  4. If the last transaction is in a future period:
- *     - if allowFuture is true, post future chunks as needed; otherwise redirect leftover.
- *
- * The rest of the logic for "FIXED" or "MINIMUM" distribution, chunking, and redirection is preserved where applicable.
- */
-
-// Start of Selection
 const { StatusCodes } = require('http-status-codes');
 const {
     saveFailedTransaction,
@@ -121,12 +106,15 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
             let rod = req.orgSettings.allow_back_dated_transaction;
             let scf = savingsProduct.compulsorydepositspillover;
             let rof = req.orgSettings.allow_future_transaction;
+            let cdc = savingsProduct.compulsorydepositcontinue;
 
             const allowBackDated = (scd && rod === 'YES');
             const allowFuture = (scf && rof === 'YES');
+            const allowContinue = (cdc === 'YES');
 
             console.log("Allowing back dated transactions:", allowBackDated, rod);
             console.log("Allowing future transactions:", allowFuture, rof);
+            console.log("Allowing continuation of deposits in the same period:", allowContinue);
 
             // 2. Check if credit is less than the compulsory deposit amount
             if (credit < savingsProduct.compulsorydepositfrequencyamount) {
@@ -234,8 +222,8 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
             if (savingsProduct.compulsorydeposittype == 'MINIMUM') {
                 console.log("Compulsory deposit type is MINIMUM. Depositing the entire credit in one transaction.");
                 let depositDate = today;
-                if (hasTransactionOnThatDate(today)) {
-                    // Today's date already has a transaction.
+                if (hasTransactionOnThatDate(today) && !allowContinue) {
+                    // Today's date already has a transaction and continuation is not allowed.
                     if (!allowFuture) {
                         console.log("Future transactions are not allowed and today's date already has a transaction.");
                         return redirectLeftover(credit, 'Today already has a transaction and future transactions are not allowed for MINIMUM deposit.');
@@ -326,7 +314,7 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                 // Post one chunk per valid date in chronological order
                 for (const date of [...finalPastDates, ...finalFutureDates]) {
                     if (remainingBalanceVal >= savingsProduct.compulsorydepositfrequencyamount) {
-                        if (!hasTransactionOnThatDate(date)) {
+                        if (!hasTransactionOnThatDate(date) || allowContinue) {
                             await postSingleDeposit(
                                 date,
                                 savingsProduct.compulsorydepositfrequencyamount,
@@ -365,7 +353,7 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
             if (classification == 'NONE') {
                 console.log("No last transaction found. Posting to current period first.");
                 if (remainingBalance >= savingsProduct.compulsorydepositfrequencyamount) {
-                    if (!hasTransactionOnThatDate(today)) {
+                    if (!hasTransactionOnThatDate(today) || allowContinue) {
                         await postSingleDeposit(
                             today,
                             savingsProduct.compulsorydepositfrequencyamount,
@@ -388,7 +376,7 @@ async function savingsCredit(client, req, res, next, accountnumber, credit, desc
                 if (!allowBackDated) {
                     console.log("Backdating not allowed, so we start from current period only.");
                     if (remainingBalance >= savingsProduct.compulsorydepositfrequencyamount) {
-                        if (!hasTransactionOnThatDate(today)) {
+                        if (!hasTransactionOnThatDate(today) || allowContinue) {
                             await postSingleDeposit(
                                 today,
                                 savingsProduct.compulsorydepositfrequencyamount,

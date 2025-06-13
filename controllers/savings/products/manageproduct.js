@@ -37,6 +37,7 @@ const manageSavingsProduct = async (req, res) => {
         compulsorydepositpenaltyfrom,
         compulsorydepositpenaltyfallbackfrom,
         compulsorydepositdeficit = false,
+        compulsorydepositcontinue = "NO",
         status = "ACTIVE",
         membership = "",
         interestrowsize = 0,
@@ -78,6 +79,7 @@ const manageSavingsProduct = async (req, res) => {
         compulsorydepositfrequencyskip = req.body.compulsorydepositfrequencyskip != null && req.body.compulsorydepositfrequencyskip.length ? req.body.compulsorydepositfrequencyskip : 0;
         compulsorydepositpenalty = req.body.compulsorydepositpenalty != null && req.body.compulsorydepositpenalty.length ? req.body.compulsorydepositpenalty : 0; 
         compulsorydepositdeficit = req.body.compulsorydepositdeficit ? true : false;
+        compulsorydepositcontinue = req.body.compulsorydepositcontinue || "NO";
         withdrawalcontrol = req.body.withdrawalcontrol ? true : false;
         withdrawalcontrolamount = req.body.withdrawalcontrolamount != null && req.body.withdrawalcontrolamount.length ? req.body.withdrawalcontrolamount : 0;
         eligibilityaccountage = req.body.eligibilityaccountage != null && req.body.eligibilityaccountage.length ? req.body.eligibilityaccountage : 0;
@@ -395,25 +397,26 @@ const manageSavingsProduct = async (req, res) => {
                     compulsorydepositpenaltyfrom = $25,
                     compulsorydepositpenaltyfallbackfrom = $26,
                     compulsorydepositdeficit = $27,
-                    membership = $28,
-                    status = $29,
-                    withdrawalcontrol = $30,
-                    withdrawalcontrolamount = $31,
-                    withdrawalcontrolsize = $32,
-                    withdrawalcontroltype = $33,
-                    withdrawalcontrolwindow = $34,
-                    eligibilityaccountage = $35,
-                    eligibilityminbalance = $36,
-                    eligibilitymincredit = $37,
-                    eligibilitymindebit = $38,
-                    eligibilityminimumclosedaccounts = $39,
-                    eligibilityminimumloan = $40,
-                    eligibilityproduct = $41,
-                    eligibilityproductcategory = $42,
-                    useraccount = $43,
-                    addmember = $44,
+                    compulsorydepositcontinue = $28,
+                    membership = $29,
+                    status = $30,
+                    withdrawalcontrol = $31,
+                    withdrawalcontrolamount = $32,
+                    withdrawalcontrolsize = $33,
+                    withdrawalcontroltype = $34,
+                    withdrawalcontrolwindow = $35,
+                    eligibilityaccountage = $36,
+                    eligibilityminbalance = $37,
+                    eligibilitymincredit = $38,
+                    eligibilitymindebit = $39,
+                    eligibilityminimumclosedaccounts = $40,
+                    eligibilityminimumloan = $41,
+                    eligibilityproduct = $42,
+                    eligibilityproductcategory = $43,
+                    useraccount = $44,
+                    addmember = $45,
                     updatedat = NOW()
-                WHERE id = $45`,
+                WHERE id = $46`,
                 [
                     productname,
                     currency,
@@ -442,6 +445,7 @@ const manageSavingsProduct = async (req, res) => {
                     compulsorydepositpenaltyfrom,
                     compulsorydepositpenaltyfallbackfrom,
                     compulsorydepositdeficit,
+                    compulsorydepositcontinue, 
                     membership,
                     status,
                     withdrawalcontrol,
@@ -596,6 +600,7 @@ const manageSavingsProduct = async (req, res) => {
                     compulsorydepositpenaltyfrom,
                     compulsorydepositpenaltyfallbackfrom,
                     compulsorydepositdeficit,
+                    compulsorydepositcontinue,
                     membership,
                     status,
                     withdrawalcontrol,
@@ -623,7 +628,7 @@ const manageSavingsProduct = async (req, res) => {
                     $26, $27, $28, $29, $30,
                     $31, $32, $33, $34, $35,
                     $36, $37, $38, $39, $40,
-                    $41, $42, $43, $44, NOW()
+                    $41, $42, $43, $44, $45, NOW()
                 ) RETURNING id`;
 
             const values = [
@@ -654,6 +659,7 @@ const manageSavingsProduct = async (req, res) => {
                 compulsorydepositpenaltyfrom,
                 compulsorydepositpenaltyfallbackfrom,
                 compulsorydepositdeficit,
+                compulsorydepositcontinue, 
                 membership,
                 status,
                 withdrawalcontrol,
