@@ -358,38 +358,63 @@ const saveTransaction = async (client, res, transactionData, req) => {
 
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_savings_income_account : req.orgSettings.default_savings_account;
 
+            const shortDesc = description.length > 21 ? description.slice(0, 10) + '...' : description;
             const amount = formatNumber(Number(credit) > 0 ? credit : debit);
             const balance = formatNumber(thebalance);
             const date = new Date().toLocaleString();
-            const desc = description.length > 21 ? description.slice(0, 10) + '...' : description;
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
-            const accountType = req.body.whichaccount;
 
-            const accountDescMap = {
-                SAVINGS: productName,
-                LOAN: 'LOAN',
-                PROPERTY: 'PROT',
-                ROTARY: 'ROTY',
-                PERSONAL: 'PERL'
-            };
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: ${productName} ${shortDesc}, Bal: ₦${balance}, ${totalAssetMessage}Date: ${date}`;
 
-            const accountDesc = accountDescMap[accountType] || '';
+        } else if (req.body.whichaccount == 'LOAN') {
+            incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_loan_income_account : req.orgSettings.default_loan_account;
+            let thebalance = await calculateBalance(accountnumber);
+            const amount = formatNumber(Number(credit) > 0 ? credit : debit);
+            const balance = formatNumber(thebalance);
+            const date = new Date().toLocaleString();
+            const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Dear ${firstname}, Acct: ${maskValue(accountnumber)} Amt: ₦${amount} ${transactionType} Desc: ${accountDesc} ${desc} Bal: ₦${balance} ${totalAssetMessage}Date: ${date} Powered by DIVINE HELP FARMERS`;
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: LOAN ${shortDesc}, Bal: ₦${balance}, Date: ${date}`;
 
-            if (accountType !== 'SAVINGS') {
-                incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings[`default_${accountType.toLowerCase()}_income_account`] : req.orgSettings[`default_${accountType.toLowerCase()}_account`];
-            }
+        } else if (req.body.whichaccount == 'PROPERTY') {
+            incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_property_income_account : req.orgSettings.default_property_account;
+            let thebalance = await calculateBalance(accountnumber);
+            const amount = formatNumber(Number(credit) > 0 ? credit : debit);
+            const balance = formatNumber(thebalance);
+            const date = new Date().toLocaleString();
+            const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
+
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: PROT ${shortDesc}, Bal: ₦${balance}, Date: ${date}`;
+
+        } else if (req.body.whichaccount == 'ROTARY') {
+            incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_rotary_income_account : req.orgSettings.default_rotary_account;
+            let thebalance = await calculateBalance(accountnumber);
+            const amount = formatNumber(Number(credit) > 0 ? credit : debit);
+            const balance = formatNumber(thebalance);
+            const date = new Date().toLocaleString();
+            const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
+
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: ROTY ${shortDesc}, Bal: ₦${balance}, Date: ${date}`;
+
+        } else if (req.body.whichaccount == 'PERSONAL') {
+            incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_personal_income_account : req.orgSettings.default_personal_account;
+            let thebalance = await calculateBalance(accountnumber);
+            const amount = formatNumber(Number(credit) > 0 ? credit : debit);
+            const balance = formatNumber(thebalance);
+            const date = new Date().toLocaleString();
+            const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
+
+            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: PERL ${shortDesc}, Bal: ₦${balance}, Date: ${date}`;
+        }
 
             if(status == 'ACTIVE')sendSmsDnd(phoneNumber, smsmessage);
 
-            if (incomeAccountNumber) { 
-                const thenewref = await generateNewReference(client, incomeAccountNumber, req);
-                await client.query(
-                    `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14, $15, $16, $17, $18)`,
-                    [incomeAccountNumber, credit, debit, thenewref, description, ttype, status, transactiondate, 'GLACCOUNT', finalValuedate, transactiondesc, createdBy, currency, userid, tfrom, transactionref, cashref, req.body.branch]
-                );  
-            }
+        if (incomeAccountNumber) { 
+            const thenewref = await generateNewReference(client, incomeAccountNumber, req);
+            await client.query(
+                `INSERT INTO divine."transaction" (accountnumber, credit, debit, reference, description, ttype, status, transactiondate, whichaccount, valuedate, transactiondesc, dateadded, createdby, currency, userid, tfrom, transactionref, cashref, branch) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12, $13, $14, $15, $16, $17, $18)`,
+                [incomeAccountNumber, credit, debit, thenewref, description, ttype, status, transactiondate, 'GLACCOUNT', finalValuedate, transactiondesc, createdBy, currency, userid, tfrom, transactionref, cashref, req.body.branch]
+            );  
         }
 
         req.body.transactiondesc += 'Transaction saved successfully.|';
