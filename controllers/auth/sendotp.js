@@ -37,7 +37,7 @@ const sendOtp = async (req, res) => {
         if (method === 'phone' || method === 'both') {
             if (user.phone) {
                 const formattedPhone = formatPhoneNumber(user.phone, user.country || 'nigeria');
-                await sendSmsDnd(formattedPhone, `Your DHF Verification Pin is ${otp}. Valid for 10 minutes, one-time use only. Divine Help Farmers`);
+                await sendSmsDnd(formattedPhone, `Your DHF Verification Pin is ${otp}. Valid for 10 minutes, one-time use only. Powered by Divine Help Farmers`);
             }
         }  
 
