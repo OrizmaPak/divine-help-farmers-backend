@@ -267,6 +267,15 @@ const saveTransaction = async (client, res, transactionData, req) => {
 
         // Remove the prefix to get the phone number
         let phoneNumber = personalAccountNumber.replace(personalAccountPrefix, '');
+
+        const userQuery = {
+            text: `SELECT id, firstname FROM divine."User" WHERE phone = $1 LIMIT 1`,
+            values: [phoneNumber]
+        };
+        const { rows: userRows } = await client.query(userQuery);
+        const firstname = userRows.length > 0 ? userRows[0].firstname : 'Customer';
+        const theuserId = userRows.length > 0 ? userRows[0].id : 0;
+
         phoneNumber = formatPhoneNumber(phoneNumber);
         
 
@@ -275,19 +284,93 @@ const saveTransaction = async (client, res, transactionData, req) => {
         // Determine the appropriate account based on whichaccount and ttype
         let incomeAccountNumber;
         if (req.body.whichaccount == 'SAVINGS') {
+
+            // Fetch the IDs for the product names 'THRIFT' and 'SHARES'
+            const productIdsQuery = {
+                text: `SELECT id, productname FROM divine."savingsproduct" WHERE productname IN ('THRIFT', 'SHARES')`,
+                values: []
+            };
+            const { rows: productIdsRows } = await client.query(productIdsQuery);
+
+            if (productIdsRows.length < 2) {
+                throw new Error('Required savings products not found.');
+            }
+
+            const thriftProductId = productIdsRows.find(row => row.productname === 'THRIFT').id;
+            const sharesProductId = productIdsRows.find(row => row.productname === 'SHARES').id;
+
+            // Fetch the savings product ID and member for the account
+            const savingsProductQuery = {
+                text: `SELECT savingsproductid, member FROM divine."savings" WHERE accountnumber = $1 LIMIT 1`,
+                values: [accountnumber]
+            };
+            const { rows: savingsRows } = await client.query(savingsProductQuery);
+
+            if (savingsRows.length === 0) {
+                throw new Error('Savings account not found.');
+            }
+
+            const savingsProductId = savingsRows[0].savingsproductid;
+            const memberId = savingsRows[0].member;
+
+            // Determine the other account based on the current savings product ID
+            let otherProductId, otherAccountNumber;
+            if (savingsProductId === thriftProductId) {
+                otherProductId = sharesProductId;
+            } else if (savingsProductId === sharesProductId) {
+                otherProductId = thriftProductId;
+            }
+
+            if (otherProductId) {
+                const otherAccountQuery = {
+                    text: `SELECT accountnumber FROM divine."savings" WHERE savingsproductid = $1 AND member = $2 AND userid = $3 LIMIT 1`,
+                    values: [otherProductId, memberId, userid]
+                };
+                const { rows: otherAccountRows } = await client.query(otherAccountQuery);
+
+                if (otherAccountRows.length > 0) {
+                    otherAccountNumber = otherAccountRows[0].accountnumber;
+                }
+            }
+
+            // Calculate balances
+            let thebalance = await calculateBalance(accountnumber);
+            let totalAssetMessage = '';
+
+            if (otherAccountNumber) {
+                const otherAccountBalance = await calculateBalance(otherAccountNumber);
+                const totalAsset = thebalance + otherAccountBalance;
+                totalAssetMessage = `Total Asset: ₦${formatNumber(totalAsset)}\n`;
+            }
+
+            // Fetch the product name from the savings product table
+            const productQuery = {
+                text: `SELECT productname FROM divine."savingsproduct" WHERE id = $1 LIMIT 1`,
+                values: [savingsProductId]
+            };
+            const { rows: productRows } = await client.query(productQuery);
+
+            if (productRows.length === 0) {
+                throw new Error('Savings product not found.');
+            }
+
+            const productName = productRows[0].productname;
+
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_savings_income_account : req.orgSettings.default_savings_account;
-            let thebalance = await calculateBalance(accountnumber)
-            smsmessage = `Acct: ${maskValue(accountnumber)}
-Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
-Desc: SAVG ${description.length > 21 ? description.slice(0, 10) + '...' : description}
+
+            smsmessage = `Dear ${firstname},
+Acct: ${maskValue(accountnumber)}
+Amt: ₦${formatNumber(Number(credit) > 0 ? credit : debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
+Desc: ${productName} ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
-Date: ${new Date().toLocaleString()}
+${totalAssetMessage}Date: ${new Date().toLocaleString()}
 Powered by DIVINE HELP FARMERS`
 
         } else if (req.body.whichaccount == 'LOAN') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_loan_income_account : req.orgSettings.default_loan_account;
             let thebalance = await calculateBalance(accountnumber)
-            smsmessage = `Acct: ${maskValue(accountnumber)}
+            smsmessage = `Dear ${firstname},
+Acct: ${maskValue(accountnumber)}
 Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
 Desc: LOAN ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
@@ -296,7 +379,8 @@ Powered by DIVINE HELP FARMERS`
         } else if (req.body.whichaccount == 'PROPERTY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_property_income_account : req.orgSettings.default_property_account;
             let thebalance = await calculateBalance(accountnumber)
-            smsmessage = `Acct: ${maskValue(accountnumber)}
+            smsmessage = `Dear ${firstname},
+Acct: ${maskValue(accountnumber)}
 Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
 Desc: PROT ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
@@ -305,7 +389,8 @@ Powered by DIVINE HELP FARMERS`
         } else if (req.body.whichaccount == 'ROTARY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_rotary_income_account : req.orgSettings.default_rotary_account;
             let thebalance = await calculateBalance(accountnumber)
-            smsmessage = `Acct: ${maskValue(accountnumber)}
+            smsmessage = `Dear ${firstname},
+Acct: ${maskValue(accountnumber)}
 Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
 Desc: ROTY ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
@@ -314,7 +399,8 @@ Powered by DIVINE HELP FARMERS`
         } else if (req.body.whichaccount == 'PERSONAL') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_personal_income_account : req.orgSettings.default_personal_account;
             let thebalance = await calculateBalance(accountnumber)
-            smsmessage = `Acct: ${maskValue(accountnumber)}
+            smsmessage = `Dear ${firstname},
+Acct: ${maskValue(accountnumber)}
 Amt: ₦${formatNumber(Number(credit)>0?credit:debit)} ${['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : ''}
 Desc: PERL ${description.length > 21 ? description.slice(0, 10) + '...' : description}
 Bal: ₦${formatNumber(thebalance)}
