@@ -844,11 +844,11 @@ const creditSavings = async (req, res) => {
         SELECT accountnumber FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2
       `, [userId, sharesProductId]);
       const sharesAccountNumber = sharesAccount[0].accountnumber;
-
+ 
       const { rows: thriftAccount } = await pg.query(`
         SELECT accountnumber FROM divine."savings" WHERE userid = $1 AND savingsproductid = $2
       `, [userId, thriftProductId]);
-      const thriftAccountNumber = thriftAccount[0].accountnumber;
+      const thriftAccountNumber = thriftAccount[0].accountnumber; 
 
       const generateNewReferencer = async (accountnumber, accountType = 'savings') => {
         let prefix = '';

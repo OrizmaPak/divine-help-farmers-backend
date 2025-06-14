@@ -35,6 +35,7 @@ const dashboardRouter = require('./routes/dashboard');
 const notificationRouter = require('./routes/notification');
 const paystackRouter = require('./routes/paystack');
 const videoRouter = require('./routes/video'); 
+const meetingRouter = require('./routes/meeting');
 //const eventRouter = require('./routes/events');
 
 // error handler
@@ -89,12 +90,13 @@ app.use('/node/api/v1/offline', offlineRouter);
 app.use('/node/api/v1/dashboard', authMiddleware, dashboardRouter);
 app.use('/node/api/v1/notification', authMiddleware, notificationRouter);
 app.use('/node/api/v1/video', authMiddleware, videoRouter);
+app.use('/node/api/v1/meeting', authMiddleware, meetingRouter);
 //app.use('/node/api/v1/events', authMiddleware, eventsRouter);
 
 app.use('/node/api/v1/incomings', incomingsRouter); 
 app.use('/node/api/v1/ai', aiRouter); 
 
-// CRON JOBS 
+// CRON JOBS  
 require('./cron/testing');
 // ADMIN
 require('./cron/admin/tastmanagement');

@@ -57,6 +57,7 @@ const manageSavingsProduct = async (req, res) => {
         eligibilityproductcategory,
         useraccount = 1,
         addmember = "NO",
+        meetingviewable = "NO",
         ...body
     } = req.body;
     console.log("Extracted request body and user1");
@@ -91,6 +92,7 @@ const manageSavingsProduct = async (req, res) => {
         eligibilityproduct = req.body.eligibilityproduct != null && req.body.eligibilityproduct.length ? req.body.eligibilityproduct : 0;
         useraccount = req.body.useraccount ?? 1;
         addmember = req.body.addmember || "NO";
+        meetingviewable = req.body.meetingviewable || "NO";
     } catch (error) {
         console.error("Error processing request body:", error);
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -415,8 +417,9 @@ const manageSavingsProduct = async (req, res) => {
                     eligibilityproductcategory = $43,
                     useraccount = $44,
                     addmember = $45,
+                    meetingviewable = $46,
                     updatedat = NOW()
-                WHERE id = $46`,
+                WHERE id = $47`,
                 [
                     productname,
                     currency,
@@ -463,6 +466,7 @@ const manageSavingsProduct = async (req, res) => {
                     eligibilityproductcategory,
                     useraccount,
                     addmember,
+                    meetingviewable,
                     id
                 ]
             );
@@ -618,6 +622,7 @@ const manageSavingsProduct = async (req, res) => {
                     eligibilityproductcategory,
                     useraccount,
                     addmember,
+                    meetingviewable,
                     dateadded
                 ) VALUES (
                     $1, $2, $3, $4, $5,
@@ -628,7 +633,7 @@ const manageSavingsProduct = async (req, res) => {
                     $26, $27, $28, $29, $30,
                     $31, $32, $33, $34, $35,
                     $36, $37, $38, $39, $40,
-                    $41, $42, $43, $44, $45, NOW()
+                    $41, $42, $43, $44, $45, $46, NOW()
                 ) RETURNING id`;
 
             const values = [
@@ -676,7 +681,8 @@ const manageSavingsProduct = async (req, res) => {
                 eligibilityproduct,
                 eligibilityproductcategory,
                 useraccount,
-                addmember
+                addmember,
+                meetingviewable
             ];
 
             const { rows } = await pg.query(insertProductQuery, values);

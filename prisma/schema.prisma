@@ -490,6 +490,7 @@ model savingsproduct {
   withdrawalcontrolwindow           String?   // "D1", "W1", "M1" the one with plus
   withdrawallimit                   Float?
   withdrawallimittype               String?   // "PERCENTAGE" or "AMOUNT"
+  meetingviewable                   String?  @default("NO") // "YES" or "NO"
 }
 
 model Interest {
