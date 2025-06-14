@@ -41,7 +41,7 @@ function maskValue(value) {
     const maskLength = Math.min(valueStr.length - 4, 6);
     // const maskedPart = 'XX'.repeat(Math.ceil(maskLength / 2)).slice(0, maskLength);
     const maskedPart = 'XX..';
-    const visiblePart = valueStr.slice(-4);
+    const visiblePart = valueStr.slice(-2);
 
     return maskedPart + visiblePart;
 }

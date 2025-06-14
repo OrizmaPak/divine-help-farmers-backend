@@ -1035,9 +1035,8 @@ const creditSavings = async (req, res) => {
       smsmessage = `Hi ${firstname}
 N ${formatNumber(sharesBalance)} CR to SHARES ${maskValue(sharesAccountNumber)}
 N ${formatNumber(thriftBalance)} CR to THRIFT ${maskValue(thriftAccountNumber)}
-Desc: Opening Balances
-Date: ${currentDate}
-Total Asset: N ${formatNumber(totalAsset)}
+Desc: Open Bal ${currentDate}
+Tot.Asset: N ${formatNumber(totalAsset)}
 Powered by DIVINE HELP FARMERS`;
       sendSmsDnd(thephone, smsmessage);
 
