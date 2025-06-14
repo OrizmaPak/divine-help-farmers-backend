@@ -339,7 +339,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             if (otherAccountNumber) {
                 const otherAccountBalance = await calculateBalance(otherAccountNumber);
                 const totalAsset = thebalance + otherAccountBalance;
-                totalAssetMessage = `Total Asset: ${formatNumber(totalAsset)}\n`;
+                totalAssetMessage = `Total Asset: N${formatNumber(totalAsset)}\n`;
             }
 
             const productQuery = {
@@ -356,7 +356,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
 
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_savings_income_account : req.orgSettings.default_savings_account;
 
-            const amount = formatNumber(Number(credit) > 0 ? credit : debit);
+            const amount = `N${formatNumber(Number(credit) > 0 ? credit : debit)}`;
             const balance = formatNumber(thebalance);
             const date = new Date().toLocaleDateString(); // Changed to only include date
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
@@ -366,7 +366,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
         } else if (req.body.whichaccount == 'LOAN') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_loan_income_account : req.orgSettings.default_loan_account;
             let thebalance = await calculateBalance(accountnumber);
-            const amount = formatNumber(Number(credit) > 0 ? credit : debit);
+            const amount = `N${formatNumber(Number(credit) > 0 ? credit : debit)}`;
             const balance = formatNumber(thebalance);
             const date = new Date().toLocaleDateString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
@@ -376,7 +376,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
         } else if (req.body.whichaccount == 'PROPERTY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_property_income_account : req.orgSettings.default_property_account;
             let thebalance = await calculateBalance(accountnumber);
-            const amount = formatNumber(Number(credit) > 0 ? credit : debit);
+            const amount = `N${formatNumber(Number(credit) > 0 ? credit : debit)}`;
             const balance = formatNumber(thebalance);
             const date = new Date().toLocaleDateString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
@@ -386,7 +386,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
         } else if (req.body.whichaccount == 'ROTARY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_rotary_income_account : req.orgSettings.default_rotary_account;
             let thebalance = await calculateBalance(accountnumber);
-            const amount = formatNumber(Number(credit) > 0 ? credit : debit);
+            const amount = `N${formatNumber(Number(credit) > 0 ? credit : debit)}`;
             const balance = formatNumber(thebalance);
             const date = new Date().toLocaleDateString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
@@ -396,7 +396,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
         } else if (req.body.whichaccount == 'PERSONAL') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_personal_income_account : req.orgSettings.default_personal_account;
             let thebalance = await calculateBalance(accountnumber);
-            const amount = formatNumber(Number(credit) > 0 ? credit : debit);
+            const amount = `N${formatNumber(Number(credit) > 0 ? credit : debit)}`;
             const balance = formatNumber(thebalance);
             const date = new Date().toLocaleDateString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';

@@ -795,16 +795,39 @@ const creditSavings = async (req, res) => {
     });
 
     const rows = response.data.values;
+    let balancesSentCount = 0;
 
-    for (let i = 2; i < rows.length; i++) { // Start from the third row
+    for (let i = 2; i < 4; i++) { // Start from the third row
       const row = rows[i];
       // Check if the row qualifies
-      if (!row[4] || !row[4].includes('@') || !row[13] || !row[14] || row[23] == 'credited') {
+      if (!row[4] || !row[4].includes('@') || !row[13] || !row[14] || row[23] == 'credited' || row[23] == 'incorrect phone number') {
         continue;
       }
       // Determine shares and thrift balances
       const sharesBalance = row[16] || row[13];
       const thriftBalance = row[17] || row[14];
+
+      const phonenum = row[0]; // Assume phone number is in the first column of the row
+      if (phonenum.length < 11) {
+        // Update column X with 'incorrect phone number'
+        const updateRange = `Data Collection!X${i + 1}`;
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: updateRange,
+          valueInputOption: 'USER_ENTERED',
+          resource: {
+            values: [['incorrect phone number']],
+          },
+        });
+
+        // Log the phone number to the activities log file
+        const fs = require('fs');
+        const path = require('path');
+        const logFilePath = path.join(__dirname, '../../../activities/incorrect_phone_numbers.log');
+        fs.appendFileSync(logFilePath, `${phonenum}\n`);
+
+        continue;
+      }
 
       // Get user ID from divine."users" table using phone number
       const { rows: users } = await pg.query(`
@@ -991,37 +1014,30 @@ const creditSavings = async (req, res) => {
         }
       }
 
-      // Send SMS of the transaction (assuming sendSMS is a defined function)
+      // Calculate total assets by fetching active transactions and computing balances
+      const { rows: sharesTransactions } = await pg.query(`
+        SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction"
+        WHERE accountnumber = $1 AND status = 'ACTIVE'
+      `, [sharesAccountNumber]);
+      const sharesCurrentBalance = sharesTransactions[0].balance || 0;
+
+      const { rows: thriftTransactions } = await pg.query(`
+        SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction"
+        WHERE accountnumber = $1 AND status = 'ACTIVE'
+      `, [thriftAccountNumber]);
+      const thriftCurrentBalance = thriftTransactions[0].balance || 0;
+
+      const totalAsset = sharesCurrentBalance + thriftCurrentBalance;
+      const currentDate = new Date().toLocaleDateString();
+
+      // Send a single SMS for both transactions
       let thephone = formatPhoneNumber(phone);
-      // Calculate the balance for shares account
-      const sharesBalanceQuery = {
-        text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1 AND status = 'ACTIVE'`,
-        values: [sharesAccountNumber]
-      };
-      const { rows: sharesRows } = await pg.query(sharesBalanceQuery);
-      const sharesfinalBalance = sharesRows[0].balance;
-
-      smsmessage = `Acct: ${maskValue(sharesAccountNumber)}
-Amt: ₦${formatNumber(sharesBalance)} CR
-Desc: Opening balance for shares
-Bal: ₦${formatNumber(sharesfinalBalance)}
-Date: ${new Date().toLocaleString()}
-Powered by DIVINE HELP FARMERS`;
-      sendSmsDnd(thephone, smsmessage);
-
-      // Calculate the balance for thrift account
-      const thriftBalanceQuery = {
-        text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1 AND status = 'ACTIVE'`,
-        values: [thriftAccountNumber]
-      };
-      const { rows: thriftRows } = await pg.query(thriftBalanceQuery);
-      const thriftfinalBalance = thriftRows[0].balance;
-
-      smsmessage = `Acct: ${maskValue(thriftAccountNumber)}
-Amt: ₦${formatNumber(thriftBalance)} CR
-Desc: Opening balance for thrift
-Bal: ₦${formatNumber(thriftfinalBalance)}
-Date: ${new Date().toLocaleString()}
+      smsmessage = `Hi ${firstname}
+N ${formatNumber(sharesBalance)} CR to SHARES ${maskValue(sharesAccountNumber)}
+N ${formatNumber(thriftBalance)} CR to THRIFT ${maskValue(thriftAccountNumber)}
+Desc: Opening Balances
+Date: ${currentDate}
+Total Asset: N ${formatNumber(totalAsset)}
 Powered by DIVINE HELP FARMERS`;
       sendSmsDnd(thephone, smsmessage);
 
@@ -1035,11 +1051,14 @@ Powered by DIVINE HELP FARMERS`;
           values: [['credited']],
         },
       });
+
+      // Increment the count of balances sent
+      balancesSentCount++;
     }
 
     return res.status(StatusCodes.OK).json({
       status: true,
-      message: 'Processed Excel data successfully.',
+      message: `Processed Excel data successfully. Balances sent: ${balancesSentCount}`,
       statuscode: StatusCodes.OK,
       data: null,
       errors: [],
