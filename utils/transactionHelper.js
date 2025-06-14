@@ -301,7 +301,6 @@ const saveTransaction = async (client, res, transactionData, req) => {
             const thriftProductId = productIdsRows.find(row => row.productname === 'THRIFT').id;
             const sharesProductId = productIdsRows.find(row => row.productname === 'SHARES').id;
 
-            // Fetch the savings product ID and member for the account
             const savingsProductQuery = {
                 text: `SELECT savingsproductid, member FROM divine."savings" WHERE accountnumber = $1 LIMIT 1`,
                 values: [accountnumber]
@@ -315,7 +314,6 @@ const saveTransaction = async (client, res, transactionData, req) => {
             const savingsProductId = savingsRows[0].savingsproductid;
             const memberId = savingsRows[0].member;
 
-            // Determine the other account based on the current savings product ID
             let otherProductId, otherAccountNumber;
             if (savingsProductId === thriftProductId) {
                 otherProductId = sharesProductId;
@@ -326,7 +324,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             if (otherProductId) {
                 const otherAccountQuery = {
                     text: `SELECT accountnumber FROM divine."savings" WHERE savingsproductid = $1 AND member = $2 AND userid = $3 LIMIT 1`,
-                    values: [otherProductId, memberId, userid]
+                    values: [otherProductId, memberId, theuserId]
                 };
                 const { rows: otherAccountRows } = await client.query(otherAccountQuery);
 
@@ -335,17 +333,15 @@ const saveTransaction = async (client, res, transactionData, req) => {
                 }
             }
 
-            // Calculate balances
             let thebalance = await calculateBalance(accountnumber);
             let totalAssetMessage = '';
 
             if (otherAccountNumber) {
                 const otherAccountBalance = await calculateBalance(otherAccountNumber);
                 const totalAsset = thebalance + otherAccountBalance;
-                totalAssetMessage = `Total Asset: ₦${formatNumber(totalAsset)}\n`;
+                totalAssetMessage = `Total Asset: ${formatNumber(totalAsset)}\n`;
             }
 
-            // Fetch the product name from the savings product table
             const productQuery = {
                 text: `SELECT productname FROM divine."savingsproduct" WHERE id = $1 LIMIT 1`,
                 values: [savingsProductId]
@@ -362,50 +358,50 @@ const saveTransaction = async (client, res, transactionData, req) => {
 
             const amount = formatNumber(Number(credit) > 0 ? credit : debit);
             const balance = formatNumber(thebalance);
-            const date = new Date().toLocaleString();
+            const date = new Date().toLocaleDateString(); // Changed to only include date
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: ${productName} ${shortDesc}, Bal: ₦${balance}, ${totalAssetMessage}Date: ${date}\nPowered by DIVINE HELP FARMERS`;
+            smsmessage = `Hi ${firstname} Acct: ${maskValue(accountnumber)} Amt: ${amount} ${transactionType} Desc: ${productName} ${shortDesc} Bal: ${balance} ${totalAssetMessage}Date: ${date} Powered by DIVINE HELP FARMERS`;
 
         } else if (req.body.whichaccount == 'LOAN') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_loan_income_account : req.orgSettings.default_loan_account;
             let thebalance = await calculateBalance(accountnumber);
             const amount = formatNumber(Number(credit) > 0 ? credit : debit);
             const balance = formatNumber(thebalance);
-            const date = new Date().toLocaleString();
+            const date = new Date().toLocaleDateString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: LOAN ${shortDesc}, Bal: ₦${balance}, Date: ${date}\nPowered by DIVINE HELP FARMERS`;
+            smsmessage = `Hi ${firstname},\nAcct: ${maskValue(accountnumber)},\nAmt: ${amount} ${transactionType},\nDesc: LOAN ${shortDesc},\nBal: ${balance},\nDate: ${date}\nPowered by DIVINE HELP FARMERS`;
 
         } else if (req.body.whichaccount == 'PROPERTY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_property_income_account : req.orgSettings.default_property_account;
             let thebalance = await calculateBalance(accountnumber);
             const amount = formatNumber(Number(credit) > 0 ? credit : debit);
             const balance = formatNumber(thebalance);
-            const date = new Date().toLocaleString();
+            const date = new Date().toLocaleDateString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: PROT ${shortDesc}, Bal: ₦${balance}, Date: ${date}\nPowered by DIVINE HELP FARMERS`;
+            smsmessage = `Hi ${firstname},\nAcct: ${maskValue(accountnumber)},\nAmt: ${amount} ${transactionType},\nDesc: PROT ${shortDesc},\nBal: ${balance},\nDate: ${date}\nPowered by DIVINE HELP FARMERS`;
 
         } else if (req.body.whichaccount == 'ROTARY') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_rotary_income_account : req.orgSettings.default_rotary_account;
             let thebalance = await calculateBalance(accountnumber);
             const amount = formatNumber(Number(credit) > 0 ? credit : debit);
             const balance = formatNumber(thebalance);
-            const date = new Date().toLocaleString();
+            const date = new Date().toLocaleDateString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: ROTY ${shortDesc}, Bal: ₦${balance}, Date: ${date}\nPowered by DIVINE HELP FARMERS`;
+            smsmessage = `Hi ${firstname},\nAcct: ${maskValue(accountnumber)},\nAmt: ${amount} ${transactionType},\nDesc: ROTY ${shortDesc},\nBal: ${balance},\nDate: ${date}\nPowered by DIVINE HELP FARMERS`;
 
         } else if (req.body.whichaccount == 'PERSONAL') {
             incomeAccountNumber = (ttype !== 'CREDIT' && ttype !== 'DEBIT') ? req.orgSettings.default_personal_income_account : req.orgSettings.default_personal_account;
             let thebalance = await calculateBalance(accountnumber);
             const amount = formatNumber(Number(credit) > 0 ? credit : debit);
             const balance = formatNumber(thebalance);
-            const date = new Date().toLocaleString();
+            const date = new Date().toLocaleDateString();
             const transactionType = ['DEBIT', 'PENALTY', 'CHARGE'].includes(ttype) ? 'DR' : ttype == 'CREDIT' ? 'CR' : '';
 
-            smsmessage = `Hi ${firstname}, Acct: ${maskValue(accountnumber)}, Amt: ₦${amount} ${transactionType}, Desc: PERL ${shortDesc}, Bal: ₦${balance}, Date: ${date}\nPowered by DIVINE HELP FARMERS`;
+            smsmessage = `Hi ${firstname},\nAcct: ${maskValue(accountnumber)},\nAmt: ${amount} ${transactionType},\nDesc: PERL ${shortDesc},\nBal: ${balance},\nDate: ${date}\nPowered by DIVINE HELP FARMERS`;
         }
 
             if(status == 'ACTIVE')sendSmsDnd(phoneNumber, smsmessage);
@@ -452,7 +448,7 @@ const applyMinimumCreditAmountPenalty = async (client, req, res, orgSettings) =>
         const penaltyAmount = orgSettings.minimum_credit_amount_penalty;
         const defaultIncomeAccountNumber = orgSettings.default_income_account;
         const incomeAccountQuery = `SELECT * FROM divine."Accounts" WHERE accountnumber = $1`;
-        const incomeAccountResult = await client.query(incomeAccountQuery, [defaultIncomeAccountNumber]);
+        const incomeAccountResult = await client.query(incomeAccountQuery, [defaultIncomeAccountNumber]); 
         let continued = true
         if (req.body.whichaccount == 'PERSONAL') {
             const userQuery = `SELECT id FROM divine."User" WHERE phone = $1`;

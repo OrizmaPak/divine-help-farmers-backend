@@ -39,12 +39,12 @@ function maskValue(value) {
 
     // Calculate the number of characters to mask, with a maximum of 6
     const maskLength = Math.min(valueStr.length - 4, 6);
-    const maskedPart = '*'.repeat(maskLength);
+    // const maskedPart = 'XX'.repeat(Math.ceil(maskLength / 2)).slice(0, maskLength);
+    const maskedPart = 'XX..';
     const visiblePart = valueStr.slice(-4);
 
     return maskedPart + visiblePart;
 }
- 
 
 function formatNumber(number, zero = "1", dec=2) {
     // If the number is 0 and zero is 0, return an empty string

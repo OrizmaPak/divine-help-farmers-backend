@@ -160,16 +160,24 @@ const sendSmsDnd = (number, message) => {
             return resolve(false);
         }
 
+        // Purify the message by converting all '/' to '-'
+        const purifiedMessage = message.replace(/\//g, '-');
+
         const data = {
             "to": number,
             "from": "N-Alert",
-            "sms": `${message}`,
+            "sms": `${purifiedMessage}`,
             "type": "plain",
             "api_key": process.env.TERMII_API_KEY,
             "channel": "dnd",
         };
 
         console.log("Data prepared for request:", data);
+
+        if (process.env.NODE_ENV === 'development') {
+            console.log("Development mode: SMS not sent. Logging data instead:", data);
+            return resolve(true);
+        }
 
         const options = {
             'method': 'POST',
