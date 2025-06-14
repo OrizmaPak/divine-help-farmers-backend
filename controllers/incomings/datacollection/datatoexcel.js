@@ -797,7 +797,7 @@ const creditSavings = async (req, res) => {
     const rows = response.data.values;
     let balancesSentCount = 0;
 
-    for (let i = 2; i < 4; i++) { // Start from the third row
+    for (let i = 2; i < rows.length; i++) { // Start from the third row
       const row = rows[i];
       // Check if the row qualifies
       if (!row[4] || !row[4].includes('@') || !row[13] || !row[14] || row[23] == 'credited' || row[23] == 'incorrect phone number') {
