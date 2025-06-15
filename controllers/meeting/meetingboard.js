@@ -178,18 +178,18 @@ const meetingboardreport = async (req, res) => {
                     if (payableProductNames.length > 0) {
                         userProducts.push({
                             productname: 'Personal Account',
-                            payment: `SUFFICIENT FUNDS TO COVER: ${payableProductNames.join(', ')} (${personalAccountNumber})`
+                            payment: `SUFFICIENT TO COVER: ${payableProductNames.join(', ')} (${personalAccountNumber})`
                         });
                     } else {
                         userProducts.push({
                             productname: 'Personal Account',
-                            payment: `INSUFFICIENT FUNDS TO COVER ANY DUES (${personalAccountNumber})`
+                            payment: `INSUFFICIENT FUNDS (${personalAccountNumber})`
                         });
                     }
                 } else {
                     userProducts.push({
                         productname: 'Personal Account',
-                        payment: `NO FUNDS AVAILABLE (${personalAccountNumber})`
+                        payment: `NO FUNDS (${personalAccountNumber})`
                     });
                 }
             }
