@@ -10,6 +10,7 @@ const { getUserMemberSavingsMonthly } = require('../controllers/dashboard/member
 const { getGLBalances } = require('../controllers/dashboard/admin/glbalance');
 const { getDefaultAccountKeysAndNames } = require('../controllers/dashboard/admin/nettransactions/gllist');
 const { getAssetsByKeys } = require('../controllers/dashboard/admin/nettransactions/dynamicnetgltransactions');
+const { adminmeetingboardreport } = require('../controllers/dashboard/admin/adminboard');
 const router = express.Router();
 
 // BRANCH MANAGEMENT
@@ -45,5 +46,8 @@ router.route('/gllist')
 
 router.route('/gltotalassets')
     .get(getAssetsByKeys)
+
+router.route('/adminboardreport')
+    .get(adminmeetingboardreport)
 
 module.exports = router; 

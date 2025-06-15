@@ -1,15 +1,15 @@
-const { StatusCodes } = require("http-status-codes");
-const pg = require("../../db/pg");
-const { activityMiddleware } = require("../../middleware/activity");
-const { getTransactionPeriod } = require("../../utils/datecode");
+   const { StatusCodes } = require("http-status-codes");
+const pg = require("../../../db/pg");
+const { activityMiddleware } = require("../../../middleware/activity");
+const { getTransactionPeriod } = require("../../../utils/datecode");
 
-const meetingboardreport = async (req, res) => {
-    const { branch, member } = req.query;
+const adminmeetingboardreport = async (req, res) => {
+    const { branch, member, asofdate } = req.query;
 
-    if (!branch || !member) {
+    if (!branch || !member || !asofdate) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "Branch and member must be provided",
+            message: "Branch, as of date and member must be provided",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: ["Branch and member are required fields"]
@@ -74,7 +74,7 @@ const meetingboardreport = async (req, res) => {
 
         users = users.filter(user => user !== null);
 
-        const today = new Date();
+        const today = new Date(asofdate);
         const results = [];
 
         for (const user of users) {
@@ -95,7 +95,7 @@ const meetingboardreport = async (req, res) => {
                 let frequencyAmount = product.compulsorydepositfrequencyamount || 5000;
 
                 // Get the transaction period
-                 dateRange = getTransactionPeriod(frequency, today);
+                dateRange = getTransactionPeriod(frequency, today);
 
                 // Get account numbers for the user and product, filter by member
                 const { rows: accounts } = await pg.query(`
@@ -107,13 +107,15 @@ const meetingboardreport = async (req, res) => {
                 for (const account of accounts) {
                     // Fetch transactions within the date range
                     const { rows: transactions } = await pg.query(`
-                        SELECT SUM(credit) as totalCredit 
+                        SELECT SUM(credit) as totalCredit, SUM(debit) as totalDebit 
                         FROM divine."transaction" 
                         WHERE accountnumber = $1 AND status = 'ACTIVE' 
                         AND transactiondate BETWEEN $2 AND $3
                     `, [account.accountnumber, dateRange.startDate, dateRange.endDate]);
 
                     const totalCredit = transactions[0].totalcredit || 0;
+                    const totalDebit = transactions[0].totaldebit || 0;
+                    const accountBalance = totalCredit - totalDebit;
                     let paymentStatus = `NOT PAID (${account.accountnumber})`;
 
                     if (totalCredit > 0) {
@@ -129,9 +131,19 @@ const meetingboardreport = async (req, res) => {
                         allPaid = false;
                     }
 
+                    // Fetch all transactions for the period
+                    const { rows: allTransactions } = await pg.query(`
+                        SELECT * 
+                        FROM divine."transaction" 
+                        WHERE accountnumber = $1 AND status = 'ACTIVE' 
+                        AND transactiondate BETWEEN $2 AND $3
+                    `, [account.accountnumber, dateRange.startDate, dateRange.endDate]);
+
                     userProducts.push({
                         productname: product.productname,
-                        payment: paymentStatus
+                        payment: paymentStatus,
+                        balance: accountBalance,
+                        transactions: allTransactions
                     });
                 }
             } 
@@ -147,7 +159,7 @@ const meetingboardreport = async (req, res) => {
                 // Construct personal account number
                 const personalAccountNumber = `${personalAccountPrefix}${user.phone}`;
 
-                // Check balance of personal account
+                // Check balance of personal account and fetch transactions
                 const { rows: personalAccountBalance } = await pg.query(`
                     SELECT SUM(credit) - SUM(debit) as balance 
                     FROM divine."transaction" 
@@ -157,12 +169,21 @@ const meetingboardreport = async (req, res) => {
 
                 const personalBalance = personalAccountBalance[0].balance || 0;
 
+                const { rows: personalTransactions } = await pg.query(`
+                    SELECT * 
+                    FROM divine."transaction" 
+                    WHERE accountnumber = $1 AND status = 'ACTIVE'
+                    AND transactiondate <= $2
+                `, [personalAccountNumber, dateRange.endDate]);
+
                 console.log('personalBalance:', personalBalance, personalAccountNumber);
 
                 if (personalBalance >= totalOwed) {
                     userProducts.push({
                         productname: 'Personal Account',
-                        payment: `SUFFICIENT FUNDS TO COVER ALL DUES (${personalAccountNumber})`
+                        payment: `SUFFICIENT FUNDS TO COVER ALL DUES (${personalAccountNumber})`,
+                        balance: personalBalance,
+                        transactions: personalTransactions
                     });
                 } else if (personalBalance > 0) {
                     const payableProducts = userProducts.filter(p => p.payment !== 'PAID' && !p.payment.includes('SUFFICIENT FUNDS TO COVER'));
@@ -180,18 +201,24 @@ const meetingboardreport = async (req, res) => {
                     if (payableProductNames.length > 0) {
                         userProducts.push({
                             productname: 'Personal Account',
-                            payment: `SUFFICIENT TO COVER: ${payableProductNames.join(', ')} (${personalAccountNumber})`
+                            payment: `SUFFICIENT TO COVER: ${payableProductNames.join(', ')} (${personalAccountNumber})`,
+                            balance: personalBalance,
+                            transactions: personalTransactions
                         });
                     } else {
                         userProducts.push({
                             productname: 'Personal Account',
-                            payment: `INSUFFICIENT FUNDS (${personalAccountNumber})`
+                            payment: `INSUFFICIENT FUNDS (${personalAccountNumber})`,
+                            balance: personalBalance,
+                            transactions: personalTransactions
                         });
                     }
                 } else {
                     userProducts.push({
                         productname: 'Personal Account',
-                        payment: `NO FUNDS (${personalAccountNumber})`
+                        payment: `NO FUNDS (${personalAccountNumber})`,
+                        balance: personalBalance,
+                        transactions: personalTransactions
                     });
                 }
             }
@@ -227,4 +254,4 @@ const meetingboardreport = async (req, res) => {
     }
 };
 
-module.exports = { meetingboardreport };
+module.exports = { adminmeetingboardreport };
