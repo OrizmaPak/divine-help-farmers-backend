@@ -1,6 +1,6 @@
 const schedule = require('node-schedule');
 const pg = require('../../db/pg');
-const sendEmail = require('../../utils/sendEmail'); // Assuming there's a utility to send emails
+const { sendEmail } = require('../../utils/sendEmail');
 
 const generateReferralReport = async () => {
     try {
@@ -54,4 +54,4 @@ const generateReferralReport = async () => {
 };
 
 // Schedule the job to run every Saturday at 12am
-schedule.scheduleJob('0 0 * * 6', generateReferralReport);
+schedule.scheduleJob('0 0 * * 6', generateReferralReport); 

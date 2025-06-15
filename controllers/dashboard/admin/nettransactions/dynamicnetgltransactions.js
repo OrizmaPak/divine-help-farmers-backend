@@ -94,13 +94,14 @@ const getAssetsByKeys = async (req, res) => {
                 december: { credit: 0, debit: 0, balance: 0 }
             };
 
-            // get balance brought forward for all transactions before the given year
+             // get balance brought forward for all transactions before the given year
             const balanceBroughtForwardQuery = {
                 text: `
                     SELECT COALESCE(SUM(credit) - SUM(debit), 0) as balance_before_year
                     FROM divine."transaction"
                     WHERE accountnumber = $1 
                     AND EXTRACT(YEAR FROM transactiondate) < $2
+                    AND status = 'ACTIVE'
                 `,
                 values: [accountnumber, year]
             };
@@ -116,6 +117,7 @@ const getAssetsByKeys = async (req, res) => {
                     FROM divine."transaction"
                     WHERE accountnumber = $1
                       AND EXTRACT(YEAR FROM transactiondate) = $2
+                      AND status = 'ACTIVE'
                     GROUP BY month
                     ORDER BY month
                 `,

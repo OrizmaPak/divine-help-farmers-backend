@@ -13,7 +13,7 @@ const pg = require('../db/pg');
 // Calculate the balance from the transaction table
 const calculateBalance = async (accountnumber) => { 
     const balanceQuery = {
-        text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1`,
+         text: `SELECT SUM(credit) - SUM(debit) AS balance FROM divine."transaction" WHERE accountnumber = $1 AND status = 'ACTIVE'`,
         values: [accountnumber]
     };
     const { rows } = await pg.query(balanceQuery);

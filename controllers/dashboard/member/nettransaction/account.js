@@ -80,7 +80,7 @@ const getAccountYearlyTransactions = async (req, res) => {
         // Initialize monthly balances with zero values
         const monthlyBalances = {
             january: { credit: 0, debit: 0, balance: balance_brought_forward || 0 },
-            february: { credit: 0, debit: 0, balance: 0 },
+            february: { credit: 0, debit: 0, balance: 0 }, 
             march: { credit: 0, debit: 0, balance: 0 },
             april: { credit: 0, debit: 0, balance: 0 },
             may: { credit: 0, debit: 0, balance: 0 },

@@ -108,6 +108,7 @@ const getUserMemberSavingsMonthly = async (req, res) => {
                         FROM divine."transaction"
                         WHERE accountnumber = $1 
                         AND EXTRACT(YEAR FROM transactiondate) < $2
+                        AND status = 'ACTIVE'
                     `,
                     values: [acc.accountnumber, year]
                 };
@@ -123,13 +124,14 @@ const getUserMemberSavingsMonthly = async (req, res) => {
                 monthlyQueryValues.push(year);
             }
 
-            const monthlyTransactionsQuery = {
+             const monthlyTransactionsQuery = {
                 text: `
                     SELECT EXTRACT(MONTH FROM transactiondate) as month,
                            SUM(credit) as total_credit,
                            SUM(debit) as total_debit
                     FROM divine."transaction"
                     WHERE accountnumber = $1
+                    AND status = 'ACTIVE'
                     ${monthlyQueryCondition}
                     GROUP BY month
                     ORDER BY month
