@@ -205,7 +205,7 @@ const adminmeetingboardreport = async (req, res) => {
                             balance: personalBalance,
                             transactions: personalTransactions
                         });
-                    } else {
+                    } else { 
                         userProducts.push({
                             productname: 'Personal Account',
                             payment: `INSUFFICIENT FUNDS (${personalAccountNumber})`,
