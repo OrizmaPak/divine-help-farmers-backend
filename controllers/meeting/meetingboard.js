@@ -113,11 +113,11 @@ const meetingboardreport = async (req, res) => {
                     `, [account.accountnumber, dateRange.startDate, dateRange.endDate]);
 
                     const totalCredit = transactions[0].totalcredit || 0;
-                    let paymentStatus = 'NOT PAID';
+                    let paymentStatus = `NOT PAID (${account.accountnumber})`;
 
                     if (totalCredit > 0) {
                         if (totalCredit < frequencyAmount) {
-                            paymentStatus = 'PARTIALLY PAID';
+                            paymentStatus = `PARTIALLY PAID (${account.accountnumber})`;
                             totalOwed += (frequencyAmount - totalCredit);
                             allPaid = false;
                         } else {
@@ -160,10 +160,10 @@ const meetingboardreport = async (req, res) => {
                 if (personalBalance >= totalOwed) {
                     userProducts.push({
                         productname: 'Personal Account',
-                        payment: 'SUFFICIENT FUNDS TO COVER ALL DUES'
+                        payment: `SUFFICIENT FUNDS TO COVER ALL DUES (${personalAccountNumber})`
                     });
                 } else if (personalBalance > 0) {
-                    const payableProducts = userProducts.filter(p => p.payment !== 'PAID' && p.payment !== 'SUFFICIENT FUNDS TO COVER ALL DUES');
+                    const payableProducts = userProducts.filter(p => p.payment !== 'PAID' && !p.payment.includes('SUFFICIENT FUNDS TO COVER'));
                     let remainingBalance = personalBalance;
                     const payableProductNames = [];
 
@@ -178,18 +178,18 @@ const meetingboardreport = async (req, res) => {
                     if (payableProductNames.length > 0) {
                         userProducts.push({
                             productname: 'Personal Account',
-                            payment: `SUFFICIENT FUNDS TO COVER: ${payableProductNames.join(', ')}`
+                            payment: `SUFFICIENT FUNDS TO COVER: ${payableProductNames.join(', ')} (${personalAccountNumber})`
                         });
                     } else {
                         userProducts.push({
                             productname: 'Personal Account',
-                            payment: 'INSUFFICIENT FUNDS TO COVER ANY DUES'
+                            payment: `INSUFFICIENT FUNDS TO COVER ANY DUES (${personalAccountNumber})`
                         });
                     }
                 } else {
                     userProducts.push({
                         productname: 'Personal Account',
-                        payment: 'NO FUNDS AVAILABLE'
+                        payment: `NO FUNDS AVAILABLE (${personalAccountNumber})`
                     });
                 }
             }
