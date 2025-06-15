@@ -36,7 +36,7 @@ const meetingboardreport = async (req, res) => {
 
         // Check if member exists
         const { rowCount: memberCount } = await pg.query(`
-            SELECT email FROM divine."User" WHERE id = $1
+            SELECT 1 FROM divine."User" WHERE id = $1
         `, [member]);
 
         if (memberCount === 0) {
@@ -49,8 +49,6 @@ const meetingboardreport = async (req, res) => {
             });
         }
 
-        const memberEmail = memberCount > 0 ? memberCount[0].email : null;
-
         // Fetch all products with meetingviewable set to 'YES'
         const { rows: products } = await pg.query(`
             SELECT id, productname, compulsorydepositfrequency, compulsorydepositfrequencyamount 
@@ -60,7 +58,7 @@ const meetingboardreport = async (req, res) => {
 
         // Fetch all users of the branch and filter by member
         let { rows: users } = await pg.query(`
-            SELECT u.id, u.firstname, u.lastname, u.othernames, u.phone 
+            SELECT u.id, u.firstname, u.lastname, u.othernames, u.phone, u.email 
             FROM divine."User" u
             WHERE u.branch = $1
         `, [branch]);
@@ -201,7 +199,7 @@ const meetingboardreport = async (req, res) => {
             results.push({
                 fullname: `${user.lastname} ${user.firstname} ${user.othername || ''}`.trim(),
                 phone: user.phone,
-                email: memberEmail,
+                email: user.email,
                 branch: branchName,
                 product: userProducts
             });
