@@ -40,9 +40,28 @@ const authMiddleware = async (req, res, next) => {
           errors: []
         });
       }
-      const { password, ...withoutpassword } = loggedinuser;
-      // ATTACH USER TO REQUEST OBJECT
-      req.user = withoutpassword;
+       const { password, ...withoutpassword } = loggedinuser;
+       if (withoutpassword.userpermissions) {
+           let permissionsArray = withoutpassword.permissions ? (withoutpassword.permissions.includes('|') ? withoutpassword.permissions.split('|') : [withoutpassword.permissions]) : [];
+           let userPermissionsArray = withoutpassword.userpermissions ? (withoutpassword.userpermissions.includes('|') ? withoutpassword.userpermissions.split('|') : [withoutpassword.userpermissions]) : [];
+
+           userPermissionsArray.forEach(permission => {
+               if (permission.startsWith('__')) {
+                   let permName = permission.slice(2);
+                   let index = permissionsArray.indexOf(permName);
+                   if (index !== -1) {
+                       permissionsArray.splice(index, 1);
+                   }
+               } else {
+                   if (!permissionsArray.includes(permission)) {
+                       permissionsArray.push(permission);
+                   }
+               }
+           });
+
+           withoutpassword.permissions = permissionsArray.join('|');
+       }
+       req.user = withoutpassword;
 
       // Automatically call manageOnlineUser middleware
       await manageOnlineUser(req, res, async () => {
