@@ -122,7 +122,7 @@ const meetingboardreport = async (req, res) => {
                             totalOwed += (frequencyAmount - totalCredit);
                             allPaid = false;
                         } else {
-                            paymentStatus = 'PAID';
+                            paymentStatus = `PAID (${account.accountnumber})`;
                         }
                     } else {
                         totalOwed += frequencyAmount;
