@@ -18,7 +18,7 @@
     
             // Determine access level based on user role and permissions
             let whereClause = '';
-            if (user.role !== 'SUPERADMIN' && (!user.permissions || !user.permissions.includes('ACCESS ALL USERS'))) {
+            if (user.role !== 'SUPERADMIN' && (!user.permissions || !user.permissions.includes('FILTER ALL USERS'))) {
                 // Restrict to users from the same branch
                 whereClause += whereClause ? ` AND u."branch" = $${query.values.length + 1}` : ` WHERE u."branch" = $${query.values.length + 1}`;
                 query.values.push(user.branch);
