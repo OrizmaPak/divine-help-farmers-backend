@@ -1265,6 +1265,7 @@ model branchchanged {
   userid          Int
   branch          String
   previousbranch  String
+  reason          String? @default("")
   dateadded       DateTime @default(now())
   status          String @default("ACTIVE")
 }

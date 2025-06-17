@@ -3,13 +3,13 @@ const { activityMiddleware } = require("../../../middleware/activity");
 const pg = require("../../../db/pg");
 
 const changeBranch = async (req, res) => {
-    const { userid, branch } = req.body;
+    const { userid, branch, reason } = req.body;
     const user = req.user;
 
-    if (!userid || !branch) {
+    if (!userid || !branch || !reason) {
         return res.status(StatusCodes.BAD_REQUEST).json({
             status: false,
-            message: "User ID and branch are required",
+            message: "User ID, branch, and reason are required",
             statuscode: StatusCodes.BAD_REQUEST,
             data: null,
             errors: []
@@ -86,10 +86,10 @@ const changeBranch = async (req, res) => {
         `, [branch, userid]);
 
         // Save the branch change to the branchchanged table
-         await pg.query(`
-            INSERT INTO divine."branchchanged" (userid, branch, previousbranch, dateadded, status)
-            VALUES ($1, $2, $3, NOW(), 'ACTIVE')
-        `, [userid, branch, userRows[0].branch]);
+        await pg.query(`
+            INSERT INTO divine."branchchanged" (userid, branch, previousbranch, dateadded, status, reason)
+            VALUES ($1, $2, $3, NOW(), 'ACTIVE', $4)
+        `, [userid, branch, userRows[0].branch, reason]);
         await activityMiddleware(req, user.id, 'Branch updated successfully', 'BRANCH_UPDATE');
 
         return res.status(StatusCodes.OK).json({

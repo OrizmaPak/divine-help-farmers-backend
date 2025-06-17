@@ -20,7 +20,7 @@ const getChangedBranch = async (req, res) => {
         let whereClause = '';
         let valueIndex = 1;
         Object.keys(req.query).forEach((key) => {
-            if (key !== 'q') {
+            if (key !== 'q' && key !== 'startdate' && key !== 'enddate') {
                 if (whereClause) {
                     whereClause += ` AND `;
                 } else {
@@ -31,6 +31,29 @@ const getChangedBranch = async (req, res) => {
                 valueIndex++;
             }
         });
+
+        // Add date range filter if provided
+        if (req.query.startdate) {
+            if (whereClause) {
+                whereClause += ` AND `;
+            } else {
+                whereClause += ` WHERE `;
+            }
+            whereClause += `bc."dateadded" >= $${valueIndex}`;
+            query.values.push(req.query.startdate);
+            valueIndex++;
+        }
+
+        if (req.query.enddate) {
+            if (whereClause) {
+                whereClause += ` AND `;
+            } else {
+                whereClause += ` WHERE `;
+            }
+            whereClause += `bc."dateadded" <= $${valueIndex}`;
+            query.values.push(req.query.enddate);
+            valueIndex++;
+        }
 
         // Add search query if provided
         if (req.query.q) {
