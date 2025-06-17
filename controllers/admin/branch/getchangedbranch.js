@@ -1,4 +1,4 @@
-const { StatusCodes } = require("http-status-codes");
+ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity");
 
@@ -77,6 +77,8 @@ const getChangedBranch = async (req, res) => {
 
         query.text += ` LIMIT $${valueIndex} OFFSET $${valueIndex + 1}`;
         query.values.push(limit, offset);
+
+        console.log('query:', query);
 
         const result = await pg.query(query);
         const changedBranches = result.rows;

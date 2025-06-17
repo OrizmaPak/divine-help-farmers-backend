@@ -111,6 +111,6 @@ const changeBranch = async (req, res) => {
             errors: [error.message]
         });
     }
-};
+}; 
 
 module.exports = { changeBranch };
