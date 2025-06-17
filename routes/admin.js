@@ -47,7 +47,7 @@ router.route('/department')
     .get(getDepartment)
 
 // ORGANIZATION SETTINGS
-router.route('/organizationsettings')
+router.route('/organizationsettings') 
     .post(organizationsettings)
     .get(getorgsettings);
 
