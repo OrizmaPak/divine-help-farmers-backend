@@ -1,6 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
-const pg = require("../../db/pg");
-const { activityMiddleware } = require("../../middleware/activity");
+const { activityMiddleware } = require("../../../middleware/activity");
+const pg = require("../../../db/pg");
 
 const changeBranch = async (req, res) => {
     const { userid, branch } = req.body;
