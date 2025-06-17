@@ -1259,3 +1259,12 @@ model tempemail {
   dateadded       DateTime @default(now())
   status          String @default("ACTIVE") 
 }
+
+model branchchanged {
+  id              Int    @id @default(autoincrement())
+  userid          Int
+  branch          String
+  previousbranch  String
+  dateadded       DateTime @default(now())
+  status          String @default("ACTIVE")
+}
