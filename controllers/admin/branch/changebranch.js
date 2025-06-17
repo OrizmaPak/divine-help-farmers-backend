@@ -43,7 +43,7 @@ const changeBranch = async (req, res) => {
 
     // Check if branch is valid
     const { rows: branchRows } = await pg.query(`
-        SELECT id FROM divine."Branch" WHERE branch = $1
+        SELECT id FROM divine."Branch" WHERE id = $1
     `, [branch]);
 
     if (branchRows.length === 0) {
