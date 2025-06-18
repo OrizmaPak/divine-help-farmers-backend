@@ -1,4 +1,4 @@
-
+ 
 const { sendSmsOffline } = require('../../../utils/sendSms');
 const pg = require('../../../db/pg');
 const { getTransactionPeriod } = require('../../../utils/datecode');
@@ -7,7 +7,7 @@ async function getNextMeetingDate(phone) {
     try {
         // Get the user details using the phone number
         const userQuery = {
-            text: `SELECT branch FROM divine."User" WHERE phone = $1`,
+            text: `SELECT firstname, branch FROM divine."User" WHERE phone = $1`,
             values: [phone]
         };
         const { rows: userDetails } = await pg.query(userQuery);
@@ -19,7 +19,7 @@ async function getNextMeetingDate(phone) {
             return;
         }
 
-        const branchId = userDetails[0].branch;
+        const { firstname, branch: branchId } = userDetails[0];
 
         // Fetch branch details from the Branch table
         const branchQuery = {
@@ -39,24 +39,24 @@ async function getNextMeetingDate(phone) {
         const frequency = meetingfrequency || "D31T";
 
         // Get the transaction period end date
-        const {endDate} = getTransactionPeriod(frequency);
+        const { endDate } = getTransactionPeriod(frequency);
 
         // Calculate the time difference
         const now = new Date();
-        const timeDiff = Math.abs(endDate - now);
-        const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        const endDateObj = new Date(endDate);
+        const timeDiff = endDateObj - now;
+        const days = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
         const weeks = Math.floor(days / 7);
         const remainingDays = days % 7;
 
         // Format the end date
-        const endDateObj = new Date(endDate);
         const day = endDateObj.getDate();
         const month = endDateObj.toLocaleString('default', { month: 'long' });
         const year = endDateObj.getFullYear();
         const formattedDate = `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
 
         // Form the message
-        const message = `${branch.toUpperCase()} BRANCH next meeting is in ${weeks} weeks ${remainingDays} days time at ${address} on ${formattedDate}`;
+           const message = `Hi ${firstname}, your DHF ${branch.toUpperCase()} branch meets in ${weeks} weeks and ${remainingDays} days at ${address}. Date: ${formattedDate}. Looking forward to seeing you!`;
 
         // Send the message over SMS
         const result = await sendSmsOffline(phone, message);

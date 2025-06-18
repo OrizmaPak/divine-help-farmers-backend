@@ -226,6 +226,7 @@ model Organisationsettings {
   vat_rate_percent                           Float      @default(0)
   addition_savings_registration_charge       Float?
   addition_loan_registration_charge       Float? @default(0)
+  new_member_registration_charge             Float? @default(0)
 
   allow_back_dated_transaction               String    @default("NO")
   allow_future_transaction                   String    @default("NO")
