@@ -1,10 +1,10 @@
-const { StatusCodes } = require("http-status-codes");
+ const { StatusCodes } = require("http-status-codes");
 const pg = require("../../../db/pg");
 const { activityMiddleware } = require("../../../middleware/activity"); // Added tracker middleware
 
 const createbranch = async (req, res) => {
-    const { id="", branch, country, state, lga, address='', status="", userid, unitno=0 } = req.body;
-    console.log({ branch, country, state, address, unitno });
+    const { id="", branch, country, state, lga, address='', status="", userid, unitno=0, meetingfrequency="" } = req.body;
+    console.log({ branch, country, state, address, unitno, meetingfrequency });
 
     const user = req.user;
     
@@ -98,14 +98,15 @@ const createbranch = async (req, res) => {
                     address = $4, 
                     lga = $5, 
                     unitno = $6,
-                    lastupdated = $7,
-                    userid = $8
-                    WHERE id = $9`, [branch, country, state, address, lga, unitno, new Date(), userid??null, id]);
+                    meetingfrequency = $7,
+                    lastupdated = $8,
+                    userid = $9
+                    WHERE id = $10`, [branch, country, state, address, lga, unitno, meetingfrequency, new Date(), userid??null, id]);
             }
         } else {
             query = await pg.query(`INSERT INTO divine."Branch" 
-                (branch, country, state, address, lga, unitno, createdby, userid) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [branch, country, state, address, lga, unitno, user.id, userid]);
+                (branch, country, state, address, lga, unitno, meetingfrequency, createdby, userid) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`, [branch, country, state, address, lga, unitno, meetingfrequency, user.id, userid]);
         }
 
         // NOW SAVE THE BRANCH

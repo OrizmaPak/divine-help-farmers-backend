@@ -200,6 +200,7 @@ model Branch {
   unitno      Int? @default(0)
   state       String?
   lga         String?
+  meetingfrequency String? @default("")
   address     String?
   status        String    @default("ACTIVE")
   dateadded   DateTime   @default(now())
@@ -1268,4 +1269,13 @@ model branchchanged {
   reason          String? @default("")
   dateadded       DateTime @default(now())
   status          String @default("ACTIVE")
+}
+
+model smsresponsetooffline {
+  id              Int    @id @default(autoincrement())
+  phone           String
+  message         String
+  dateadded       DateTime @default(now())
+  status          String @default("ACTIVE") 
+  createdby       Int    @default(0)
 }

@@ -20,6 +20,31 @@ const calculateBalance = async (accountnumber) => {
     return rows[0].balance;
 };
 
+ const calculateBalanceWithCurrency = async (accountnumber, currency = 'ALL', format = false) => {
+    const balanceQuery = {
+        text: `
+            SELECT currency, SUM(credit) - SUM(debit) AS balance 
+            FROM divine."transaction" 
+            WHERE accountnumber = $1 AND status = 'ACTIVE'
+            GROUP BY currency
+        `,
+        values: [accountnumber]
+    };
+    const { rows } = await pg.query(balanceQuery);
+
+    const formatBalance = (balance) => format ? formatNumber(balance) : balance;
+
+    if (currency === 'ALL') {
+        return rows.reduce((acc, row) => {
+            acc[row.currency] = formatBalance(row.balance);
+            return acc;
+        }, {});
+    } else {
+        const currencyRow = rows.find(row => row.currency === currency);
+        return currencyRow ? { [currency]: formatBalance(currencyRow.balance) } : { [currency]: 0 };
+    }
+};
+
 async function applyWithdrawalCharge(client, req, res, accountnumber, debit, whichaccount) {
     console.log('req', req);
     const chargeAmount = await calculateChargedebit(req.savingsProduct, debit); // Calculate the charge amount
@@ -1054,6 +1079,7 @@ module.exports = {
     takeCharges,
     applySavingsCharge,
     makeTransferToAccount,
-    calculateBalance
+    calculateBalance,
+    calculateBalanceWithCurrency
 };
 // generateDates, // Uncomment if needed

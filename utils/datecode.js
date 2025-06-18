@@ -1151,7 +1151,7 @@ function generateNextDates(code, numberOfDates, currentDateInput = new Date()) {
  * and a reference date.
  */
 // Start of Selection
-function getTransactionPeriod(code, date) {
+function getTransactionPeriod(code, date=new Date()) {
   console.log("Input:", code, date);
 
   const referenceDate = new Date(date);

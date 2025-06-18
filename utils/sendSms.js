@@ -109,6 +109,29 @@ const  sendSms = (number, message) => {
     });
 };
 
+const sendSmsOffline = async (number, message) => {
+    try {
+        const smsResponseData = {
+            text: `INSERT INTO divine."smsresponsetooffline" (phone, message, status) VALUES ($1, $2, $3)`,
+            values: [number, message, "ACTIVE"]
+        };
+        await pg.query(smsResponseData);
+        console.log('SMS details saved to smsresponsetooffline:', { number, message });
+
+        const smsChargesData = {
+            text: `INSERT INTO divine."smscharges" (phone, message, status, createdby) VALUES ($1, $2, $3, $4)`,
+            values: [number, message, "ACTIVE", 0]
+        };
+        await pg.query(smsChargesData);
+        console.log('SMS details saved to smscharges:', { number, message });
+
+        return true;
+    } catch (err) {
+        console.error('Database error:', err);
+        return false;
+    }
+};
+
 // const sendSms = (number, message) => {
 //     return new Promise(async (resolve, reject) => {
 //         if (!number || !message) {
@@ -215,6 +238,7 @@ const sendSmsDnd = (number, message) => {
 };
 
 const formatPhoneNumber = (number, country='nigeria') => {
+    if(country == '')country = 'nigeria';
     // Define a basic mapping of country codes
     const countryCodes = {
         // African countries
@@ -343,7 +367,7 @@ const formatPhoneNumber = (number, country='nigeria') => {
 };
 
 
-module.exports = { sendSms, sendSmsDnd, sendSmsBulk, formatPhoneNumber };
+module.exports = { sendSms, sendSmsDnd, sendSmsBulk, sendSmsOffline, formatPhoneNumber };
 
 
 // DIVINE HELP FARMERS
