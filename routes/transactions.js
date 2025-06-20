@@ -48,7 +48,7 @@ router.route('/collection')
     .post(processCollection)
 
 router.route('/collection/usermonthly')
-    .get(getUserMonthlyCollection)
+    .get(getUserMonthlyCollection) 
 
 router.route('/collection/useryearly')
     .get(getUserYearlyCollection)

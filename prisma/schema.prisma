@@ -86,6 +86,7 @@ model User {
   nextofkinoccupation     String?
   dateofbirth             DateTime?
   branch                  Int       @default(1)
+  registrationfee         String?     @default("PAID")
   registrationpoint       Int       @default(0)
   dateadded               DateTime  @default(now())
   lastupdated             DateTime?
@@ -1276,6 +1277,22 @@ model smsresponsetooffline {
   id              Int    @id @default(autoincrement())
   phone           String
   message         String
+  dateadded       DateTime @default(now())
+  status          String @default("ACTIVE") 
+  createdby       Int    @default(0)
+}
+
+model pendingofflinetransaction {
+  id              Int    @id @default(autoincrement())
+  phone           String
+  amount          Float
+  accountnumberfrom   String @default("")
+  productfrom         String @default("")
+  accountnumberto   String @default("")
+  productto         String @default("")
+  description     String
+  accounttypefrom     String @default("")
+  accounttypeto     String @default("")
   dateadded       DateTime @default(now())
   status          String @default("ACTIVE") 
   createdby       Int    @default(0)

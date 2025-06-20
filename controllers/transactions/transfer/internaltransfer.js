@@ -3,7 +3,7 @@ const { performTransaction } = require("../../../middleware/transactions/perform
 // const { performTransaction } = require("../../middleware/transactions/performTransaction");
 
 const internalTransfer = async (req, res) => {
-    const { accountnumberfrom, amount, accountnumberto } = req.body;
+    const { accountnumberfrom, amount, accountnumberto, transactionref='' } = req.body;
 
     console.log('Received internal transfer request:', { accountnumberfrom, amount, accountnumberto });
 
@@ -32,6 +32,7 @@ const internalTransfer = async (req, res) => {
         registrationpoint: req.user.registrationpoint,
         ttype: 'DEBIT',
         tfrom: 'BANK',
+        transactionref,
         tax: false,
     };
 
@@ -47,6 +48,7 @@ const internalTransfer = async (req, res) => {
         description: 'I.T',
         branch: req.user.branch,
         registrationpoint: req.user.registrationpoint,
+        transactionref,
         ttype: 'CREDIT',
         tfrom: 'BANK',
         tax: false,

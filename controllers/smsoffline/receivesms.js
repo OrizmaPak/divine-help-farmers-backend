@@ -9,6 +9,8 @@ const { sendSavingsProductBalance } = require("./actionprocessor/SAVINGS PRODUCT
 const { sendHelpMessageResponse } = require("./actionprocessor/HELP");
 const { sendBranchName } = require("./actionprocessor/WHATS MY BRANCH");
 const { getNextMeetingDate } = require("./actionprocessor/NEXT MEETING DATE");
+const { getAccountNumbers } = require("./actionprocessor/GET ACCOUNT NUMBERS");
+const { processSendAmountToAccount } = require("./actionprocessor/SEND AMOUNT TO ACCOUNT");
 
 const messageActions = [
     { id: 1, action: 'REGISTRATION' }, // DONE
@@ -16,13 +18,16 @@ const messageActions = [
     { id: 3, action: 'THRIFT BALANCE' }, // DONE
     { id: 4, action: 'SHARES BALANCE' }, // DONE
     { id: 5, action: 'TOTAL ASSET' }, // DONE
-    { id: 6, action: 'SEND {{AMOUNT}} TO {{PRODUCT}}' },
-    { id: 7, action: 'SEND FROM {{AMOUNT}} FROM {{PRODUCT}} TO {{PRODUCT}}' },
-    { id: 8, action: 'NEXT MEETING DATE' },
+    { id: 6, action: 'SEND {{AMOUNT}} TO {{ACCOUNT_NUMBER}}' }, // IN DONE
+    { id: 7, action: 'SEND FROM {{AMOUNT}} FROM {{ACCOUNT NUMBER}} TO {{ACCOUNT NUMBER}}' },
+    { id: 8, action: 'NEXT MEETING DATE' }, // DONE
     { id: 9, action: 'WHATS MY BRANCH' }, // DONE
     { id: 10, action: 'UNKNOWN' }, // DONE
     { id: 11, action: 'HELP'}, // DONE
     { id: 12, action: 'REGISTER {{FIRSTNAME}} {{LASTNAME}} {{EMAIL}}'},
+    { id: 13, action: 'SEND {{AMOUNT}} TO {{PRODUCT}}'},
+    { id: 14, action: 'SEND FROM {{AMOUNT}} FROM {{PRODUCT}} TO {{PRODUCT}}'},
+    { id: 15, action: 'GET ACCOUNT NUMBERS' }, // DONE
 ];
 
 const receiveSms = async (req, res) => {
@@ -37,7 +42,7 @@ const receiveSms = async (req, res) => {
             data: null,
             errors: ["Missing phone number or message"]
         });
-    }
+    } 
 
     try {
         // Use AI to interpret the message
@@ -65,7 +70,7 @@ const receiveSms = async (req, res) => {
                     await sendTotalAsset(phone);
                     break;
                 case 6: // SEND {{AMOUNT}} TO {{PRODUCT}}
-                    // Call the send amount to product function using action.action
+                    await processSendAmountToAccount(phone, interpretedMessage[1].split(' TO ')[0].split('SEND ')[1], interpretedMessage[1].split(' TO ')[1]);
                     break;
                 case 7: // SEND FROM {{AMOUNT}} FROM {{PRODUCT}} TO {{PRODUCT}}
                     // Call the send from product to product function using action.action
@@ -82,8 +87,17 @@ const receiveSms = async (req, res) => {
                 case 11: // HELP
                     await sendHelpMessageResponse(phone);
                     break;
-                case 11: // REGISTER A USER
+                 case 12: // REGISTER A USER
 
+                    break;
+                 case 13: // ANOTHER ACTION
+
+                    break;
+                 case 14: // YET ANOTHER ACTION
+
+                    break;
+                 case 15: // FINAL ACTION
+                    await getAccountNumbers(phone);
                     break;
             }
 
