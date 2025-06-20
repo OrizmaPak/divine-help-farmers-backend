@@ -271,7 +271,7 @@ const saveTransaction = async (client, res, transactionData, req) => {
             transactiondesc = req.body ? req.body.transactiondesc || '' : '',
             currency = req.body ? req.body.currency : '',
             tfrom = req.body ? req.body.tfrom : '',
-            transactionref = req.body ? req.body.transactionref ?? '' : '',
+            transactionref = req.body ? req.body.transactionref || '' : '',
             cashref = req.body ? req.body.cashref ?? '' : '',
         } = transactionData;
 
