@@ -5,7 +5,6 @@ const { performTransaction } = require("../../../middleware/transactions/perform
 const internalTransfer = async (req, res) => {
     const { accountnumberfrom, amount, accountnumberto, transactionref } = req.body;
 
-
     console.log('Received internal transfer request:', { accountnumberfrom, amount, accountnumberto });
 
     if (!accountnumberfrom || !amount || !accountnumberto) {
@@ -28,7 +27,7 @@ const internalTransfer = async (req, res) => {
         transactiondate: new Date(),
         transactiondesc: 'Internal transfer debit',
         currency: 'NGN',
-        description: 'I.T',
+        description: 'Reg Fee',
         branch: req.user.branch,
         registrationpoint: req.user.registrationpoint,
         ttype: 'DEBIT',
@@ -36,7 +35,7 @@ const internalTransfer = async (req, res) => {
         transactionref: transactionref,
         tax: false,
     };
-
+    
     // Define the 'to' transaction
     const toTransaction = {
         accountnumber: accountnumberto,
@@ -46,7 +45,7 @@ const internalTransfer = async (req, res) => {
         transactiondate: new Date(),
         transactiondesc: 'Internal transfer credit',
         currency: 'NGN',
-        description: 'I.T',
+        description: 'Reg Fee',
         branch: req.user.branch,
         registrationpoint: req.user.registrationpoint,
         transactionref,
