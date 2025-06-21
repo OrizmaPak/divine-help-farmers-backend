@@ -202,6 +202,7 @@ model Branch {
   state       String?
   lga         String?
   meetingfrequency String? @default("")
+  registrationfee Int? @default(0)
   address     String?
   status        String    @default("ACTIVE")
   dateadded   DateTime   @default(now())
@@ -1296,12 +1297,4 @@ model pendingofflinetransaction {
   dateadded       DateTime @default(now())
   status          String @default("ACTIVE") 
   createdby       Int    @default(0)
-}
-
-model meetingcodes {
-  id                 Int       @id @default(autoincrement())
-  meetingcode         String?
-  status             String @default("ACTIVE")
-  dateadded          DateTime @default(now())
-  createdby          Int
 }
