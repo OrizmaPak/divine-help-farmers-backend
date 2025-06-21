@@ -1041,13 +1041,22 @@ Powered by DIVINE HELP FARMERS`;
       sendSmsDnd(thephone, smsmessage);
 
       // Update column X with 'credited'
-      const updateRange = `Data Collection!Y${i + 1}`;
+      const updateRange = `Data Collection!X${i + 1}`;
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: updateRange,
         valueInputOption: 'USER_ENTERED',
         resource: {
-          values: [['confirmed']],
+          values: [['credited']],
+        },
+      }); 
+      const updateRange2 = `Data Collection!X${i + 1}`;
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: updateRange2,
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+          values: [['confirmedd']],
         },
       });
 
