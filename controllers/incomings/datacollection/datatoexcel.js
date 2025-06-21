@@ -1050,15 +1050,15 @@ Powered by DIVINE HELP FARMERS`;
           values: [['credited']],
         },
       }); 
-      const updateRange2 = `Data Collection!Y${i + 1}`;
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: updateRange2,
-        valueInputOption: 'USER_ENTERED',
-        resource: {
-          values: [['confirmedd']],
-        },
-      });
+      // const updateRange2 = `Data Collection!Y${i + 1}`;
+      // await sheets.spreadsheets.values.update({
+      //   spreadsheetId,
+      //   range: updateRange2,
+      //   valueInputOption: 'USER_ENTERED',
+      //   resource: {
+      //     values: [['confirmedd']],
+      //   },
+      // });
 
       // Increment the count of balances sent
       balancesSentCount++;
