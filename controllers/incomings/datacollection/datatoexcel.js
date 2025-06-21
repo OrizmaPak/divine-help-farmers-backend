@@ -1050,7 +1050,7 @@ Powered by DIVINE HELP FARMERS`;
           values: [['credited']],
         },
       }); 
-      const updateRange2 = `Data Collection!X${i + 1}`;
+      const updateRange2 = `Data Collection!Y${i + 1}`;
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: updateRange2,
