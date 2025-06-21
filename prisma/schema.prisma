@@ -86,7 +86,7 @@ model User {
   nextofkinoccupation     String?
   dateofbirth             DateTime?
   branch                  Int       @default(1)
-  registrationfee         String?     @default("PAID")
+  registrationfee         String?     @default("")
   registrationpoint       Int       @default(0)
   dateadded               DateTime  @default(now())
   lastupdated             DateTime?
