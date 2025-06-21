@@ -6,4 +6,6 @@ const { getbranch } = require('../controllers/admin/branch/getoffline');
 router.route('/')
     .get(getbranch);
 
+
+
 module.exports = router;
