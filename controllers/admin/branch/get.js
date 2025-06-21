@@ -3,14 +3,13 @@ const { activityMiddleware } = require("../../../middleware/activity"); // Added
 const pg = require("../../../db/pg");
 const { addOneDay } = require("../../../utils/expiredate");
 const { divideAndRoundUp } = require("../../../utils/pageCalculator");
+const { generateNextDates } = require("../../../utils/datecode");
 
 const getbranch = async (req, res) => {
 
     let userid;
 
     const user = req.user
-
-    // console.log(req.user)
 
     // FOR PAGINATION
     const searchParams = new URLSearchParams(req.query);
@@ -28,12 +27,6 @@ const getbranch = async (req, res) => {
     const order = searchParams.get('order') || 'DESC';
     const module = searchParams.get('module') || '';
 
-    // if (req.user.role == 'SUPERADMIN') {
-    //     userid = _userid || req.user.id; 
-    // } else {
-    //     userid = req.user.id;
-    // }
-
     let queryString = `SELECT * FROM divine."Branch" WHERE 1=1`;
     let params = []; // Array to hold query parameters
 
@@ -44,7 +37,7 @@ const getbranch = async (req, res) => {
     }
 
     if (q) {
-        // Fetch column names from the 'Budget' table
+        // Fetch column names from the 'Branch' table
         const { rows: columns } = await pg.query(`
             SELECT column_name
             FROM information_schema.columns
@@ -100,7 +93,6 @@ const getbranch = async (req, res) => {
     params = params.map(param => param.toString());
 
     try {
-        // return new Response(JSON.stringify({queryString, params, sort}))
         console.log(queryString, params)
         const { rows: branches } = await pg.query(queryString, params); // Pass params array
 
@@ -119,8 +111,14 @@ const getbranch = async (req, res) => {
             return acc;
         }, {});
 
-        branches.forEach(branch => {
+        branches.forEach(async branch => {
             branch.useridname = userNameMap[branch.userid] || null;
+            if (branch.meetingfrequency) {
+                const nextMeetingDates = await generateNextDates(branch.meetingfrequency, 1);
+                branch.nextmeetingdate = nextMeetingDates.length > 0 ? nextMeetingDates[0] : null;
+            } else {
+                branch.nextmeetingdate = null;
+            }
         });
 
         let catchparams = params.slice(0, -2)
