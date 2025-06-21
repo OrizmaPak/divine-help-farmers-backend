@@ -786,7 +786,7 @@ const creditSavings = async (req, res) => {
 
     // Replace with your actual Spreadsheet ID
     const spreadsheetId = '1UGZ9x-2_xii2M18L0-3mbIxHJ6nI6oORdjiS07FKB2k';
-    const range = 'Data Collection!A:X';
+    const range = 'Data Collection!A:Y';
 
     // Fetch data from the specified range in the spreadsheet
     const response = await sheets.spreadsheets.values.get({
@@ -810,7 +810,7 @@ const creditSavings = async (req, res) => {
       const phonenum = row[0]; // Assume phone number is in the first column of the row
       if (phonenum.length < 11) {
         // Update column X with 'incorrect phone number'
-        const updateRange = `Data Collection!X${i + 1}`;
+        const updateRange = `Data Collection!Y${i + 1}`;
         await sheets.spreadsheets.values.update({
           spreadsheetId,
           range: updateRange,
@@ -968,7 +968,7 @@ const creditSavings = async (req, res) => {
           transactiondate: 'NOW()',
           status: 'ACTIVE',
           debit: 0,
-          description: `Opening Credit for ${firstname} ${lastname}`,
+          description: `Opening Credit for ${firstname} ${lastname} account`,
           image: null,
           branch: branch,
           registrationpoint: null,
@@ -1041,13 +1041,13 @@ Powered by DIVINE HELP FARMERS`;
       sendSmsDnd(thephone, smsmessage);
 
       // Update column X with 'credited'
-      const updateRange = `Data Collection!X${i + 1}`;
+      const updateRange = `Data Collection!Y${i + 1}`;
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: updateRange,
         valueInputOption: 'USER_ENTERED',
         resource: {
-          values: [['credited']],
+          values: [['confirmed']],
         },
       });
 
