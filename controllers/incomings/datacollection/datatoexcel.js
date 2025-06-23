@@ -103,22 +103,22 @@ const saveDataToGoogleSheet = async (req, res) => {
     
             const userName = userCode.name;
     
-            if (data.type === 'UPDATE') {
-                const creatorName = existingRow[9]; // Column for 'Created By'
+            // if (data.type === 'UPDATE') {
+            //     const creatorName = existingRow[9]; // Column for 'Created By'
     
-                if (creatorName !== userName) {
-                    return res.status(StatusCodes.FORBIDDEN).json({
-                        error: true,
-                        message: 'You are not authorized to update this record.',
-                        statuscode: StatusCodes.FORBIDDEN,
-                        data: null,
-                        errors: [{
-                            field: 'code',
-                            message: 'The code does not match the original creator of the record.'
-                        }]
-                    });
-                }
-            }
+            //     if (creatorName !== userName) {
+            //         return res.status(StatusCodes.FORBIDDEN).json({
+            //             error: true,
+            //             message: 'You are not authorized to update this record.',
+            //             statuscode: StatusCodes.FORBIDDEN,
+            //             data: null,
+            //             errors: [{
+            //                 field: 'code',
+            //                 message: 'The code does not match the original creator of the record.'
+            //             }]
+            //         });
+            //     }
+            // }
     
             const currentDate = new Date().toISOString();
     
