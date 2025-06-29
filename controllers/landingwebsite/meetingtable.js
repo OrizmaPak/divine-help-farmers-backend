@@ -1,4 +1,4 @@
-   const { StatusCodes } = require("http-status-codes");
+    const { StatusCodes } = require("http-status-codes");
 const pg = require("../../db/pg");
 const { getTransactionPeriod } = require('../../utils/datecode');
 const { generateSentenceControllerwithoutdate } = require("../ai/ai");
@@ -7,7 +7,7 @@ const getAllBranchesAndSendMeetingDates = async (req, res) => {
     try {
         // Fetch all branches from the Branch table
         const branchQuery = {
-            text: `SELECT id, branch, meetingfrequency FROM divine."Branch"`
+            text: `SELECT id, branch, address, meetingfrequency, userid FROM divine."Branch"`
         };
         const { rows: branches } = await pg.query(branchQuery);
 
@@ -21,9 +21,9 @@ const getAllBranchesAndSendMeetingDates = async (req, res) => {
             });
         }
 
-        // Prepare the data with next meeting dates and meeting frequency translation
+        // Prepare the data with next meeting dates, meeting frequency translation, and phone number
         const branchesWithMeetingDates = await Promise.all(branches.map(async branch => {
-            const { id, branch: branchName, meetingfrequency } = branch;
+            const { id, branch: branchName, address, meetingfrequency, userid } = branch;
             const frequency = meetingfrequency || "D31T";
 
             // Get the transaction period end date
@@ -36,12 +36,22 @@ const getAllBranchesAndSendMeetingDates = async (req, res) => {
             // Translate meeting frequency
             const meetingFrequencyTranslation = await generateSentenceControllerwithoutdate(frequency);
 
+            // Fetch phone number from the User table using the user id
+            const userQuery = {
+                text: `SELECT phone FROM divine."User" WHERE id = $1`,
+                values: [userid]
+            };
+            const { rows: [user] } = await pg.query(userQuery);
+            const phoneNumber = user ? user.phone : null;
+
             return {
                 id,
                 branchName,
+                address,
                 nextMeetingDate: formattedDate,
                 meetingFrequencyTranslation,
-                frequency
+                frequency,
+                phoneNumber
             };
         }));
 
