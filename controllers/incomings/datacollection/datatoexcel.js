@@ -1123,7 +1123,7 @@ const creditSavingsGL = async (req, res) => {
     for (let i = 2; i < rows.length; i++) { // Start from the third row
       const row = rows[i];
       // Check if the row qualifies
-      if (!row[4] || !row[4].includes('@') || !row[13] || !row[14] || row[23] != 'credited' || row[23] == 'incorrect phone number' || row[24] == 'confirmed') {
+      if (!row[4] || !row[4].includes('@') || !row[13] || !row[14] || row[23] != 'credited' || row[23] == 'incorrect phone number' || row[24] == 'confirmed' || row[24] == 'confirmedd') {
         continue;
       }
       // Determine shares and thrift balances
@@ -1256,7 +1256,7 @@ const creditSavingsGL = async (req, res) => {
         range: updateRange,
         valueInputOption: 'USER_ENTERED',
         resource: {
-          values: [['confirmed']],
+          values: [['confirmedd']],
         },
       });
 
