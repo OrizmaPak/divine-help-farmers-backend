@@ -31,7 +31,7 @@ const messageActions = [
 ];
 
 const receiveSms = async (req, res) => {
-    const user = req.user;
+    const user = req.user; 
     const { phone, message } = req.body;
 
     if (!phone || !message) {

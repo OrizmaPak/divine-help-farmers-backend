@@ -1298,3 +1298,12 @@ model pendingofflinetransaction {
   status          String @default("ACTIVE") 
   createdby       Int    @default(0)
 }
+
+model codeandmeaningforlanding {
+  id                 Int       @id @default(autoincrement())
+   code               String   @unique
+  meaning            String
+  createdby          Int
+  dateadded          DateTime @default(now())
+  status             String @default("ACTIVE")
+}

@@ -37,6 +37,7 @@ const paystackRouter = require('./routes/paystack');
 const videoRouter = require('./routes/video'); 
 const meetingRouter = require('./routes/meeting');
 const smsofflineRouter = require('./routes/smsoffline');
+const landingpageRouter = require('./routes/landingpage');
 //const eventRouter = require('./routes/events');
 
 // error handler
@@ -93,6 +94,7 @@ app.use('/node/api/v1/notification', authMiddleware, notificationRouter);
 app.use('/node/api/v1/video', authMiddleware, videoRouter);
 app.use('/node/api/v1/meeting', authMiddleware, meetingRouter);
 app.use('/node/api/v1/smsoffline', smsofflineRouter);
+app.use('/node/api/v1/landingpage', landingpageRouter);
 //app.use('/node/api/v1/events', authMiddleware, eventsRouter);
 
 app.use('/node/api/v1/incomings', incomingsRouter); 
